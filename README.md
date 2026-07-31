@@ -53,11 +53,18 @@ pub struct Value {
 }
 ```
 
-Use `Value::new(...)` to construct values from displayed quantities:
+Use the `value(...)` helper to construct values from displayed quantities:
 
 ```rust
-let distance = Value::new(5.0, Arc::clone(metric_units().get("km").unwrap()));
-let duration = Value::new(1.0, Arc::clone(metric_units().get("h").unwrap()));
+let distance = value(5.0, "km")?;
+let duration = value(1.0, "h")?;
+```
+
+For lower-level access, `unit(...)` returns the shared `Arc<Unit>` for a symbol or name:
+
+```rust
+let kilometer = unit("km")?;
+let distance = Value::new(5.0, kilometer);
 ```
 
 This stores:
@@ -72,9 +79,7 @@ This stores:
 `src/main.rs` currently demonstrates:
 
 ```rust
-let v1 = Value::new(5.0, Arc::clone(metric_units().get("km").unwrap()));
-let v2 = Value::new(1.0, Arc::clone(metric_units().get("hour").unwrap()));
-let speed = (v1 / v2).unwrap();
+let speed = (value(5.0, "km")? / value(1.0, "h")?)?;
 
 println!("{}", speed.to_display());
 ```
@@ -94,10 +99,10 @@ Arithmetic uses canonical values and combines unit dimensions.
 Addition and subtraction require compatible dimensions:
 
 ```rust
-let a = Value::new(1.0, Arc::clone(metric_units().get("km").unwrap()));
-let b = Value::new(500.0, Arc::clone(metric_units().get("m").unwrap()));
+let a = value(1.0, "km")?;
+let b = value(500.0, "m")?;
 
-let result = (a + b).unwrap();
+let result = (a + b)?;
 assert_eq!(result.to_display(), "1.5km");
 ```
 
@@ -254,13 +259,9 @@ Affine units such as Celsius and Fahrenheit require both a scalar and an offset.
 Abacus supports converting affine units into compatible units, but rejects arithmetic that would produce misleading results:
 
 ```rust
-let celsius = Value::new(100.0, Arc::clone(metric_units().get("°C").unwrap()));
-let kelvin = celsius
-    .convert_to(Arc::clone(metric_units().get("K").unwrap()))
-    .unwrap();
-let fahrenheit = celsius
-    .convert_to(Arc::clone(metric_units().get("°F").unwrap()))
-    .unwrap();
+let celsius = value(100.0, "°C")?;
+let kelvin = celsius.convert_to(unit("K")?)?;
+let fahrenheit = celsius.convert_to(unit("°F")?)?;
 
 assert_eq!(kelvin.to_display(), "373.15K");
 assert_eq!(fahrenheit.to_display(), "212°F");
@@ -298,7 +299,7 @@ The test suite covers:
 
 ## Current limitations
 
-- No expression parser yet. Values are currently constructed manually in Rust.
+- No expression parser yet. Values are currently constructed through helper functions in Rust.
 - Unit display simplification only cancels exact symbols.
 - No normalized display selection yet, such as automatically converting `m*cm` to `m^2`.
 - Some common derived SI units are not registered yet.

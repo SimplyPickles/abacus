@@ -6,23 +6,57 @@ use crate::{
 mod registry;
 mod units;
 
-use std::{
-    collections::HashMap,
-    sync::{Arc, OnceLock},
-};
+use std::{collections::HashMap, sync::OnceLock};
 
-static METRIC_UNITS: OnceLock<HashMap<String, Arc<Unit>>> = OnceLock::new();
+static METRIC_UNITS: OnceLock<HashMap<String, std::sync::Arc<Unit>>> = OnceLock::new();
 
-pub fn metric_units() -> &'static HashMap<String, Arc<Unit>> {
+pub fn metric_units() -> &'static HashMap<String, std::sync::Arc<Unit>> {
     METRIC_UNITS.get_or_init(register_metric_units)
 }
 
-fn main() {
-    let v1 = Value::new(5.0, Arc::clone(metric_units().get("m").unwrap()));
-    let v2 = Value::new(2.0, Arc::clone(metric_units().get("m").unwrap()));
+pub fn unit(symbol: &str) -> Result<std::sync::Arc<Unit>, String> {
+    metric_units()
+        .get(symbol)
+        .cloned()
+        .ok_or_else(|| format!("unknown unit: {symbol}"))
+}
 
-    let speed = (v1 * v2).unwrap();
+pub fn value(amount: f64, symbol: &str) -> Result<Value, String> {
+    Ok(Value::new(amount, unit(symbol)?))
+}
 
-    println!("(5m*2m)/100m");
+fn main() -> Result<(), String> {
+    let speed = (value(5.0, "km")? / value(1.0, "h")?)?;
+
+    println!("5km / 1h");
     println!("{}", speed.to_display());
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::units::dimensions::Dimensions;
+
+    #[test]
+    fn looks_up_units_by_symbol_or_name() {
+        assert_eq!(unit("km").unwrap().display.render(), "km");
+        assert_eq!(unit("hour").unwrap().display.render(), "h");
+    }
+
+    #[test]
+    fn returns_an_error_for_unknown_units() {
+        assert_eq!(unit("wat").unwrap_err(), "unknown unit: wat");
+    }
+
+    #[test]
+    fn constructs_values_from_amount_and_unit_symbol() {
+        let distance = value(5.0, "km").unwrap();
+        let duration = value(1.0, "h").unwrap();
+        let speed = (distance / duration).unwrap();
+
+        assert_eq!(speed.to_display(), "5km/h");
+        assert_eq!(speed.unit.dimensions, Dimensions::LENGTH - Dimensions::TIME);
+    }
 }
