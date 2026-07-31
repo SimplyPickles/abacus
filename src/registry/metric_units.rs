@@ -81,9 +81,22 @@ const TEMPORAL_UNITS: &[(&str, &str, f64)] = &[
     ("week", "wk", 7.0 * 24.0 * 60.0 * 60.0),
 ];
 
+const CELSIUS_ALIASES: &[&str] = &["celsius", "degC", "°C"];
+
 // Declares a public function that returns a map of base and prefixed metric units.
 pub fn register_metric_units() -> HashMap<String, Arc<Unit>> {
     let mut map: HashMap<String, Arc<Unit>> = HashMap::new();
+
+    let celsius = Arc::new(Unit {
+        scalar: 1.0,
+        offset: 273.15,
+        dimensions: Dimensions::TEMPERATURE,
+        display: UnitExpr::single("°C"),
+    });
+
+    for &alias in CELSIUS_ALIASES {
+        map.insert(alias.to_string(), Arc::clone(&celsius));
+    }
 
     for &(name, alias, scalar) in TEMPORAL_UNITS {
         let unit = Arc::new(Unit {
@@ -167,6 +180,48 @@ mod tests {
         assert_eq!(units.get("B").unwrap().scalar, 8.0);
         assert_eq!(units.get("GB").unwrap().scalar, 8e9);
         assert_eq!(units.get("GiB").unwrap().scalar, 8_589_934_592.0);
+    }
+
+    #[test]
+    fn registers_celsius() {
+        let units = register_metric_units();
+        let celsius = units.get("°C").unwrap();
+
+        assert_eq!(celsius.scalar, 1.0);
+        assert_eq!(celsius.offset, 273.15);
+        assert_eq!(celsius.dimensions, Dimensions::TEMPERATURE);
+        assert_eq!(celsius.display.render(), "°C");
+        assert!(Arc::ptr_eq(celsius, units.get("celsius").unwrap()));
+        assert!(Arc::ptr_eq(celsius, units.get("degC").unwrap()));
+    }
+
+    #[test]
+    fn converts_celsius_to_kelvin_and_fahrenheit() {
+        use crate::units::value::Value;
+
+        let units = register_metric_units();
+        let celsius = Value::new(100.0, Arc::clone(units.get("°C").unwrap()));
+        let kelvin = celsius
+            .convert_to(Arc::clone(units.get("K").unwrap()))
+            .unwrap();
+        let fahrenheit = celsius
+            .convert_to(Arc::clone(units.get("°F").unwrap()))
+            .unwrap();
+
+        assert_eq!(celsius.canonical, 373.15);
+        assert_eq!(kelvin.to_display(), "373.15K");
+        assert_eq!(fahrenheit.to_display(), "212°F");
+    }
+
+    #[test]
+    fn rejects_unsupported_celsius_arithmetic() {
+        use crate::units::value::Value;
+
+        let units = register_metric_units();
+        let lhs = Value::new(10.0, Arc::clone(units.get("°C").unwrap()));
+        let rhs = Value::new(5.0, Arc::clone(units.get("°C").unwrap()));
+
+        assert!((lhs - rhs).is_err());
     }
 
     #[test]
