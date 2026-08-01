@@ -1,4 +1,6 @@
-use crate::units::dimensions::Dimensions;
+use std::ops::Deref;
+
+use crate::{global_units, units::dimensions::Dimensions};
 
 #[derive(Debug)]
 pub struct Unit {
@@ -40,7 +42,6 @@ impl UnitExpr {
             numerator,
             denominator,
         }
-        .simplified()
     }
 
     pub fn divide(&self, rhs: &Self) -> Self {
@@ -54,7 +55,6 @@ impl UnitExpr {
             numerator,
             denominator,
         }
-        .simplified()
     }
 
     pub fn simplified(mut self) -> Self {
@@ -122,6 +122,33 @@ fn render_units(units: &[String]) -> String {
 }
 
 impl Unit {
+    pub fn simplify_display(&mut self) {
+        self.display = self.display.clone().simplified();
+
+        if self
+            .display
+            .numerator
+            .iter()
+            .all(|unit| unit == "dimensionless")
+        {
+            self.display = UnitExpr::dimensionless();
+        }
+
+        for num in self.display.numerator.iter() {
+            for (b, den) in self.display.denominator.iter_mut().enumerate() {
+                if let Some(un1) = global_units().get(num) {
+                    if let Some(un2) = global_units().get(den) {
+                        if un1.dimensions == un2.dimensions {
+                            self.scalar = self.scalar * (un2.scalar / un1.scalar);
+                            self.display.denominator.remove(b);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     pub fn is_compatible_with(&self, other: &Self) -> bool {
         self.dimensions == other.dimensions
     }

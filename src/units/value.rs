@@ -42,7 +42,11 @@ impl Value {
             value
         };
 
-        display_value.to_string() + &self.unit.display.render()
+        format!(
+            "{} {}",
+            display_value.to_string(),
+            self.unit.display.render()
+        )
     }
 }
 
@@ -118,16 +122,17 @@ impl Div for Value {
             return Err(String::from("cannot divide affine units"));
         }
 
-        let unit = Arc::new(Unit {
+        let mut unit = Unit {
             scalar: self.unit.scalar / rhs.unit.scalar,
             offset: 0.0,
             dimensions: self.unit.dimensions - rhs.unit.dimensions,
             display: self.unit.display.divide(&rhs.unit.display),
-        });
+        };
+        unit.simplify_display();
 
         Ok(Value {
             canonical: self.canonical / rhs.canonical,
-            unit,
+            unit: Arc::new(unit),
         })
     }
 }

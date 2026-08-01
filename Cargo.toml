@@ -3,6 +3,23 @@ name = "abacus"
 version = "0.1.0"
 edition = "2024"
 authors = ["dylanfraser"]
-readme = ["README.md"]
+readme = "README.md"
+
+
+[profile.release]
+opt-level = "z"
+strip = "symbols"
+debug = 0
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+incremental = false
+overflow-checks = true
+
+[profile.dev]
+opt-level = 0
+incremental = true
+codegen-units = 256
+lto = false
 
 [dependencies]
