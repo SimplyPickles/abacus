@@ -100,16 +100,17 @@ impl Mul for Value {
             return Err(String::from("cannot multiply affine units"));
         }
 
-        let unit = Arc::new(Unit {
+        let mut unit = Unit {
             scalar: self.unit.scalar * rhs.unit.scalar,
             offset: 0.0,
             dimensions: self.unit.dimensions + rhs.unit.dimensions,
             display: self.unit.display.multiply(&rhs.unit.display),
-        });
+        };
+        unit.simplify_display();
 
         Ok(Value {
             canonical: self.canonical * rhs.canonical,
-            unit,
+            unit: Arc::new(unit),
         })
     }
 }
@@ -169,7 +170,7 @@ mod tests {
         assert!((speed.canonical - 5_000.0 / 3_600.0).abs() < f64::EPSILON);
         assert!((speed.unit.scalar - 1_000.0 / 3_600.0).abs() < f64::EPSILON);
         assert_eq!(speed.unit.dimensions, Dimensions::LENGTH - Dimensions::TIME);
-        assert_eq!(speed.to_display(), "5km/h");
+        assert_eq!(speed.to_display(), "5 km/h");
     }
 
     #[test]
@@ -177,10 +178,10 @@ mod tests {
         let sum = (Value::new(2.0, unit(1_000.0, Dimensions::LENGTH, "km"))
             + Value::new(500.0, unit(1.0, Dimensions::LENGTH, "m")))
         .unwrap();
-        assert_eq!(sum.to_display(), "2.5km");
+        assert_eq!(sum.to_display(), "2.5 km");
 
         let difference = (sum - Value::new(1.0, unit(1_000.0, Dimensions::LENGTH, "km"))).unwrap();
-        assert_eq!(difference.to_display(), "1.5km");
+        assert_eq!(difference.to_display(), "1.5 km");
 
         let incompatible = Value::new(1.0, unit(1.0, Dimensions::LENGTH, "m"))
             + Value::new(1.0, unit(1.0, Dimensions::TIME, "s"));
@@ -198,7 +199,7 @@ mod tests {
             area.unit.dimensions,
             Dimensions::LENGTH + Dimensions::LENGTH
         );
-        assert_eq!(area.to_display(), "6m^2");
+        assert_eq!(area.to_display(), "6 m^2");
     }
 
     #[test]
@@ -206,11 +207,11 @@ mod tests {
         let speed = (Value::new(5.0, unit(1.0, Dimensions::LENGTH, "m"))
             / Value::new(1.0, unit(1.0, Dimensions::TIME, "s")))
         .unwrap();
-        assert_eq!(speed.to_display(), "5m/s");
+        assert_eq!(speed.to_display(), "5 m/s");
 
         let distance = (speed * Value::new(5.0, unit(1.0, Dimensions::TIME, "s"))).unwrap();
         assert_eq!(distance.canonical, 25.0);
         assert_eq!(distance.unit.dimensions, Dimensions::LENGTH);
-        assert_eq!(distance.to_display(), "25m");
+        assert_eq!(distance.to_display(), "25 m");
     }
 }

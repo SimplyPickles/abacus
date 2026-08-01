@@ -186,15 +186,6 @@ mod tests {
     }
 
     #[test]
-    fn renders_compound_units_and_cancels_exact_matches() {
-        let speed = UnitExpr::single("m").divide(&UnitExpr::single("s"));
-        let distance = speed.multiply(&UnitExpr::single("s"));
-
-        assert_eq!(speed.render(), "m/s");
-        assert_eq!(distance.render(), "m");
-    }
-
-    #[test]
     fn renders_denominator_only_expressions() {
         let inverse_seconds = UnitExpr::dimensionless().divide(&UnitExpr::single("s"));
 

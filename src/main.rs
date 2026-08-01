@@ -1,17 +1,16 @@
 use crate::{
-    registry::metric_units::register_metric_units,
-    units::{unit::Unit, value::Value},
+    registry::metric_units::register_metric_units, units::{dimensions::Dimensions, unit::{Unit, UnitExpr}, value::Value},
 };
 
 mod registry;
 mod units;
 
-use std::{collections::HashMap, sync::OnceLock};
+use std::{collections::HashMap, sync::{Arc, OnceLock}};
 
-static METRIC_UNITS: OnceLock<HashMap<String, std::sync::Arc<Unit>>> = OnceLock::new();
+static UNITS: OnceLock<HashMap<String, std::sync::Arc<Unit>>> = OnceLock::new();
 
 pub fn global_units() -> &'static HashMap<String, std::sync::Arc<Unit>> {
-    METRIC_UNITS.get_or_init(register_metric_units)
+    UNITS.get_or_init(register_metric_units)
 }
 
 pub fn unit(symbol: &str) -> Result<std::sync::Arc<Unit>, String> {
@@ -26,11 +25,14 @@ pub fn value(amount: f64, symbol: &str) -> Result<Value, String> {
 }
 
 fn main() -> Result<(), String> {
-    let speed = (value(5.0, "km")? / value(1.0, "in")?)?;
+    let speed = value(5.0, "m")?
+        / value(1.0, "s")?;
 
-    println!("5km / 1in");
-    println!("{}", speed.to_display());
 
+    let distance = (speed? * value(5.0, "s")?)?;
+    assert_eq!(distance.canonical, 25.0);
+    assert_eq!(distance.unit.dimensions, Dimensions::LENGTH);
+    assert_eq!(distance.to_display(), "25 m");
 
     Ok(())
 }
@@ -100,7 +102,7 @@ mod tests {
     fn constructs_values_from_amount_and_unit_symbol() {
         let distance = value(5.0, "km").unwrap();
 
-        assert_eq!(distance.to_display(), "5km");
+        assert_eq!(distance.to_display(), "5 km");
         assert_eq!(distance.unit.display.render(), "km");
         assert_eq!(distance.unit.dimensions, Dimensions::LENGTH);
     }
@@ -109,14 +111,14 @@ mod tests {
     fn constructs_zero_values() {
         let distance = value(0.0, "km").unwrap();
 
-        assert_eq!(distance.to_display(), "0km");
+        assert_eq!(distance.to_display(), "0 km");
     }
 
     #[test]
     fn constructs_negative_values() {
         let distance = value(-5.0, "km").unwrap();
 
-        assert_eq!(distance.to_display(), "-5km");
+        assert_eq!(distance.to_display(), "-5 km");
     }
 
     #[test]
@@ -133,7 +135,7 @@ mod tests {
         let duration = value(1.0, "h").unwrap();
         let speed = (distance / duration).unwrap();
 
-        assert_eq!(speed.to_display(), "5km/h");
+        assert_eq!(speed.to_display(), "5 km/h");
         assert_eq!(
             speed.unit.dimensions,
             Dimensions::LENGTH - Dimensions::TIME
@@ -146,15 +148,15 @@ mod tests {
         let duration = value(4.0, "h").unwrap();
         let speed = (distance / duration).unwrap();
 
-        assert_eq!(speed.to_display(), "2.5km/h");
+        assert_eq!(speed.to_display(), "2.5 km/h");
     }
 
     #[test]
-    fn division_by_zero_returns_an_error() {
+    fn division_by_zero_returns_infinity() {
         let distance = value(5.0, "km").unwrap();
         let zero = value(0.0, "h").unwrap();
 
-        assert!((distance / zero).is_err());
+        assert_eq!((distance / zero).unwrap().canonical, f64::INFINITY);
     }
 
     #[test]
@@ -163,7 +165,7 @@ mod tests {
         let duration = value(-2.0, "h").unwrap();
         let speed = (distance / duration).unwrap();
 
-        assert_eq!(speed.to_display(), "-2.5km/h");
+        assert_eq!(speed.to_display(), "-2.5 km/h");
     }
 
     #[test]

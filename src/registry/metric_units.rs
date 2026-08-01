@@ -209,8 +209,8 @@ mod tests {
             .unwrap();
 
         assert_eq!(celsius.canonical, 373.15);
-        assert_eq!(kelvin.to_display(), "373.15K");
-        assert_eq!(fahrenheit.to_display(), "212°F");
+        assert_eq!(kelvin.to_display(), "373.15 K");
+        assert_eq!(fahrenheit.to_display(), "212 °F");
     }
 
     #[test]
@@ -233,13 +233,13 @@ mod tests {
         let binary = Value::new(1.0, Arc::clone(units.get("MiB").unwrap()));
         let total = (decimal + binary).unwrap();
 
-        assert_eq!(total.to_display(), "2.048576MB");
+        assert_eq!(total.to_display(), "2.048576 MB");
 
         let data = Value::new(1.0, Arc::clone(units.get("MiB").unwrap()));
         let duration = Value::new(1.0, Arc::clone(units.get("s").unwrap()));
         let rate = (data / duration).unwrap();
 
-        assert_eq!(rate.to_display(), "1MiB/s");
+        assert_eq!(rate.to_display(), "1 MiB/s");
         assert_eq!(
             rate.unit.dimensions,
             Dimensions::INFORMATION - Dimensions::TIME

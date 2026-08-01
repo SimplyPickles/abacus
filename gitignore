@@ -1,0 +1,18 @@
+/target/
+
+# Rust/Cargo local artifacts
+**/*.rs.bk
+
+# macOS
+.DS_Store
+
+# Editor/IDE
+.zed/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment/local config
+.env
+.env.*
