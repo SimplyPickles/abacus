@@ -1,24 +1,42 @@
 # Abacus
 
-Abacus is an experimental Rust units-and-values calculator. It stores values in canonical units, tracks physical dimensions, and supports arithmetic across compatible units.
+Abacus is an experimental zero-dependency Rust units-and-values calculator. It stores values in canonical units, tracks physical dimensions, supports arithmetic across compatible units, and offers extensive registries covering SI, derived, storage, Imperial, US customary, astronomical, nautical, CGS, and niche units.
 
 ## Features
 
-- Canonical unit storage
-- Dimension-aware arithmetic
-- Unit conversion through scalar factors
-- Affine temperature unit support
-- Structured compound unit display
-- Metric/SI base units and prefixes
-- Fixed-duration time units
-- Storage units with decimal and binary prefixes
-- British Imperial units
+- **Canonical Unit Storage**: Values are stored as floats in SI base units.
+- **Dimension-Aware Arithmetic**: Tracks physical dimensions across addition, subtraction, multiplication, and division.
+- **`UnitRegistry` API**: Encapsulated registry for unit lookup, value construction, and dynamic unit resolution.
+- **Dynamic Exponent Units**: Supports automatic resolution of exponent units like `m^3`, `cm^3`, `ft^3`, `m^2`, `ft^2`, etc.
+- **Ergonomic Conversions**: Convert values directly using `.to(&registry, "symbol")`.
+- **Affine Unit Protection**: Guarded conversion and arithmetic for affine units like Celsius and Fahrenheit.
+- **Strongly Typed Errors**: Domain-specific `AbacusError` enum.
+- **Extensive Registries**:
+  - Metric/SI base and derived units (`N`, `J`, `W`, `Pa`, `Hz`, `V`, `Ω`, `F`, etc.)
+  - Metric volume (`L`, `mL`, `kL`) and land area (`ha`, `a`)
+  - Storage units with decimal (`kB`, `MB`) and IEC binary (`KiB`, `MiB`) prefixes
+  - Fixed-duration time units (`min`, `h`, `d`, `wk`)
+  - British Imperial and US Customary liquid measures (`us_gal`, `bbl`, `fl oz`)
+  - Angle units (`rad`, `deg`, `turn`, `arcmin`, `arcsec`)
+  - Astronomical, Nautical, CGS physics, Typography, Computing niche, Historical, and Humorous units
 
-## Core concepts
+---
+
+## Core Concepts
+
+### `UnitRegistry`
+
+The `UnitRegistry` manages registered unit definitions and dynamic unit exponent lookups:
+
+```rust
+let registry = UnitRegistry::standard();
+let meter = registry.unit("m")?;
+let distance = registry.value(5.0, "km")?;
+```
 
 ### `Unit`
 
-A `Unit` describes how a displayed unit maps to the canonical representation:
+A `Unit` describes how a displayed unit maps to canonical representation:
 
 ```rust
 pub struct Unit {
@@ -29,278 +47,138 @@ pub struct Unit {
 }
 ```
 
-- `dimensions` tracks the physical dimension, such as length, time, mass, or information.
-- `scalar` converts from displayed units to canonical units.
-- `offset` supports affine units like Celsius and Fahrenheit.
-- `display` stores a structured unit expression for rendering compound units.
-
-For example:
-
-```text
-1 km = 1000 canonical meters
-1 hour = 3600 canonical seconds
-1 B = 8 canonical bits
-```
+- `dimensions`: Physical dimension array `[length, mass, time, current, temp, amount, luminous, info]`.
+- `scalar`: Converts from displayed units to canonical SI units.
+- `offset`: Supports affine units like Celsius and Fahrenheit.
+- `display`: Structured unit expression for rendering compound units.
 
 ### `Value`
 
-A `Value` stores a canonical numeric value plus the unit it should display in:
+A `Value` stores a canonical numeric value plus the shared `Arc<Unit>` display representation:
 
 ```rust
-pub struct Value {
-    pub canonical: f64,
-    pub unit: Arc<Unit>,
-}
+let distance = registry.value(5.0, "km")?;
+let meters = distance.to(&registry, "m")?;
+
+assert_eq!(meters.to_display(), "5000 m");
 ```
 
-Use the `value(...)` helper to construct values from displayed quantities:
-
-```rust
-let distance = value(5.0, "km")?;
-let duration = value(1.0, "h")?;
-```
-
-For lower-level access, `unit(...)` returns the shared `Arc<Unit>` for a symbol or name:
-
-```rust
-let kilometer = unit("km")?;
-let distance = Value::new(5.0, kilometer);
-```
-
-This stores:
-
-```text
-5 km => 5000 canonical meters
-1 h  => 3600 canonical seconds
-```
+---
 
 ## Example
 
-`src/main.rs` currently demonstrates:
+In `src/main.rs`:
 
 ```rust
-let speed = (value(5.0, "km")? / value(1.0, "h")?)?;
+fn main() -> Result<(), AbacusError> {
+    let registry = UnitRegistry::standard();
 
-println!("{}", speed.to_display());
+    // Speed and distance calculation
+    let speed = registry.value(5.0, "m")? / registry.value(1.0, "s")?;
+    let distance = (speed? * registry.value(5.0, "s")?)?;
+
+    // Force calculation using derived SI units
+    let mass = registry.value(2.0, "kg")?;
+    let accel = registry.value(9.8, "m")? / (registry.value(1.0, "s")? * registry.value(1.0, "s")?)?;
+    let force = (mass * accel?)?;
+    let force_newtons = force.to(&registry, "N")?;
+
+    // Volume addition and conversion to m^3
+    let barrels = registry.value(1.0, "bbl")?;
+    let liters = registry.value(100.0, "L")?;
+    let total_volume = (barrels + liters)?;
+    let volume_m3 = total_volume.to(&registry, "m^3")?;
+
+    println!("Distance: {}", distance.to_display());
+    println!("Force: {}", force_newtons.to_display());
+    println!("1 bbl + 100 L in m^3: {}", volume_m3.to_display());
+
+    Ok(())
+}
 ```
 
 Output:
 
 ```text
-5km/h
+Distance: 25 m
+Force: 19.6 N
+1 bbl + 100 L in m^3: 0.258987294928 m^3
 ```
 
-## Arithmetic
+---
 
-Arithmetic uses canonical values and combines unit dimensions.
+## Arithmetic & Conversions
 
-### Addition and subtraction
+### Addition and Subtraction
 
 Addition and subtraction require compatible dimensions:
 
 ```rust
-let a = value(1.0, "km")?;
-let b = value(500.0, "m")?;
+let a = registry.value(1.0, "km")?;
+let b = registry.value(500.0, "m")?;
 
 let result = (a + b)?;
-assert_eq!(result.to_display(), "1.5km");
+assert_eq!(result.to_display(), "1.5 km");
 ```
 
-### Multiplication and division
-
-Multiplication adds dimensions; division subtracts dimensions:
-
-```text
-m / s => length per time
-m * m => area
-m * m * m => volume
-```
-
-Compound unit display is simplified symbolically:
-
-```text
-m/s * s => m
-m * m   => m^2
-m^3 / s => m^3/s
-```
-
-## Unit display expressions
-
-`UnitExpr` represents compound unit displays as numerator and denominator symbols:
+### Volume Additions and Conversions
 
 ```rust
-pub struct UnitExpr {
-    pub numerator: Vec<String>,
-    pub denominator: Vec<String>,
-}
+let bbl = registry.value(1.0, "bbl")?;
+let liters = registry.value(100.0, "L")?;
+
+let total = (bbl + liters)?.to(&registry, "m^3")?;
+assert_eq!(total.to_display(), "0.258987294928 m^3");
 ```
 
-It supports:
+### Temperature & Affine Units
 
-- `multiply(...)`
-- `divide(...)`
-- `simplified()`
-- `render()`
-
-Examples:
-
-```text
-UnitExpr::single("m").divide(&UnitExpr::single("s")) => "m/s"
-UnitExpr::single("m").multiply(&UnitExpr::single("m")) => "m^2"
-```
-
-Simplification currently cancels exact symbol matches only. For example:
-
-```text
-m/s * s => m
-```
-
-But equivalent units with different display symbols do not cancel display-wise:
-
-```text
-m/min * s
-```
-
-The canonical value and dimensions are still correct.
-
-## Registered units
-
-### Metric/SI base units
-
-- `s` second
-- `m` meter
-- `g` gram
-- `A` ampere
-- `K` kelvin
-- `mol` mole
-- `cd` candela
-
-Metric prefixes are generated for SI base units, including:
-
-```text
-km, cm, mm, μs, kg, MB-style prefixes for applicable units, etc.
-```
-
-### Time units
-
-- `min`, `minute`
-- `h`, `hour`
-- `d`, `day`
-- `wk`, `week`
-
-### Storage units
-
-Canonical storage is bits.
-
-Base units:
-
-- `b`, `bit`
-- `B`, `byte`
-
-Decimal units:
-
-- `kb`, `kB`
-- `Mb`, `MB`
-- `Gb`, `GB`
-- through `Qb`, `QB`
-
-Binary IEC units:
-
-- `Kib`, `KiB`
-- `Mib`, `MiB`
-- `Gib`, `GiB`
-- through `Yib`, `YiB`
-
-### British Imperial units
-
-Length:
-
-- `in`, `inch`, `inches`
-- `ft`, `foot`, `feet`
-- `yd`, `yard`, `yards`
-- `ch`, `chain`, `chains`
-- `fur`, `furlong`, `furlongs`
-- `mi`, `mile`, `miles`
-
-Area:
-
-- `ac`, `acre`, `acres`
-
-Mass:
-
-- `gr`, `grain`
-- `dr`, `dram`
-- `oz`, `ounce`
-- `lb`, `pound`
-- `st`, `stone`
-- `cwt`, `hundredweight`
-- `ton`, `long ton`, `imperial ton`
-
-British Imperial volume:
-
-- `fl oz`, `floz`, `fluid ounce`
-- `gi`, `gill`
-- `pt`, `pint`
-- `qt`, `quart`
-- `gal`, `gallon`
-
-Temperature:
-
-- `K`, `kelvin`
-- `°C`, `degC`, `celsius`
-- `°F`, `degF`, `fahrenheit`
-
-> Note: British Imperial liquid units differ from US customary liquid units. `gal` refers to the British Imperial gallon.
-
-## Temperature and affine units
-
-Affine units such as Celsius and Fahrenheit require both a scalar and an offset.
-
-Abacus supports converting affine units into compatible units, but rejects arithmetic that would produce misleading results:
+Affine units such as Celsius and Fahrenheit require both a scalar and an offset. Abacus supports converting affine units into compatible units, but guards against illegal arithmetic:
 
 ```rust
-let celsius = value(100.0, "°C")?;
-let kelvin = celsius.convert_to(unit("K")?)?;
-let fahrenheit = celsius.convert_to(unit("°F")?)?;
+let celsius = registry.value(100.0, "°C")?;
+let kelvin = celsius.to(&registry, "K")?;
+let fahrenheit = celsius.to(&registry, "°F")?;
 
-assert_eq!(kelvin.to_display(), "373.15K");
-assert_eq!(fahrenheit.to_display(), "212°F");
+assert_eq!(kelvin.to_display(), "373.15 K");
+assert_eq!(fahrenheit.to_display(), "212 °F");
 ```
 
-Unsupported operations such as directly multiplying or subtracting affine temperature values return errors.
+---
 
-## Running
+## Unit Families Included
+
+- **SI Base Units**: `s`, `m`, `g`, `A`, `K`, `mol`, `cd` (plus all standard metric prefixes)
+- **SI Derived Units**: `Hz`, `N`, `Pa`, `J`, `W`, `C`, `V`, `F`, `Ω`, `S`, `Wb`, `T`, `H`, `lm`, `lx`, `Bq`, `Gy`, `Sv`, `kat`
+- **Metric Volume & Area**: `L`, `mL`, `cL`, `dL`, `kL`, `ha` (hectare), `a` (are)
+- **Storage**: `b`, `B`, `kB`, `MB`, `GB`, `KiB`, `MiB`, `GiB`
+- **British Imperial**: `in`, `ft`, `yd`, `mi`, `ac`, `lb`, `oz`, `gal`, `qt`, `pt`, `fl oz`
+- **US Customary**: `us_gal`, `us_qt`, `us_pt`, `us_fl_oz`, `cup`, `tbsp`, `tsp`
+- **Angles**: `rad`, `deg`, `°`, `turn`, `arcmin`, `arcsec`
+- **Astronomical**: `au`, `ly`, `pc` (`kpc`, `Mpc`), `solar_mass`, `jansky`
+- **Nautical**: `nmi`, `knot`, `fathom`, `cable`, `rod`, `link`, `league`
+- **CGS Physics**: `Å` (angstrom), `eV` (`keV`, `MeV`, `GeV`, `TeV`), `dalton`, `bar`, `atm`, `torr`, `barn`, `gauss`, `maxwell`, `poise`, `stokes`, `galileo`
+- **Typography**: `point`, `pica`, `twip`
+- **Computing Niche**: `nibble`, `crumb`, `word`, `dword`, `qword`, `shannon`, `hartley`, `nat`
+- **Trade & Historical**: `bbl` (oil barrel), `hogshead`, `carat`, `troy_ounce`, `slug`, `poundal`
+- **Humorous**: `smoot`, `shake`, `jiffy`, `fortnight`, `furlong_per_fortnight`, `barn_megaparsec`, `attoparsec`
+
+---
+
+## Running & Testing
 
 ```sh
 cargo run
 ```
 
-Current output:
-
-```text
-5km / 1h
-5km/h
-```
-
-## Testing
-
 ```sh
 cargo test
 ```
 
-The test suite covers:
+All 48 unit tests cover unit registration, value conversions, derived unit arithmetic, volume additions, affine unit guards, and exponent resolution.
 
-- unit registration
-- time unit scalars
-- storage units
-- value arithmetic
-- compound unit simplification
-- exponent display such as `m^2` and `m^3`
+---
 
-## Current limitations
+## Current Limitations
 
-- No expression parser yet. Values are currently constructed through helper functions in Rust.
-- Unit display simplification only cancels exact symbols.
-- No normalized display selection yet, such as automatically converting `m*cm` to `m^2`.
-- Some common derived SI units are not registered yet.
-- US customary volume units are not registered yet.
+- **Expression Parser**: No text expression parser yet (e.g. parsing `"5km / 1h"` directly from a raw string input). Values are currently constructed programmatically through `registry.value(...)`.
