@@ -1,8 +1,7 @@
-use crate::units::unit::Unit;
+use crate::{error::AbacusError, units::unit::Unit};
 
 use std::{
-    ops::{Add, Div, Mul, Sub},
-    sync::Arc,
+    fmt, ops::{Add, Div, Mul, Sub}, sync::Arc,
 };
 
 #[derive(Debug)]
@@ -12,6 +11,8 @@ pub struct Value {
 }
 
 #[allow(dead_code)]
+use crate::registry::UnitRegistry;
+
 impl Value {
     pub fn new(value: f64, unit: Arc<Unit>) -> Self {
         Self {
@@ -20,17 +21,19 @@ impl Value {
         }
     }
 
-    pub fn convert_to(&self, unit: Arc<Unit>) -> Result<Self, String> {
+    pub fn convert_to(&self, unit: Arc<Unit>) -> Result<Self, AbacusError> {
         if !self.unit.is_compatible_with(&unit) {
-            return Err(String::from(
-                "cannot convert between units with incompatible dimensions",
-            ));
+            return Err(AbacusError::IncompatibleDimensions);
         }
 
         Ok(Self {
             canonical: self.canonical,
             unit,
         })
+    }
+
+    pub fn to(&self, registry: &UnitRegistry, symbol: &str) -> Result<Self, AbacusError> {
+        self.convert_to(registry.unit(symbol)?)
     }
 
     pub fn to_display(&self) -> String {
@@ -42,26 +45,31 @@ impl Value {
             value
         };
 
-        format!(
-            "{} {}",
-            display_value.to_string(),
-            self.unit.display.render()
-        )
+        let unit_str = self.unit.display.render();
+        if unit_str.is_empty() {
+            display_value.to_string()
+        } else {
+            format!("{display_value} {unit_str}")
+        }
+    }
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.to_display())
     }
 }
 
 impl Add for Value {
-    type Output = Result<Value, String>;
+    type Output = Result<Value, AbacusError>;
 
     fn add(self, rhs: Self) -> Self::Output {
         if self.unit.is_affine() || rhs.unit.is_affine() {
-            return Err(String::from("cannot add affine units"));
+            return Err(AbacusError::AffineUnitOperation("add"));
         }
 
         if !self.unit.is_compatible_with(&rhs.unit) {
-            return Err(String::from(
-                "cannot add values with incompatible dimensions",
-            ));
+            return Err(AbacusError::IncompatibleDimensions);
         }
 
         Ok(Value {
@@ -72,17 +80,15 @@ impl Add for Value {
 }
 
 impl Sub for Value {
-    type Output = Result<Value, String>;
+    type Output = Result<Value, AbacusError>;
 
     fn sub(self, rhs: Self) -> Self::Output {
         if self.unit.is_affine() || rhs.unit.is_affine() {
-            return Err(String::from("cannot subtract affine units"));
+            return Err(AbacusError::AffineUnitOperation("subtract"));
         }
 
         if !self.unit.is_compatible_with(&rhs.unit) {
-            return Err(String::from(
-                "cannot subtract values with incompatible dimensions",
-            ));
+            return Err(AbacusError::IncompatibleDimensions);
         }
 
         Ok(Value {
@@ -93,11 +99,11 @@ impl Sub for Value {
 }
 
 impl Mul for Value {
-    type Output = Result<Value, String>;
+    type Output = Result<Value, AbacusError>;
 
     fn mul(self, rhs: Self) -> Self::Output {
         if self.unit.is_affine() || rhs.unit.is_affine() {
-            return Err(String::from("cannot multiply affine units"));
+            return Err(AbacusError::AffineUnitOperation("multiply"));
         }
 
         let mut unit = Unit {
@@ -116,11 +122,11 @@ impl Mul for Value {
 }
 
 impl Div for Value {
-    type Output = Result<Value, String>;
+    type Output = Result<Value, AbacusError>;
 
     fn div(self, rhs: Self) -> Self::Output {
         if self.unit.is_affine() || rhs.unit.is_affine() {
-            return Err(String::from("cannot divide affine units"));
+            return Err(AbacusError::AffineUnitOperation("divide"));
         }
 
         let mut unit = Unit {

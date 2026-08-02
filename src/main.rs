@@ -1,39 +1,36 @@
 use crate::{
-    registry::metric_units::register_metric_units, units::{dimensions::Dimensions, unit::{Unit, UnitExpr}, value::Value},
+    registry::unit_registry::UnitRegistry,
+    units::{unit::Unit, value::Value},
 };
 
+mod error;
 mod registry;
 mod units;
 
-use std::{collections::HashMap, sync::{Arc, OnceLock}};
+pub use error::AbacusError;
+use std::sync::OnceLock;
 
-static UNITS: OnceLock<HashMap<String, std::sync::Arc<Unit>>> = OnceLock::new();
+static UNITS: OnceLock<UnitRegistry> = OnceLock::new();
 
-pub fn global_units() -> &'static HashMap<String, std::sync::Arc<Unit>> {
-    UNITS.get_or_init(register_metric_units)
+pub fn global_units() -> &'static UnitRegistry {
+    UNITS.get_or_init(|| UnitRegistry::standard())
 }
 
-pub fn unit(symbol: &str) -> Result<std::sync::Arc<Unit>, String> {
+pub fn unit(symbol: &str) -> Result<std::sync::Arc<Unit>, AbacusError> {
     global_units()
         .get(symbol)
         .cloned()
-        .ok_or_else(|| format!("unknown unit: {symbol}"))
+        .ok_or_else(|| AbacusError::UnknownUnit(symbol.to_string()))
 }
 
-pub fn value(amount: f64, symbol: &str) -> Result<Value, String> {
+pub fn value(amount: f64, symbol: &str) -> Result<Value, AbacusError> {
     Ok(Value::new(amount, unit(symbol)?))
 }
 
-fn main() -> Result<(), String> {
-    let speed = value(5.0, "m")?
-        / value(1.0, "s")?;
+fn main() -> Result<(), AbacusError> {
+    let speed = global_units().value(5.0, "L")?;
 
-
-    let distance = (speed? * value(5.0, "s")?)?;
-    assert_eq!(distance.canonical, 25.0);
-    assert_eq!(distance.unit.dimensions, Dimensions::LENGTH);
-    assert_eq!(distance.to_display(), "25 m");
-
+    println!("{:?}", speed);
     Ok(())
 }
 
@@ -57,9 +54,18 @@ mod tests {
 
     #[test]
     fn returns_an_error_for_unknown_units() {
-        assert_eq!(unit("wat").unwrap_err(), "unknown unit: wat");
-        assert_eq!(unit("").unwrap_err(), "unknown unit: ");
-        assert_eq!(unit("KM").unwrap_err(), "unknown unit: KM");
+        assert_eq!(
+            unit("wat").unwrap_err(),
+            AbacusError::UnknownUnit("wat".to_string())
+        );
+        assert_eq!(
+            unit("").unwrap_err(),
+            AbacusError::UnknownUnit("".to_string())
+        );
+        assert_eq!(
+            unit("KM").unwrap_err(),
+            AbacusError::UnknownUnit("KM".to_string())
+        );
     }
 
     #[test]
@@ -75,10 +81,10 @@ mod tests {
     fn global_units_contains_expected_metric_units() {
         let units = global_units();
 
-        assert!(units.contains_key("km"));
-        assert!(units.contains_key("in"));
-        assert!(units.contains_key("h"));
-        assert!(units.contains_key("hour"));
+        assert!(units.contains("km"));
+        assert!(units.contains("in"));
+        assert!(units.contains("h"));
+        assert!(units.contains("hour"));
     }
 
     #[test]
@@ -125,7 +131,7 @@ mod tests {
     fn value_propagates_unknown_unit_errors() {
         assert_eq!(
             value(5.0, "wat").unwrap_err(),
-            "unknown unit: wat"
+            AbacusError::UnknownUnit("wat".to_string())
         );
     }
 
@@ -136,10 +142,7 @@ mod tests {
         let speed = (distance / duration).unwrap();
 
         assert_eq!(speed.to_display(), "5 km/h");
-        assert_eq!(
-            speed.unit.dimensions,
-            Dimensions::LENGTH - Dimensions::TIME
-        );
+        assert_eq!(speed.unit.dimensions, Dimensions::LENGTH - Dimensions::TIME);
     }
 
     #[test]
@@ -174,7 +177,7 @@ mod tests {
         let duration = value(1.0, "h").unwrap();
 
         assert!(invalid.is_err());
-        assert!(invalid.and_then(|distance| (distance / duration)).is_err());
+        assert!(invalid.and_then(|distance| distance / duration).is_err());
     }
 
     #[test]
@@ -183,8 +186,6 @@ mod tests {
         let invalid = value(1.0, "wat");
 
         assert!(invalid.is_err());
-        assert!(invalid
-            .and_then(|duration| (distance / duration))
-            .is_err());
+        assert!(invalid.and_then(|duration| distance / duration).is_err());
     }
 }

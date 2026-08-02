@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use crate::{global_units, units::dimensions::Dimensions};
 
 #[derive(Debug)]
@@ -121,8 +119,14 @@ fn render_units(units: &[String]) -> String {
         .join("*")
 }
 
+use std::sync::Arc;
+
 impl Unit {
     pub fn simplify_display(&mut self) {
+        self.simplify_display_with(|sym| global_units().get(sym).cloned());
+    }
+
+    pub fn simplify_display_with(&mut self, lookup: impl Fn(&str) -> Option<Arc<Unit>>) {
         self.display = self.display.clone().simplified();
 
         if self
@@ -134,17 +138,28 @@ impl Unit {
             self.display = UnitExpr::dimensionless();
         }
 
-        for num in self.display.numerator.iter() {
-            for (b, den) in self.display.denominator.iter_mut().enumerate() {
-                if let Some(un1) = global_units().get(num) {
-                    if let Some(un2) = global_units().get(den) {
+        let mut num_idx = 0;
+        while num_idx < self.display.numerator.len() {
+            let num_sym = &self.display.numerator[num_idx];
+            if let Some(un1) = lookup(num_sym) {
+                let mut matched = false;
+                for den_idx in 0..self.display.denominator.len() {
+                    let den_sym = &self.display.denominator[den_idx];
+                    if let Some(un2) = lookup(den_sym) {
                         if un1.dimensions == un2.dimensions {
-                            self.scalar = self.scalar * (un2.scalar / un1.scalar);
-                            self.display.denominator.remove(b);
+                            self.scalar *= un2.scalar / un1.scalar;
+                            self.display.numerator.remove(num_idx);
+                            self.display.denominator.remove(den_idx);
+                            matched = true;
                             break;
                         }
                     }
                 }
+                if !matched {
+                    num_idx += 1;
+                }
+            } else {
+                num_idx += 1;
             }
         }
     }
@@ -190,5 +205,19 @@ mod tests {
         let inverse_seconds = UnitExpr::dimensionless().divide(&UnitExpr::single("s"));
 
         assert_eq!(inverse_seconds.render(), "1/s");
+    }
+
+    #[test]
+    fn simplifies_compatible_cross_unit_expressions() {
+        let mut unit = Unit {
+            scalar: 1000.0,
+            offset: 0.0,
+            dimensions: Dimensions::DIMENSIONLESS,
+            display: UnitExpr::single("km").divide(&UnitExpr::single("m")),
+        };
+        unit.simplify_display();
+
+        assert_eq!(unit.display.render(), "");
+        assert_eq!(unit.scalar, 1.0);
     }
 }

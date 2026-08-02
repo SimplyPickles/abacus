@@ -47,20 +47,6 @@ impl Sub for Dimensions {
     }
 }
 
-impl Mul<Dimensions> for Dimensions {
-    type Output = Self;
-
-    fn mul(self, rhs: Dimensions) -> Self::Output {
-        let mut result = [0; DIMENSION_COUNT];
-
-        for (index, output) in result.iter_mut().enumerate() {
-            *output = self.0[index] * rhs.0[index];
-        }
-
-        Self(result)
-    }
-}
-
 impl Mul<i8> for Dimensions {
     type Output = Self;
 
