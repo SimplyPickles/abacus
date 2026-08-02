@@ -8,15 +8,16 @@ use crate::{
     },
 };
 
-struct DerivedUnitDef {
-    name: &'static str,
-    alias: &'static str,
-    dimensions: Dimensions,
-    scalar: f64,
-    prefixable: bool,
+pub struct DerivedUnitDef {
+    pub name: &'static str,
+    pub alias: &'static str,
+    pub dimensions: Dimensions,
+    pub scalar: f64,
+    pub prefixable: bool,
+    pub equation: &'static str,
 }
 
-const DERIVED_UNITS: &[DerivedUnitDef] = &[
+pub const DERIVED_UNITS: &[DerivedUnitDef] = &[
     // Hz (Hertz): s^-1
     DerivedUnitDef {
         name: "hertz",
@@ -24,6 +25,7 @@ const DERIVED_UNITS: &[DerivedUnitDef] = &[
         dimensions: Dimensions([0, 0, -1, 0, 0, 0, 0, 0]),
         scalar: 1.0,
         prefixable: true,
+        equation: "s^-1",
     },
     // N (Newton): kg*m/s^2 = 1000 g*m/s^2
     DerivedUnitDef {
@@ -32,6 +34,7 @@ const DERIVED_UNITS: &[DerivedUnitDef] = &[
         dimensions: Dimensions([1, 1, -2, 0, 0, 0, 0, 0]),
         scalar: 1000.0,
         prefixable: true,
+        equation: "kg*m/s^2",
     },
     // Pa (Pascal): N/m^2 = 1000 g/(m*s^2)
     DerivedUnitDef {
@@ -40,6 +43,7 @@ const DERIVED_UNITS: &[DerivedUnitDef] = &[
         dimensions: Dimensions([-1, 1, -2, 0, 0, 0, 0, 0]),
         scalar: 1000.0,
         prefixable: true,
+        equation: "N/m^2",
     },
     // J (Joule): N*m = 1000 g*m^2/s^2
     DerivedUnitDef {
@@ -48,6 +52,7 @@ const DERIVED_UNITS: &[DerivedUnitDef] = &[
         dimensions: Dimensions([2, 1, -2, 0, 0, 0, 0, 0]),
         scalar: 1000.0,
         prefixable: true,
+        equation: "N*m",
     },
     // W (Watt): J/s = 1000 g*m^2/s^3
     DerivedUnitDef {
@@ -56,6 +61,7 @@ const DERIVED_UNITS: &[DerivedUnitDef] = &[
         dimensions: Dimensions([2, 1, -3, 0, 0, 0, 0, 0]),
         scalar: 1000.0,
         prefixable: true,
+        equation: "J/s",
     },
     // C (Coulomb): A*s
     DerivedUnitDef {
@@ -64,6 +70,7 @@ const DERIVED_UNITS: &[DerivedUnitDef] = &[
         dimensions: Dimensions([0, 0, 1, 1, 0, 0, 0, 0]),
         scalar: 1.0,
         prefixable: true,
+        equation: "A*s",
     },
     // V (Volt): W/A = 1000 g*m^2/(s^3*A)
     DerivedUnitDef {
@@ -72,6 +79,7 @@ const DERIVED_UNITS: &[DerivedUnitDef] = &[
         dimensions: Dimensions([2, 1, -3, -1, 0, 0, 0, 0]),
         scalar: 1000.0,
         prefixable: true,
+        equation: "W/A",
     },
     // F (Farad): C/V = 0.001 A^2*s^4/(g*m^2)
     DerivedUnitDef {
@@ -80,6 +88,7 @@ const DERIVED_UNITS: &[DerivedUnitDef] = &[
         dimensions: Dimensions([-2, -1, 4, 2, 0, 0, 0, 0]),
         scalar: 0.001,
         prefixable: true,
+        equation: "C/V",
     },
     // Ω (Ohm): V/A
     DerivedUnitDef {
@@ -88,6 +97,7 @@ const DERIVED_UNITS: &[DerivedUnitDef] = &[
         dimensions: Dimensions([2, 1, -3, -2, 0, 0, 0, 0]),
         scalar: 1000.0,
         prefixable: true,
+        equation: "V/A",
     },
     // S (Siemens): 1/Ω
     DerivedUnitDef {
@@ -96,6 +106,7 @@ const DERIVED_UNITS: &[DerivedUnitDef] = &[
         dimensions: Dimensions([-2, -1, 3, 2, 0, 0, 0, 0]),
         scalar: 0.001,
         prefixable: true,
+        equation: "1/Ω",
     },
     // Wb (Weber): V*s
     DerivedUnitDef {
@@ -104,6 +115,7 @@ const DERIVED_UNITS: &[DerivedUnitDef] = &[
         dimensions: Dimensions([2, 1, -2, -1, 0, 0, 0, 0]),
         scalar: 1000.0,
         prefixable: true,
+        equation: "V*s",
     },
     // T (Tesla): Wb/m^2
     DerivedUnitDef {
@@ -112,6 +124,7 @@ const DERIVED_UNITS: &[DerivedUnitDef] = &[
         dimensions: Dimensions([0, 1, -2, -1, 0, 0, 0, 0]),
         scalar: 1000.0,
         prefixable: true,
+        equation: "Wb/m^2",
     },
     // H (Henry): Wb/A
     DerivedUnitDef {
@@ -120,6 +133,7 @@ const DERIVED_UNITS: &[DerivedUnitDef] = &[
         dimensions: Dimensions([2, 1, -2, -2, 0, 0, 0, 0]),
         scalar: 1000.0,
         prefixable: true,
+        equation: "Wb/A",
     },
     // lm (Lumen): cd
     DerivedUnitDef {
@@ -128,6 +142,7 @@ const DERIVED_UNITS: &[DerivedUnitDef] = &[
         dimensions: Dimensions::LUMINOUS_INTENSITY,
         scalar: 1.0,
         prefixable: true,
+        equation: "cd",
     },
     // lx (Lux): lm/m^2
     DerivedUnitDef {
@@ -136,6 +151,7 @@ const DERIVED_UNITS: &[DerivedUnitDef] = &[
         dimensions: Dimensions([-2, 0, 0, 0, 0, 0, 1, 0]),
         scalar: 1.0,
         prefixable: true,
+        equation: "lm/m^2",
     },
     // Bq (Becquerel): s^-1
     DerivedUnitDef {
@@ -144,6 +160,7 @@ const DERIVED_UNITS: &[DerivedUnitDef] = &[
         dimensions: Dimensions([0, 0, -1, 0, 0, 0, 0, 0]),
         scalar: 1.0,
         prefixable: true,
+        equation: "s^-1",
     },
     // Gy (Gray): J/kg = m^2/s^2
     DerivedUnitDef {
@@ -152,6 +169,7 @@ const DERIVED_UNITS: &[DerivedUnitDef] = &[
         dimensions: Dimensions([2, 0, -2, 0, 0, 0, 0, 0]),
         scalar: 1.0,
         prefixable: true,
+        equation: "J/kg",
     },
     // Sv (Sievert): J/kg
     DerivedUnitDef {
@@ -160,6 +178,7 @@ const DERIVED_UNITS: &[DerivedUnitDef] = &[
         dimensions: Dimensions([2, 0, -2, 0, 0, 0, 0, 0]),
         scalar: 1.0,
         prefixable: true,
+        equation: "J/kg",
     },
     // kat (Katal): mol/s
     DerivedUnitDef {
@@ -168,6 +187,7 @@ const DERIVED_UNITS: &[DerivedUnitDef] = &[
         dimensions: Dimensions([0, 0, -1, 0, 0, 1, 0, 0]),
         scalar: 1.0,
         prefixable: true,
+        equation: "mol/s",
     },
 ];
 

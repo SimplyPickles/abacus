@@ -1,7 +1,9 @@
 use crate::{error::AbacusError, units::unit::Unit};
 
 use std::{
-    fmt, ops::{Add, Div, Mul, Sub}, sync::Arc,
+    fmt,
+    ops::{Add, Div, Mul, Sub},
+    sync::Arc,
 };
 
 #[derive(Debug)]
