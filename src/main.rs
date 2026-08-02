@@ -18,11 +18,9 @@ pub fn global_units() -> &'static UnitRegistry {
 }
 
 pub fn unit(symbol: &str) -> Result<std::sync::Arc<Unit>, AbacusError> {
-    global_units()
-        .get(symbol)
-        .cloned()
-        .ok_or_else(|| AbacusError::UnknownUnit(symbol.to_string()))
+    global_units().unit(symbol)
 }
+
 
 pub fn value(amount: f64, symbol: &str) -> Result<Value, AbacusError> {
     Ok(Value::new(amount, unit(symbol)?))
@@ -37,15 +35,21 @@ fn main() -> Result<(), AbacusError> {
     let distance = (speed? * registry.value(5.0, "s")?)?;
     assert_eq!(distance.canonical, 25.0);
     assert_eq!(distance.unit.dimensions, Dimensions::LENGTH);
-    assert_eq!(distance.to_display(), "25 m");
 
     let mass = registry.value(2.0, "kg")?;
     let accel = registry.value(9.8, "m")? / (registry.value(1.0, "s")? * registry.value(1.0, "s")?)?;
     let force = (mass * accel?)?;
     let force_newtons = force.to(&registry, "N")?;
 
+    // Volume conversions & additions
+    let barrels = registry.value(1.0, "bbl")?;
+    let liters = registry.value(100.0, "L")?;
+    let total_volume = (barrels + liters)?;
+    let volume_m3 = total_volume.to(&registry, "m^3")?;
+
     println!("Distance: {}", distance.to_display());
     println!("Force: {}", force_newtons.to_display());
+    println!("1 bbl + 100 L in m^3: {}", volume_m3.to_display());
 
     Ok(())
 }

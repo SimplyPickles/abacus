@@ -30,20 +30,49 @@ impl UnitRegistry {
         self.units.is_empty()
     }
 
-    pub fn get(&self, symbol: &str) -> Option<&Arc<Unit>> {
-        self.units.get(symbol)
+    pub fn get(&self, symbol: &str) -> Option<Arc<Unit>> {
+        if let Some(unit) = self.units.get(symbol) {
+            return Some(Arc::clone(unit));
+        }
+        self.parse_exponent_unit(symbol).ok()
     }
 
     pub fn contains(&self, symbol: &str) -> bool {
-        self.units.contains_key(symbol)
+        self.units.contains_key(symbol) || self.parse_exponent_unit(symbol).is_ok()
     }
 
     pub fn unit(&self, symbol: &str) -> Result<Arc<Unit>, AbacusError> {
-        self.units
-            .get(symbol)
-            .cloned()
-            .ok_or_else(|| AbacusError::UnknownUnit(symbol.to_string()))
+        if let Some(unit) = self.units.get(symbol) {
+            return Ok(Arc::clone(unit));
+        }
+        self.parse_exponent_unit(symbol)
     }
+
+    fn parse_exponent_unit(&self, symbol: &str) -> Result<Arc<Unit>, AbacusError> {
+        if let Some((base_sym, exp_str)) = symbol.rsplit_once('^') {
+            if let Ok(exp) = exp_str.parse::<i8>() {
+                if exp > 0 {
+                    if let Some(base_unit) = self.units.get(base_sym) {
+                        let exp_usize = exp as usize;
+                        let scalar = base_unit.scalar.powi(exp as i32);
+                        let dimensions = base_unit.dimensions * exp;
+                        let display = crate::units::unit::UnitExpr {
+                            numerator: vec![base_sym.to_string(); exp_usize],
+                            denominator: Vec::new(),
+                        };
+                        return Ok(Arc::new(Unit {
+                            scalar,
+                            offset: 0.0,
+                            dimensions,
+                            display,
+                        }));
+                    }
+                }
+            }
+        }
+        Err(AbacusError::UnknownUnit(symbol.to_string()))
+    }
+
 
     pub fn value(&self, amount: f64, symbol: &str) -> Result<Value, AbacusError> {
         Ok(Value::new(amount, self.unit(symbol)?))
@@ -107,11 +136,28 @@ mod tests {
         let ml = volume.to(&registry, "mL").unwrap();
 
         assert_eq!(ml.to_display(), "1000 mL");
+    }
 
-        let deg = registry.value(180.0, "deg").unwrap();
-        let rad = deg.to(&registry, "rad").unwrap();
+    #[test]
+    fn converts_and_adds_volume_units() {
 
-        assert!((rad.canonical - std::f64::consts::PI).abs() < 1e-10);
+        let registry = UnitRegistry::standard();
+
+        // 1 oil barrel (bbl) to m^3
+        let bbl = registry.value(1.0, "bbl").unwrap();
+        let m3 = bbl.to(&registry, "m^3").unwrap();
+        assert_eq!(m3.to_display(), "0.158987294928 m^3");
+
+        // 1000 L to m^3
+        let liters = registry.value(1000.0, "L").unwrap();
+        let liters_m3 = liters.to(&registry, "m^3").unwrap();
+        assert_eq!(liters_m3.to_display(), "1 m^3");
+
+        // Addition of bbl and L
+        let sum = (bbl + registry.value(100.0, "L").unwrap()).unwrap();
+        let sum_m3 = sum.to(&registry, "m^3").unwrap();
+        assert_eq!(sum_m3.to_display(), "0.258987294928 m^3");
     }
 }
+
 

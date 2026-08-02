@@ -1,6 +1,14 @@
 pub mod angle_units;
+pub mod astronomical_units;
+pub mod cgs_physics_units;
+pub mod computing_niche_units;
 pub mod derived_units;
+pub mod humorous_units;
 pub mod imperial_units;
 pub mod metric_units;
+pub mod nautical_units;
 pub mod storage_units;
+pub mod trade_historical_units;
+pub mod typography_units;
 pub mod volume_units;
+

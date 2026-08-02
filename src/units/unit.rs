@@ -123,8 +123,9 @@ use std::sync::Arc;
 
 impl Unit {
     pub fn simplify_display(&mut self) {
-        self.simplify_display_with(|sym| global_units().get(sym).cloned());
+        self.simplify_display_with(|sym| global_units().get(sym));
     }
+
 
     pub fn simplify_display_with(&mut self, lookup: impl Fn(&str) -> Option<Arc<Unit>>) {
         self.display = self.display.clone().simplified();
