@@ -13,7 +13,6 @@ pub struct VolumeOrAreaUnit {
     pub display: &'static str,
     pub scalar: f64,
     pub dimensions: Dimensions,
-    pub equation: &'static str,
 }
 
 pub const VOLUME_AND_AREA_UNITS: &[VolumeOrAreaUnit] = &[
@@ -23,7 +22,6 @@ pub const VOLUME_AND_AREA_UNITS: &[VolumeOrAreaUnit] = &[
         display: "L",
         scalar: 1e-3,
         dimensions: Dimensions::VOLUME,
-        equation: "m^3",
     },
     // Land Area: Hectare (1 ha = 10,000 m^2) and Are (1 a = 100 m^2)
     VolumeOrAreaUnit {
@@ -31,14 +29,12 @@ pub const VOLUME_AND_AREA_UNITS: &[VolumeOrAreaUnit] = &[
         display: "ha",
         scalar: 10_000.0,
         dimensions: Dimensions::AREA,
-        equation: "m^2",
     },
     VolumeOrAreaUnit {
         keys: &["are", "a"],
         display: "a",
         scalar: 100.0,
         dimensions: Dimensions::AREA,
-        equation: "m^2",
     },
     // US Customary liquid measures
     VolumeOrAreaUnit {
@@ -46,49 +42,42 @@ pub const VOLUME_AND_AREA_UNITS: &[VolumeOrAreaUnit] = &[
         display: "us_gal",
         scalar: 0.003_785_411_784,
         dimensions: Dimensions::VOLUME,
-        equation: "m^3",
     },
     VolumeOrAreaUnit {
         keys: &["us_quart", "us_quarts", "us_qt"],
         display: "us_qt",
         scalar: 0.000_946_352_946,
         dimensions: Dimensions::VOLUME,
-        equation: "m^3",
     },
     VolumeOrAreaUnit {
         keys: &["us_pint", "us_pints", "us_pt"],
         display: "us_pt",
         scalar: 0.000_473_176_473,
         dimensions: Dimensions::VOLUME,
-        equation: "m^3",
     },
     VolumeOrAreaUnit {
         keys: &["us_fluid_ounce", "us_fluid_ounces", "us_fl_oz"],
         display: "us_fl_oz",
         scalar: 0.000_029_573_529_562_5,
         dimensions: Dimensions::VOLUME,
-        equation: "m^3",
     },
     VolumeOrAreaUnit {
         keys: &["cup", "cups"],
         display: "cup",
         scalar: 0.000_236_588_236_5,
         dimensions: Dimensions::VOLUME,
-        equation: "m^3",
     },
     VolumeOrAreaUnit {
         keys: &["tablespoon", "tablespoons", "tbsp"],
         display: "tbsp",
         scalar: 0.000_014_786_764_781_25,
         dimensions: Dimensions::VOLUME,
-        equation: "m^3",
     },
     VolumeOrAreaUnit {
         keys: &["teaspoon", "teaspoons", "tsp"],
         display: "tsp",
         scalar: 0.000_004_928_921_593_75,
         dimensions: Dimensions::VOLUME,
-        equation: "m^3",
     },
 ];
 

@@ -38,6 +38,11 @@ impl Value {
         self.convert_to(registry.unit(symbol)?)
     }
 
+    pub fn in_unit(&self, registry: &UnitRegistry, symbol: &str) -> Result<Self, AbacusError> {
+        self.to(registry, symbol)
+    }
+
+
     pub fn to_display(&self) -> String {
         let value = (self.canonical - self.unit.offset) / self.unit.scalar;
         let nearest_integer = value.round();
@@ -53,6 +58,10 @@ impl Value {
         } else {
             format!("{display_value} {unit_str}")
         }
+    }
+
+    pub fn to_units_display(&self) -> String {
+        self.unit.display.render()
     }
 }
 

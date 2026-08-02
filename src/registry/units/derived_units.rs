@@ -8,6 +8,7 @@ use crate::{
     },
 };
 
+#[allow(dead_code)]
 pub struct DerivedUnitDef {
     pub name: &'static str,
     pub alias: &'static str,
@@ -16,6 +17,7 @@ pub struct DerivedUnitDef {
     pub prefixable: bool,
     pub equation: &'static str,
 }
+
 
 pub const DERIVED_UNITS: &[DerivedUnitDef] = &[
     // Hz (Hertz): s^-1

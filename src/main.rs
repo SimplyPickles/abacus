@@ -1,7 +1,8 @@
 use crate::{
     registry::unit_registry::UnitRegistry,
-    units::{unit::Unit, value::Value},
+    units::{dimensions::Dimensions, unit::Unit, value::Value},
 };
+
 
 mod error;
 mod registry;
@@ -28,11 +29,27 @@ pub fn value(amount: f64, symbol: &str) -> Result<Value, AbacusError> {
 }
 
 fn main() -> Result<(), AbacusError> {
-    let speed = global_units().value(5.0, "L")?;
+    let registry = UnitRegistry::standard();
 
-    println!("{:?}", speed);
+    let speed = registry.value(5.0, "m")?
+        / registry.value(1.0, "s")?;
+
+    let distance = (speed? * registry.value(5.0, "s")?)?;
+    assert_eq!(distance.canonical, 25.0);
+    assert_eq!(distance.unit.dimensions, Dimensions::LENGTH);
+    assert_eq!(distance.to_display(), "25 m");
+
+    let mass = registry.value(2.0, "kg")?;
+    let accel = registry.value(9.8, "m")? / (registry.value(1.0, "s")? * registry.value(1.0, "s")?)?;
+    let force = (mass * accel?)?;
+    let force_newtons = force.to(&registry, "N")?;
+
+    println!("Distance: {}", distance.to_display());
+    println!("Force: {}", force_newtons.to_display());
+
     Ok(())
 }
+
 
 #[cfg(test)]
 mod tests {
