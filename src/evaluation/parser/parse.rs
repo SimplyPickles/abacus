@@ -132,17 +132,9 @@ impl<'a> Parser<'a> {
                     break;
                 }
                 self.advance();
-                // The RHS of a conversion is a unit name, not a full expression
-                match self.advance() {
-                    Some(Token::Unit(unit_sym)) => {
-                        let target_unit = self.unit_registry.unit(&unit_sym)?;
-                        lhs = lhs.convert_to(target_unit)?;
-                    }
-                    Some(tok) => {
-                        return Err(AbacusError::UnexpectedToken(format!("{:?}", tok)));
-                    }
-                    None => return Err(AbacusError::UnexpectedEnd),
-                }
+                // The RHS of a conversion can be a unit symbol or compound unit expression
+                let target_val = self.parse_expr(1)?;
+                lhs = lhs.convert_to(target_val.unit)?;
                 continue;
             }
 
@@ -157,6 +149,11 @@ impl<'a> Parser<'a> {
     fn parse_prefix(&mut self) -> Result<Value, AbacusError> {
         match self.advance() {
             Some(Token::Val(val)) => Ok(val),
+
+            Some(Token::Unit(unit_sym)) => {
+                let unit = self.unit_registry.unit(&unit_sym)?;
+                Ok(Value::new(1.0, unit))
+            }
 
             Some(Token::Float(num)) => {
                 // A bare float without a unit — wrap in dimensionless Value
@@ -388,6 +385,14 @@ mod tests {
         assert_eq!(result, "5 m/s");
     }
 
+    #[test]
+    fn evaluates_bare_unit_division() {
+        assert_eq!(eval("1m/m").unwrap(), "1");
+        assert_eq!(eval("1 m / m").unwrap(), "1");
+        assert_eq!(eval("5 km / m").unwrap(), "5000");
+        assert_eq!(eval("km / h").unwrap(), "1 km/h");
+    }
+
     // ── Operator precedence ──
 
     #[test]
@@ -475,6 +480,13 @@ mod tests {
         // (5 m + 20 cm) as m = 5.2 m
         let result = eval("(5 m + 20 cm) as m").unwrap();
         assert_eq!(result, "5.2 m");
+    }
+
+    #[test]
+    fn evaluates_dimensionless_conversions() {
+        assert_eq!(eval("1 as inches").unwrap(), "1 in");
+        assert_eq!(eval("10 in m").unwrap(), "10 m");
+        assert_eq!(eval("1 m/m in inches").unwrap(), "1 in");
     }
 
     // ── Ranges ──

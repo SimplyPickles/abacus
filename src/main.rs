@@ -15,6 +15,9 @@ fn main() -> Result<(), AbacusError> {
         "2 + 3 * 4",
         "sqrt(9 m^2)",
         "sqrt(5 m)",
+        "1m/m",
+        "1 m/s in mph",
+        "5 km / m",
         "5 km to m",
         "",
         "// Statistical Functions & Ranges",
@@ -48,6 +51,7 @@ fn main() -> Result<(), AbacusError> {
         "fcdf(5, 10, 3.33)",
         "expcdf(0.5, 2)",
         "unifcdf(0, 10, 5)",
+        "1 m/m in inches",
     ];
 
     println!("=== Abacus Math Engine Demonstration ===\n");

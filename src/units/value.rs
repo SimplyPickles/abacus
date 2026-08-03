@@ -32,6 +32,10 @@ impl Value {
 
     pub fn convert_to(&self, unit: Arc<Unit>) -> Result<Self, AbacusError> {
         if !self.unit.is_compatible_with(&unit) {
+            if self.unit.is_dimensionless() {
+                let amount = (self.canonical - self.unit.offset) / self.unit.scalar;
+                return Ok(Self::new(amount, unit));
+            }
             return Err(AbacusError::IncompatibleDimensions);
         }
 
@@ -372,5 +376,13 @@ mod tests {
         let work = (&force_derived * &distance).unwrap();
         let work_derived = work.to_derived(&registry).unwrap();
         assert_eq!(work_derived.to_display(), "98 J");
+    }
+
+    #[test]
+    fn converts_dimensionless_values_to_target_units() {
+        let registry = UnitRegistry::standard();
+        let dimless = Value::new(10.0, Arc::new(Unit::dimensionless()));
+        let converted = dimless.to(&registry, "m").unwrap();
+        assert_eq!(converted.to_display(), "10 m");
     }
 }
