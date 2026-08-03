@@ -93,6 +93,9 @@ mod tests {
 
         assert_eq!(units.get("au").unwrap().scalar, 149_597_870_700.0);
         assert_eq!(units.get("ly").unwrap().scalar, 9_460_730_472_580_800.0);
-        assert_eq!(units.get("kpc").unwrap().scalar, 30_856_775_814_913_673.0 * 1e3);
+        assert_eq!(
+            units.get("kpc").unwrap().scalar,
+            30_856_775_814_913_673.0 * 1e3
+        );
     }
 }

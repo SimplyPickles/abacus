@@ -18,7 +18,6 @@ pub struct DerivedUnitDef {
     pub equation: &'static str,
 }
 
-
 pub const DERIVED_UNITS: &[DerivedUnitDef] = &[
     // Hz (Hertz): s^-1
     DerivedUnitDef {

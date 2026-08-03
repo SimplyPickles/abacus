@@ -6,10 +6,17 @@ use std::{
     sync::Arc,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Value {
     pub canonical: f64,
     pub unit: Arc<Unit>,
+}
+
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        self.unit.dimensions == other.unit.dimensions
+            && (self.canonical - other.canonical).abs() <= 1e-12 * self.canonical.abs().max(1.0)
+    }
 }
 
 #[allow(dead_code)]
@@ -42,11 +49,18 @@ impl Value {
         self.to(registry, symbol)
     }
 
+    pub fn to_derived(&self, registry: &UnitRegistry) -> Result<Self, AbacusError> {
+        if let Some(derived_unit) = registry.find_unit_by_dimensions(&self.unit.dimensions) {
+            self.convert_to(derived_unit)
+        } else {
+            Ok(self.clone())
+        }
+    }
 
     pub fn to_display(&self) -> String {
         let value = (self.canonical - self.unit.offset) / self.unit.scalar;
         let nearest_integer = value.round();
-        let display_value = if (value - nearest_integer).abs() < 1e-12 {
+        let display_value = if (value - nearest_integer).abs() <= 1e-12 * value.abs().max(1.0) {
             nearest_integer
         } else {
             value
@@ -71,10 +85,11 @@ impl fmt::Display for Value {
     }
 }
 
-impl Add for Value {
+// Add implementations
+impl Add<&Value> for &Value {
     type Output = Result<Value, AbacusError>;
 
-    fn add(self, rhs: Self) -> Self::Output {
+    fn add(self, rhs: &Value) -> Self::Output {
         if self.unit.is_affine() || rhs.unit.is_affine() {
             return Err(AbacusError::AffineUnitOperation("add"));
         }
@@ -85,15 +100,37 @@ impl Add for Value {
 
         Ok(Value {
             canonical: self.canonical + rhs.canonical,
-            unit: self.unit,
+            unit: Arc::clone(&self.unit),
         })
     }
 }
 
-impl Sub for Value {
+impl Add<Value> for Value {
+    type Output = Result<Value, AbacusError>;
+    fn add(self, rhs: Self) -> Self::Output {
+        &self + &rhs
+    }
+}
+
+impl Add<&Value> for Value {
+    type Output = Result<Value, AbacusError>;
+    fn add(self, rhs: &Value) -> Self::Output {
+        &self + rhs
+    }
+}
+
+impl Add<Value> for &Value {
+    type Output = Result<Value, AbacusError>;
+    fn add(self, rhs: Value) -> Self::Output {
+        self + &rhs
+    }
+}
+
+// Sub implementations
+impl Sub<&Value> for &Value {
     type Output = Result<Value, AbacusError>;
 
-    fn sub(self, rhs: Self) -> Self::Output {
+    fn sub(self, rhs: &Value) -> Self::Output {
         if self.unit.is_affine() || rhs.unit.is_affine() {
             return Err(AbacusError::AffineUnitOperation("subtract"));
         }
@@ -104,15 +141,37 @@ impl Sub for Value {
 
         Ok(Value {
             canonical: self.canonical - rhs.canonical,
-            unit: self.unit,
+            unit: Arc::clone(&self.unit),
         })
     }
 }
 
-impl Mul for Value {
+impl Sub<Value> for Value {
+    type Output = Result<Value, AbacusError>;
+    fn sub(self, rhs: Self) -> Self::Output {
+        &self - &rhs
+    }
+}
+
+impl Sub<&Value> for Value {
+    type Output = Result<Value, AbacusError>;
+    fn sub(self, rhs: &Value) -> Self::Output {
+        &self - rhs
+    }
+}
+
+impl Sub<Value> for &Value {
+    type Output = Result<Value, AbacusError>;
+    fn sub(self, rhs: Value) -> Self::Output {
+        self - &rhs
+    }
+}
+
+// Mul implementations
+impl Mul<&Value> for &Value {
     type Output = Result<Value, AbacusError>;
 
-    fn mul(self, rhs: Self) -> Self::Output {
+    fn mul(self, rhs: &Value) -> Self::Output {
         if self.unit.is_affine() || rhs.unit.is_affine() {
             return Err(AbacusError::AffineUnitOperation("multiply"));
         }
@@ -132,10 +191,32 @@ impl Mul for Value {
     }
 }
 
-impl Div for Value {
+impl Mul<Value> for Value {
+    type Output = Result<Value, AbacusError>;
+    fn mul(self, rhs: Self) -> Self::Output {
+        &self * &rhs
+    }
+}
+
+impl Mul<&Value> for Value {
+    type Output = Result<Value, AbacusError>;
+    fn mul(self, rhs: &Value) -> Self::Output {
+        &self * rhs
+    }
+}
+
+impl Mul<Value> for &Value {
+    type Output = Result<Value, AbacusError>;
+    fn mul(self, rhs: Value) -> Self::Output {
+        self * &rhs
+    }
+}
+
+// Div implementations
+impl Div<&Value> for &Value {
     type Output = Result<Value, AbacusError>;
 
-    fn div(self, rhs: Self) -> Self::Output {
+    fn div(self, rhs: &Value) -> Self::Output {
         if self.unit.is_affine() || rhs.unit.is_affine() {
             return Err(AbacusError::AffineUnitOperation("divide"));
         }
@@ -152,6 +233,27 @@ impl Div for Value {
             canonical: self.canonical / rhs.canonical,
             unit: Arc::new(unit),
         })
+    }
+}
+
+impl Div<Value> for Value {
+    type Output = Result<Value, AbacusError>;
+    fn div(self, rhs: Self) -> Self::Output {
+        &self / &rhs
+    }
+}
+
+impl Div<&Value> for Value {
+    type Output = Result<Value, AbacusError>;
+    fn div(self, rhs: &Value) -> Self::Output {
+        &self / rhs
+    }
+}
+
+impl Div<Value> for &Value {
+    type Output = Result<Value, AbacusError>;
+    fn div(self, rhs: Value) -> Self::Output {
+        self / &rhs
     }
 }
 
@@ -230,5 +332,45 @@ mod tests {
         assert_eq!(distance.canonical, 25.0);
         assert_eq!(distance.unit.dimensions, Dimensions::LENGTH);
         assert_eq!(distance.to_display(), "25 m");
+    }
+
+    #[test]
+    fn supports_reference_arithmetic() {
+        let a = Value::new(5.0, unit(1_000.0, Dimensions::LENGTH, "km"));
+        let b = Value::new(500.0, unit(1.0, Dimensions::LENGTH, "m"));
+
+        let sum = (&a + &b).unwrap();
+        assert_eq!(sum.to_display(), "5.5 km");
+        // Verify a and b are not consumed
+        assert_eq!(a.to_display(), "5 km");
+        assert_eq!(b.to_display(), "500 m");
+    }
+
+    #[test]
+    fn supports_partial_eq_and_display() {
+        let a = Value::new(5.0, unit(1_000.0, Dimensions::LENGTH, "km"));
+        let b = Value::new(5000.0, unit(1.0, Dimensions::LENGTH, "m"));
+
+        assert_eq!(a, b);
+        assert_eq!(format!("{a}"), "5 km");
+    }
+
+    #[test]
+    fn automatically_converts_to_matching_derived_units() {
+        let registry = UnitRegistry::standard();
+
+        let mass = registry.value(2.0, "kg").unwrap();
+        let accel = (registry.value(9.8, "m").unwrap()
+            / (registry.value(1.0, "s").unwrap() * registry.value(1.0, "s").unwrap()).unwrap())
+        .unwrap();
+
+        let force = (&mass * &accel).unwrap();
+        let force_derived = force.to_derived(&registry).unwrap();
+        assert_eq!(force_derived.to_display(), "19.6 N");
+
+        let distance = registry.value(5.0, "m").unwrap();
+        let work = (&force_derived * &distance).unwrap();
+        let work_derived = work.to_derived(&registry).unwrap();
+        assert_eq!(work_derived.to_display(), "98 J");
     }
 }

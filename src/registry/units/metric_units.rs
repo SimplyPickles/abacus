@@ -2,18 +2,14 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     gen_prefixes,
-
     registry::{
         helpers::scalar_prefixes::ScalarPrefix,
         units::{
-            angle_units::register_angle_units,
-            astronomical_units::register_astronomical_units,
+            angle_units::register_angle_units, astronomical_units::register_astronomical_units,
             cgs_physics_units::register_cgs_physics_units,
             computing_niche_units::register_computing_niche_units,
-            derived_units::register_derived_units,
-            humorous_units::register_humorous_units,
-            imperial_units::register_imperial_units,
-            nautical_units::register_nautical_units,
+            derived_units::register_derived_units, humorous_units::register_humorous_units,
+            imperial_units::register_imperial_units, nautical_units::register_nautical_units,
             storage_units::register_storage_units,
             trade_historical_units::register_trade_historical_units,
             typography_units::register_typography_units,
@@ -25,7 +21,6 @@ use crate::{
         unit::{Unit, UnitExpr},
     },
 };
-
 
 pub static METRIC_PREFIXES: &[ScalarPrefix] = gen_prefixes! {
     "quetta",  "Q",  1e30;
@@ -137,7 +132,6 @@ pub fn register_metric_units() -> HashMap<String, Arc<Unit>> {
     register_computing_niche_units(&mut map);
     register_trade_historical_units(&mut map);
     register_humorous_units(&mut map);
-
 
     for base in BASE_METRIC_UNITS {
         map.insert(

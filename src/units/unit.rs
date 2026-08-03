@@ -93,30 +93,22 @@ impl UnitExpr {
 }
 
 fn render_units(units: &[String]) -> String {
-    use std::collections::HashMap;
-
-    let mut counts = HashMap::new();
-    let mut order = Vec::new();
+    let mut parts = Vec::new();
+    let mut visited = Vec::new();
 
     for unit in units {
-        if !counts.contains_key(unit) {
-            order.push(unit);
+        if !visited.contains(&unit) {
+            visited.push(unit);
+            let count = units.iter().filter(|u| u == &unit).count();
+            if count == 1 {
+                parts.push(unit.clone());
+            } else {
+                parts.push(format!("{unit}^{count}"));
+            }
         }
-        *counts.entry(unit).or_insert(0) += 1;
     }
 
-    order
-        .into_iter()
-        .map(|unit| {
-            let count = counts[unit];
-            if count == 1 {
-                unit.clone()
-            } else {
-                format!("{unit}^{count}")
-            }
-        })
-        .collect::<Vec<_>>()
-        .join("*")
+    parts.join("*")
 }
 
 use std::sync::Arc;
@@ -125,7 +117,6 @@ impl Unit {
     pub fn simplify_display(&mut self) {
         self.simplify_display_with(|sym| global_units().get(sym));
     }
-
 
     pub fn simplify_display_with(&mut self, lookup: impl Fn(&str) -> Option<Arc<Unit>>) {
         self.display = self.display.clone().simplified();

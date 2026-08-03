@@ -156,6 +156,5 @@ mod tests {
         assert_eq!(units.get("eV").unwrap().scalar, 1.602_176_634e-16);
         assert!((units.get("keV").unwrap().scalar - 1.602_176_634e-13).abs() < 1e-25);
         assert_eq!(units.get("atm").unwrap().scalar, 1.013_25e8);
-
     }
 }

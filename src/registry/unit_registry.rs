@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 
 use crate::{
     error::AbacusError,
@@ -6,23 +9,24 @@ use crate::{
     units::{unit::Unit, value::Value},
 };
 
-
-
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct UnitRegistry {
     units: HashMap<String, Arc<Unit>>,
+    cache: RwLock<HashMap<String, Arc<Unit>>>,
 }
 
 impl UnitRegistry {
     pub fn new() -> Self {
         Self {
             units: HashMap::new(),
+            cache: RwLock::new(HashMap::new()),
         }
     }
 
     pub fn standard() -> Self {
         Self {
             units: register_metric_units(),
+            cache: RwLock::new(HashMap::new()),
         }
     }
 
@@ -41,6 +45,26 @@ impl UnitRegistry {
         self.units.contains_key(symbol) || self.parse_exponent_unit(symbol).is_ok()
     }
 
+    pub fn find_unit_by_dimensions(
+        &self,
+        dimensions: &crate::units::dimensions::Dimensions,
+    ) -> Option<Arc<Unit>> {
+        let priority_symbols = [
+            "N", "J", "W", "Pa", "Hz", "V", "C", "F", "Ω", "S", "Wb", "T", "H", "lx", "kat", "Bq",
+            "Gy", "Sv", "lm",
+        ];
+
+        for &sym in &priority_symbols {
+            if let Some(unit) = self.units.get(sym) {
+                if &unit.dimensions == dimensions {
+                    return Some(Arc::clone(unit));
+                }
+            }
+        }
+
+        None
+    }
+
     pub fn unit(&self, symbol: &str) -> Result<Arc<Unit>, AbacusError> {
         if let Some(unit) = self.units.get(symbol) {
             return Ok(Arc::clone(unit));
@@ -49,6 +73,12 @@ impl UnitRegistry {
     }
 
     fn parse_exponent_unit(&self, symbol: &str) -> Result<Arc<Unit>, AbacusError> {
+        if let Ok(guard) = self.cache.read() {
+            if let Some(cached) = guard.get(symbol) {
+                return Ok(Arc::clone(cached));
+            }
+        }
+
         if let Some((base_sym, exp_str)) = symbol.rsplit_once('^') {
             if let Ok(exp) = exp_str.parse::<i8>() {
                 if exp > 0 {
@@ -60,19 +90,24 @@ impl UnitRegistry {
                             numerator: vec![base_sym.to_string(); exp_usize],
                             denominator: Vec::new(),
                         };
-                        return Ok(Arc::new(Unit {
+                        let unit = Arc::new(Unit {
                             scalar,
                             offset: 0.0,
                             dimensions,
                             display,
-                        }));
+                        });
+
+                        if let Ok(mut guard) = self.cache.write() {
+                            guard.insert(symbol.to_string(), Arc::clone(&unit));
+                        }
+
+                        return Ok(unit);
                     }
                 }
             }
         }
         Err(AbacusError::UnknownUnit(symbol.to_string()))
     }
-
 
     pub fn value(&self, amount: f64, symbol: &str) -> Result<Value, AbacusError> {
         Ok(Value::new(amount, self.unit(symbol)?))
@@ -140,7 +175,6 @@ mod tests {
 
     #[test]
     fn converts_and_adds_volume_units() {
-
         let registry = UnitRegistry::standard();
 
         // 1 oil barrel (bbl) to m^3
@@ -158,6 +192,14 @@ mod tests {
         let sum_m3 = sum.to(&registry, "m^3").unwrap();
         assert_eq!(sum_m3.to_display(), "0.258987294928 m^3");
     }
+
+    #[test]
+    fn caches_generated_exponent_units() {
+        let registry = UnitRegistry::standard();
+
+        let unit1 = registry.unit("m^3").unwrap();
+        let unit2 = registry.unit("m^3").unwrap();
+
+        assert!(Arc::ptr_eq(&unit1, &unit2));
+    }
 }
-
-
