@@ -494,6 +494,28 @@ mod tests {
     }
 
     #[test]
+    fn evaluates_combinatorics_functions() {
+        assert_eq!(eval("5!").unwrap(), "120");
+        assert_eq!(eval("factorial(5)").unwrap(), "120");
+        assert_eq!(eval("nCr(10, 3)").unwrap(), "120");
+        assert_eq!(eval("comb(10, 3)").unwrap(), "120");
+        assert_eq!(eval("nPr(5, 2)").unwrap(), "20");
+        assert_eq!(eval("perm(5, 2)").unwrap(), "20");
+    }
+
+    #[test]
+    fn evaluates_math_helpers_and_modulo() {
+        assert_eq!(eval("clamp(15 m, 0 m, 10 m)").unwrap(), "10 m");
+        assert_eq!(eval("clamp(-5 kg, 0 kg, 100 kg)").unwrap(), "0 kg");
+        assert_eq!(eval("gcd(12, 18)").unwrap(), "6");
+        assert_eq!(eval("lcm(4, 6)").unwrap(), "12");
+        assert_eq!(eval("10 % 3").unwrap(), "1");
+        assert_eq!(eval("10 m % 3 m").unwrap(), "1 m");
+        assert_eq!(eval("10 cm % 3").unwrap(), "1 cm");
+        assert_eq!(eval("mod(10 m, 3 m)").unwrap(), "1 m");
+    }
+
+    #[test]
     fn evaluates_mean_function() {
         let result = eval("mean(10 m, 20 m, 30 m)").unwrap();
         assert_eq!(result, "20 m");

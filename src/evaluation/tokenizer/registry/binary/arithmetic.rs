@@ -48,6 +48,10 @@ fn exp(a: Value, b: Value) -> Result<Value, AbacusError> {
     }
 }
 
+fn rem(a: Value, b: Value) -> Result<Value, AbacusError> {
+    crate::evaluation::tokenizer::registry::function::math_helpers::compute_modulo(&a, &b)
+}
+
 pub fn register_arithmetic() -> Vec<BinaryOp> {
     vec![
         BinaryOp {
@@ -71,6 +75,12 @@ pub fn register_arithmetic() -> Vec<BinaryOp> {
         BinaryOp {
             alias: "/",
             func: div,
+            precedence: 1,
+            right_associative: false,
+        },
+        BinaryOp {
+            alias: "%",
+            func: rem,
             precedence: 1,
             right_associative: false,
         },
