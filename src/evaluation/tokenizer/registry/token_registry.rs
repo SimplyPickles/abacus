@@ -3,8 +3,8 @@ use std::{collections::HashMap, sync::Arc};
 use crate::evaluation::tokenizer::registry::{
     binary::{arithmetic::register_arithmetic, operators::BinaryOp},
     function::{
-        distributions::register_distributions, operators::FunctionOp, stats::register_stats,
-        trig::register_trig,
+        distributions::register_distributions, math::register_math, operators::FunctionOp,
+        stats::register_stats, trig::register_trig,
     },
     unary::{general::register_general, operators::UnaryOp},
 };
@@ -37,6 +37,7 @@ impl TokenRegistry {
 
         let mut functions: Vec<FunctionOp> = Vec::new();
         functions.append(&mut register_trig());
+        functions.append(&mut register_math());
         functions.append(&mut register_stats());
         functions.append(&mut register_distributions());
 

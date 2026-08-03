@@ -462,6 +462,38 @@ mod tests {
     }
 
     #[test]
+    fn evaluates_trig_and_hyperbolic_functions() {
+        assert!((eval_val("cos(0)").unwrap().canonical - 1.0).abs() < 1e-10);
+        assert!((eval_val("tan(0)").unwrap().canonical - 0.0).abs() < 1e-10);
+        assert!((eval_val("sin(45 deg)").unwrap().canonical - std::f64::consts::FRAC_1_SQRT_2).abs() < 1e-6);
+        assert!((eval_val("asin(1)").unwrap().canonical - std::f64::consts::FRAC_PI_2).abs() < 1e-6);
+        assert!((eval_val("acos(1)").unwrap().canonical - 0.0).abs() < 1e-6);
+        assert!((eval_val("atan(1)").unwrap().canonical - std::f64::consts::FRAC_PI_4).abs() < 1e-6);
+        assert!((eval_val("atan2(1 m, 1 m)").unwrap().canonical - std::f64::consts::FRAC_PI_4).abs() < 1e-6);
+        assert!((eval_val("sinh(0)").unwrap().canonical - 0.0).abs() < 1e-10);
+        assert!((eval_val("cosh(0)").unwrap().canonical - 1.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn evaluates_log_and_exponential_functions() {
+        assert!((eval_val("ln(2.718281828459)").unwrap().canonical - 1.0).abs() < 1e-6);
+        assert!((eval_val("log10(100)").unwrap().canonical - 2.0).abs() < 1e-6);
+        assert!((eval_val("log2(8)").unwrap().canonical - 3.0).abs() < 1e-6);
+        assert!((eval_val("log(81, 3)").unwrap().canonical - 4.0).abs() < 1e-6);
+        assert!((eval_val("exp(1)").unwrap().canonical - std::f64::consts::E).abs() < 1e-6);
+    }
+
+    #[test]
+    fn evaluates_general_math_functions() {
+        assert_eq!(eval("abs(-10 m)").unwrap(), "10 m");
+        assert_eq!(eval("floor(5.7 m)").unwrap(), "5 m");
+        assert_eq!(eval("ceil(5.2 m)").unwrap(), "6 m");
+        assert_eq!(eval("round(5.5 m)").unwrap(), "6 m");
+        assert_eq!(eval("sign(-10 m)").unwrap(), "-1");
+        assert_eq!(eval("sign(5 m)").unwrap(), "1");
+    }
+
+    #[test]
     fn evaluates_mean_function() {
         let result = eval("mean(10 m, 20 m, 30 m)").unwrap();
         assert_eq!(result, "20 m");

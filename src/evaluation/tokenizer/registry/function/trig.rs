@@ -82,6 +82,42 @@ fn atan2_fn(args: &[Value]) -> Result<Value, AbacusError> {
     Ok(make_angle_rad(y.atan2(x)))
 }
 
+fn sinh_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    let rad = parse_angle_radians(&args[0])?;
+    Ok(make_dimensionless(rad.sinh()))
+}
+
+fn cosh_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    let rad = parse_angle_radians(&args[0])?;
+    Ok(make_dimensionless(rad.cosh()))
+}
+
+fn tanh_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    let rad = parse_angle_radians(&args[0])?;
+    Ok(make_dimensionless(rad.tanh()))
+}
+
+fn asinh_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    if !args[0].unit.is_dimensionless() {
+        return Err(AbacusError::IncompatibleDimensions);
+    }
+    Ok(make_angle_rad(args[0].canonical.asinh()))
+}
+
+fn acosh_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    if !args[0].unit.is_dimensionless() {
+        return Err(AbacusError::IncompatibleDimensions);
+    }
+    Ok(make_angle_rad(args[0].canonical.acosh()))
+}
+
+fn atanh_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    if !args[0].unit.is_dimensionless() {
+        return Err(AbacusError::IncompatibleDimensions);
+    }
+    Ok(make_angle_rad(args[0].canonical.atanh()))
+}
+
 pub fn register_trig() -> Vec<FunctionOp> {
     vec![
         FunctionOp {
@@ -125,6 +161,42 @@ pub fn register_trig() -> Vec<FunctionOp> {
             min_args: 2,
             max_args: 2,
             func: atan2_fn,
+        },
+        FunctionOp {
+            name: "sinh",
+            min_args: 1,
+            max_args: 1,
+            func: sinh_fn,
+        },
+        FunctionOp {
+            name: "cosh",
+            min_args: 1,
+            max_args: 1,
+            func: cosh_fn,
+        },
+        FunctionOp {
+            name: "tanh",
+            min_args: 1,
+            max_args: 1,
+            func: tanh_fn,
+        },
+        FunctionOp {
+            name: "asinh",
+            min_args: 1,
+            max_args: 1,
+            func: asinh_fn,
+        },
+        FunctionOp {
+            name: "acosh",
+            min_args: 1,
+            max_args: 1,
+            func: acosh_fn,
+        },
+        FunctionOp {
+            name: "atanh",
+            min_args: 1,
+            max_args: 1,
+            func: atanh_fn,
         },
     ]
 }

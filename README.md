@@ -16,10 +16,10 @@
 - 📊 **Statistical Functions & Range Expansion**:
   - Functions accept discrete arguments or range syntax (`1..5`, `1 m .. 5 m`).
   - Includes `sum`, `mean`, `median`, `mode`, `range`, `var`, `std`, `quantile`, `percentile`, `iqr`, and `corr` (Pearson correlation).
-- 📉 **Probability Distributions & Inverse CDFs**:
-  - **Discrete**: Binomial (`binompdf`, `binomcdf`), Geometric (`geompdf`, `geomcdf`), Poisson (`poissonpdf`, `poissoncdf`), Hypergeometric (`hypgeompdf`, `hypgeomcdf`).
-  - **Continuous**: Normal (`normpdf`, `normcdf`, `invnorm`), Student's t (`tpdf`, `tcdf`, `invt`), Chi-Square (`chisqpdf`, `chisqcdf`, `invchisq`), F (`fpdf`, `fcdf`), Exponential (`exppdf`, `expcdf`, `invexp`), Uniform (`unifpdf`, `unifcdf`, `invunif`).
-  - Parameterized continuous distributions support unit-aware parameters (e.g. `normcdf(70 kg, 65 kg, 5 kg)`, `invnorm(0.975, 100 kg, 15 kg)`).
+- 📐 **Trigonometry, Logarithms & Math Library**:
+  - **Trigonometric & Hyperbolic**: `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh` (supports angle units like `rad`, `deg`, `°`, `turn`, `arcmin`, `arcsec`).
+  - **Logarithmic & Exponential**: `ln`, `log10`, `log2`, `log(x, base)`, `exp`.
+  - **Rounding & General Math**: `abs`, `floor`, `ceil`, `round`, `sign` (preserves unit, e.g. `floor(5.7 m) = 5 m`).
 - 🌌 **Extensive Unit Registry**:
   - SI Base & Derived Units (`m`, `kg`, `s`, `N`, `J`, `W`, `Pa`, `Hz`, `V`, `Ω`, `F`, `Wb`, `T`, `H`, etc.)
   - Exponent units (`m^2`, `m^3`, `cm^3`, `ft^3`) dynamically resolved.
