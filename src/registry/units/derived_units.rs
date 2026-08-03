@@ -23,7 +23,7 @@ pub const DERIVED_UNITS: &[DerivedUnitDef] = &[
     DerivedUnitDef {
         name: "hertz",
         alias: "Hz",
-        dimensions: Dimensions([0, 0, -1, 0, 0, 0, 0, 0]),
+        dimensions: Dimensions([0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
         scalar: 1.0,
         prefixable: true,
         equation: "s^-1",
@@ -32,7 +32,7 @@ pub const DERIVED_UNITS: &[DerivedUnitDef] = &[
     DerivedUnitDef {
         name: "newton",
         alias: "N",
-        dimensions: Dimensions([1, 1, -2, 0, 0, 0, 0, 0]),
+        dimensions: Dimensions([1.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
         scalar: 1000.0,
         prefixable: true,
         equation: "kg*m/s^2",
@@ -41,7 +41,7 @@ pub const DERIVED_UNITS: &[DerivedUnitDef] = &[
     DerivedUnitDef {
         name: "pascal",
         alias: "Pa",
-        dimensions: Dimensions([-1, 1, -2, 0, 0, 0, 0, 0]),
+        dimensions: Dimensions([-1.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
         scalar: 1000.0,
         prefixable: true,
         equation: "N/m^2",
@@ -50,7 +50,7 @@ pub const DERIVED_UNITS: &[DerivedUnitDef] = &[
     DerivedUnitDef {
         name: "joule",
         alias: "J",
-        dimensions: Dimensions([2, 1, -2, 0, 0, 0, 0, 0]),
+        dimensions: Dimensions([2.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
         scalar: 1000.0,
         prefixable: true,
         equation: "N*m",
@@ -59,7 +59,7 @@ pub const DERIVED_UNITS: &[DerivedUnitDef] = &[
     DerivedUnitDef {
         name: "watt",
         alias: "W",
-        dimensions: Dimensions([2, 1, -3, 0, 0, 0, 0, 0]),
+        dimensions: Dimensions([2.0, 1.0, -3.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
         scalar: 1000.0,
         prefixable: true,
         equation: "J/s",
@@ -68,7 +68,7 @@ pub const DERIVED_UNITS: &[DerivedUnitDef] = &[
     DerivedUnitDef {
         name: "coulomb",
         alias: "C",
-        dimensions: Dimensions([0, 0, 1, 1, 0, 0, 0, 0]),
+        dimensions: Dimensions([0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]),
         scalar: 1.0,
         prefixable: true,
         equation: "A*s",
@@ -77,7 +77,7 @@ pub const DERIVED_UNITS: &[DerivedUnitDef] = &[
     DerivedUnitDef {
         name: "volt",
         alias: "V",
-        dimensions: Dimensions([2, 1, -3, -1, 0, 0, 0, 0]),
+        dimensions: Dimensions([2.0, 1.0, -3.0, -1.0, 0.0, 0.0, 0.0, 0.0]),
         scalar: 1000.0,
         prefixable: true,
         equation: "W/A",
@@ -86,7 +86,7 @@ pub const DERIVED_UNITS: &[DerivedUnitDef] = &[
     DerivedUnitDef {
         name: "farad",
         alias: "F",
-        dimensions: Dimensions([-2, -1, 4, 2, 0, 0, 0, 0]),
+        dimensions: Dimensions([-2.0, -1.0, 4.0, 2.0, 0.0, 0.0, 0.0, 0.0]),
         scalar: 0.001,
         prefixable: true,
         equation: "C/V",
@@ -95,7 +95,7 @@ pub const DERIVED_UNITS: &[DerivedUnitDef] = &[
     DerivedUnitDef {
         name: "ohm",
         alias: "Ω",
-        dimensions: Dimensions([2, 1, -3, -2, 0, 0, 0, 0]),
+        dimensions: Dimensions([2.0, 1.0, -3.0, -2.0, 0.0, 0.0, 0.0, 0.0]),
         scalar: 1000.0,
         prefixable: true,
         equation: "V/A",
@@ -104,7 +104,7 @@ pub const DERIVED_UNITS: &[DerivedUnitDef] = &[
     DerivedUnitDef {
         name: "siemens",
         alias: "S",
-        dimensions: Dimensions([-2, -1, 3, 2, 0, 0, 0, 0]),
+        dimensions: Dimensions([-2.0, -1.0, 3.0, 2.0, 0.0, 0.0, 0.0, 0.0]),
         scalar: 0.001,
         prefixable: true,
         equation: "1/Ω",
@@ -113,7 +113,7 @@ pub const DERIVED_UNITS: &[DerivedUnitDef] = &[
     DerivedUnitDef {
         name: "weber",
         alias: "Wb",
-        dimensions: Dimensions([2, 1, -2, -1, 0, 0, 0, 0]),
+        dimensions: Dimensions([2.0, 1.0, -2.0, -1.0, 0.0, 0.0, 0.0, 0.0]),
         scalar: 1000.0,
         prefixable: true,
         equation: "V*s",
@@ -122,7 +122,7 @@ pub const DERIVED_UNITS: &[DerivedUnitDef] = &[
     DerivedUnitDef {
         name: "tesla",
         alias: "T",
-        dimensions: Dimensions([0, 1, -2, -1, 0, 0, 0, 0]),
+        dimensions: Dimensions([0.0, 1.0, -2.0, -1.0, 0.0, 0.0, 0.0, 0.0]),
         scalar: 1000.0,
         prefixable: true,
         equation: "Wb/m^2",
@@ -131,7 +131,7 @@ pub const DERIVED_UNITS: &[DerivedUnitDef] = &[
     DerivedUnitDef {
         name: "henry",
         alias: "H",
-        dimensions: Dimensions([2, 1, -2, -2, 0, 0, 0, 0]),
+        dimensions: Dimensions([2.0, 1.0, -2.0, -2.0, 0.0, 0.0, 0.0, 0.0]),
         scalar: 1000.0,
         prefixable: true,
         equation: "Wb/A",
@@ -149,7 +149,7 @@ pub const DERIVED_UNITS: &[DerivedUnitDef] = &[
     DerivedUnitDef {
         name: "lux",
         alias: "lx",
-        dimensions: Dimensions([-2, 0, 0, 0, 0, 0, 1, 0]),
+        dimensions: Dimensions([-2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0]),
         scalar: 1.0,
         prefixable: true,
         equation: "lm/m^2",
@@ -158,7 +158,7 @@ pub const DERIVED_UNITS: &[DerivedUnitDef] = &[
     DerivedUnitDef {
         name: "becquerel",
         alias: "Bq",
-        dimensions: Dimensions([0, 0, -1, 0, 0, 0, 0, 0]),
+        dimensions: Dimensions([0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
         scalar: 1.0,
         prefixable: true,
         equation: "s^-1",
@@ -167,7 +167,7 @@ pub const DERIVED_UNITS: &[DerivedUnitDef] = &[
     DerivedUnitDef {
         name: "gray",
         alias: "Gy",
-        dimensions: Dimensions([2, 0, -2, 0, 0, 0, 0, 0]),
+        dimensions: Dimensions([2.0, 0.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
         scalar: 1.0,
         prefixable: true,
         equation: "J/kg",
@@ -176,7 +176,7 @@ pub const DERIVED_UNITS: &[DerivedUnitDef] = &[
     DerivedUnitDef {
         name: "sievert",
         alias: "Sv",
-        dimensions: Dimensions([2, 0, -2, 0, 0, 0, 0, 0]),
+        dimensions: Dimensions([2.0, 0.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
         scalar: 1.0,
         prefixable: true,
         equation: "J/kg",
@@ -185,7 +185,7 @@ pub const DERIVED_UNITS: &[DerivedUnitDef] = &[
     DerivedUnitDef {
         name: "katal",
         alias: "kat",
-        dimensions: Dimensions([0, 0, -1, 0, 0, 1, 0, 0]),
+        dimensions: Dimensions([0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0]),
         scalar: 1.0,
         prefixable: true,
         equation: "mol/s",

@@ -30,7 +30,7 @@ const CGS_PHYSICS_UNITS: &[CgsUnitDef] = &[
         keys: &["electronvolt", "eV"],
         display: "eV",
         scalar: 1.602_176_634e-16,
-        dimensions: Dimensions([2, 1, -2, 0, 0, 0, 0, 0]),
+        dimensions: Dimensions([2.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
         prefixable: true,
     },
     // Dalton / amu: 1.6605390666e-24 g
@@ -46,7 +46,7 @@ const CGS_PHYSICS_UNITS: &[CgsUnitDef] = &[
         keys: &["bar"],
         display: "bar",
         scalar: 1e8,
-        dimensions: Dimensions([-1, 1, -2, 0, 0, 0, 0, 0]),
+        dimensions: Dimensions([-1.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
         prefixable: true,
     },
     // Atmosphere: 101,325 Pa = 1.01325e8 g/(m*s^2)
@@ -54,7 +54,7 @@ const CGS_PHYSICS_UNITS: &[CgsUnitDef] = &[
         keys: &["atmosphere", "atm"],
         display: "atm",
         scalar: 1.013_25e8,
-        dimensions: Dimensions([-1, 1, -2, 0, 0, 0, 0, 0]),
+        dimensions: Dimensions([-1.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
         prefixable: false,
     },
     // Torr / mmHg: 101325 / 760 Pa = 1.3332236842105263e5 g/(m*s^2)
@@ -62,7 +62,7 @@ const CGS_PHYSICS_UNITS: &[CgsUnitDef] = &[
         keys: &["torr", "Torr", "mmHg"],
         display: "torr",
         scalar: 101_325.0 * 1000.0 / 760.0,
-        dimensions: Dimensions([-1, 1, -2, 0, 0, 0, 0, 0]),
+        dimensions: Dimensions([-1.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
         prefixable: false,
     },
     // Barn: 1e-28 m^2
@@ -78,7 +78,7 @@ const CGS_PHYSICS_UNITS: &[CgsUnitDef] = &[
         keys: &["gauss", "G"],
         display: "G",
         scalar: 0.1,
-        dimensions: Dimensions([0, 1, -2, -1, 0, 0, 0, 0]),
+        dimensions: Dimensions([0.0, 1.0, -2.0, -1.0, 0.0, 0.0, 0.0, 0.0]),
         prefixable: true,
     },
     // Maxwell: 1e-8 Wb = 1e-5 g*m^2/(s^2*A)
@@ -86,7 +86,7 @@ const CGS_PHYSICS_UNITS: &[CgsUnitDef] = &[
         keys: &["maxwell", "Mx"],
         display: "Mx",
         scalar: 1e-5,
-        dimensions: Dimensions([2, 1, -2, -1, 0, 0, 0, 0]),
+        dimensions: Dimensions([2.0, 1.0, -2.0, -1.0, 0.0, 0.0, 0.0, 0.0]),
         prefixable: true,
     },
     // Poise: 0.1 Pa*s = 100 g/(m*s)
@@ -94,7 +94,7 @@ const CGS_PHYSICS_UNITS: &[CgsUnitDef] = &[
         keys: &["poise", "P"],
         display: "P",
         scalar: 100.0,
-        dimensions: Dimensions([-1, 1, -1, 0, 0, 0, 0, 0]),
+        dimensions: Dimensions([-1.0, 1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
         prefixable: true,
     },
     // Stokes: 1e-4 m^2/s
@@ -102,7 +102,7 @@ const CGS_PHYSICS_UNITS: &[CgsUnitDef] = &[
         keys: &["stokes", "St"],
         display: "St",
         scalar: 1e-4,
-        dimensions: Dimensions([2, 0, -1, 0, 0, 0, 0, 0]),
+        dimensions: Dimensions([2.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
         prefixable: true,
     },
     // Galileo: 0.01 m/s^2
@@ -110,7 +110,7 @@ const CGS_PHYSICS_UNITS: &[CgsUnitDef] = &[
         keys: &["galileo", "Gal"],
         display: "Gal",
         scalar: 0.01,
-        dimensions: Dimensions([1, 0, -2, 0, 0, 0, 0, 0]),
+        dimensions: Dimensions([1.0, 0.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
         prefixable: true,
     },
 ];

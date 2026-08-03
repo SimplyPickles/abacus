@@ -85,7 +85,7 @@ impl UnitRegistry {
                     if let Some(base_unit) = self.units.get(base_sym) {
                         let exp_usize = exp as usize;
                         let scalar = base_unit.scalar.powi(exp as i32);
-                        let dimensions = base_unit.dimensions * exp;
+                        let dimensions = base_unit.dimensions * (exp as f64);
                         let display = crate::units::unit::UnitExpr {
                             numerator: vec![base_sym.to_string(); exp_usize],
                             denominator: Vec::new(),

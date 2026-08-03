@@ -1,6 +1,6 @@
 use crate::{
-    AbacusError, Unit, Value, evaluation::tokenizer::registry::unary::operators::UnaryOp,
     units::dimensions::Dimensions,
+    evaluation::tokenizer::registry::unary::operators::UnaryOp, AbacusError, Unit, Value,
 };
 use std::sync::Arc;
 
@@ -22,22 +22,22 @@ fn sqrt(a: Value) -> Result<Value, AbacusError> {
         return Err(AbacusError::IncompatibleDimensions);
     }
 
-    let mut new_dims = [0i8; 8];
+    // Divide all dimensions by 2.0
+    let mut new_dims = [0.0; 8];
     for (i, &dim) in a.unit.dimensions.0.iter().enumerate() {
-        if dim % 2 != 0 {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-        new_dims[i] = dim / 2;
+        new_dims[i] = dim / 2.0;
     }
 
     let mut new_display = a.unit.display.clone();
+    
     if new_display.numerator.len() % 2 == 0 && new_display.denominator.len() % 2 == 0 {
-        new_display
-            .numerator
-            .truncate(new_display.numerator.len() / 2);
-        new_display
-            .denominator
-            .truncate(new_display.denominator.len() / 2);
+        new_display.numerator.truncate(new_display.numerator.len() / 2);
+        new_display.denominator.truncate(new_display.denominator.len() / 2);
+    } else if !a.unit.is_dimensionless() {
+        let current = a.unit.display.render();
+        new_display.numerator.clear();
+        new_display.denominator.clear();
+        new_display.numerator.push(format!("({})^0.5", current));
     }
 
     let new_unit = Arc::new(Unit {
@@ -64,6 +64,7 @@ fn factorial(a: Value) -> Result<Value, AbacusError> {
         unit: a.unit,
     })
 }
+
 
 pub fn register_general() -> Vec<UnaryOp> {
     vec![

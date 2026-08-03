@@ -4,7 +4,11 @@ use std::fmt;
 pub enum AbacusError {
     UnknownUnit(String),
     IncompatibleDimensions,
+    IncompatibleFunctionArguments,
     AffineUnitOperation(&'static str),
+    UnexpectedToken(String),
+    UnexpectedEnd,
+    UnclosedParen,
 }
 
 impl fmt::Display for AbacusError {
@@ -15,6 +19,12 @@ impl fmt::Display for AbacusError {
                 write!(f, "cannot perform operation on incompatible dimensions")
             }
             Self::AffineUnitOperation(op) => write!(f, "cannot {op} affine units"),
+            Self::IncompatibleFunctionArguments => {
+                write!(f, "incompatible function arguments")
+            }
+            Self::UnexpectedToken(tok) => write!(f, "unexpected token: {tok}"),
+            Self::UnexpectedEnd => write!(f, "unexpected end of expression"),
+            Self::UnclosedParen => write!(f, "unclosed parenthesis"),
         }
     }
 }

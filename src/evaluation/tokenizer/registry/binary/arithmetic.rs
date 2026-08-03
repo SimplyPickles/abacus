@@ -22,9 +22,24 @@ fn exp(a: Value, b: Value) -> Result<Value, AbacusError> {
     }
 
     if b.unit.is_dimensionless() {
+        let mut new_display = a.unit.display.clone();
+        if !a.unit.is_dimensionless() {
+            let current = a.unit.display.render();
+            new_display.numerator.clear();
+            new_display.denominator.clear();
+            new_display.numerator.push(format!("({})^{}", current, b.canonical));
+        }
+
+        let new_unit = std::sync::Arc::new(crate::units::unit::Unit {
+            scalar: a.unit.scalar.powf(b.canonical),
+            offset: 0.0, // exponents drop the offset for affine units, but we already errored out if affine
+            dimensions: a.unit.dimensions * b.canonical,
+            display: new_display,
+        });
+
         Ok(Value {
             canonical: a.canonical.powf(b.canonical),
-            unit: a.unit,
+            unit: new_unit,
         })
     } else {
         Err(AbacusError::IncompatibleDimensions)

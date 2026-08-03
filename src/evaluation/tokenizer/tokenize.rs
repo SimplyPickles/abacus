@@ -19,14 +19,21 @@ pub fn tokenize_string(
             continue;
         }
 
-        // Grouping Parentheses
+        // Grouping Parentheses and Delimiters
         if c == '(' {
             tokens.push(Token::OpenParen);
             chars.next();
             continue;
         }
+
         if c == ')' {
             tokens.push(Token::CloseParen);
+            chars.next();
+            continue;
+        }
+
+        if c == ',' {
+            tokens.push(Token::Comma);
             chars.next();
             continue;
         }
@@ -46,6 +53,19 @@ pub fn tokenize_string(
             continue;
         }
 
+        // Range operator `..` (must be checked before number parsing)
+        if c == '.' {
+            let mut lookahead = chars.clone();
+            lookahead.next(); // consume first '.'
+            if let Some(&(_, '.')) = lookahead.peek() {
+                // It's `..`
+                tokens.push(Token::Range);
+                chars.next(); // consume first '.'
+                chars.next(); // consume second '.'
+                continue;
+            }
+        }
+
         // Numbers (digit or starting with '.' followed by a digit)
         if c.is_ascii_digit()
             || (c == '.'
@@ -60,6 +80,13 @@ pub fn tokenize_string(
                 if num_c.is_ascii_digit() {
                     chars.next();
                 } else if num_c == '.' && !has_dot {
+                    // Peek ahead: if the next char after this '.' is also '.',
+                    // then this is the start of `..` (range), not a decimal point.
+                    let mut dot_lookahead = chars.clone();
+                    dot_lookahead.next(); // skip past the '.'
+                    if let Some(&(_, '.')) = dot_lookahead.peek() {
+                        break; // stop number here — `..` is a range
+                    }
                     has_dot = true;
                     chars.next();
                 } else {
@@ -104,6 +131,7 @@ pub fn tokenize_string(
             continue;
         }
 
+
         // Identifiers (units, conversion operators, named unary ops like sqrt)
         if c.is_alphabetic() || c == '_' || c == '°' || c == 'Å' || c == 'Ω' {
             let start = i;
@@ -126,6 +154,8 @@ pub fn tokenize_string(
 
             if CONVERSION_KEYWORDS.contains(&sym) {
                 tokens.push(Token::ConversionOp);
+            } else if let Some(op) = token_registry.function_operators.get(sym) {
+                tokens.push(Token::Function(op.name));
             } else if let Some(op) = token_registry.binary_operators.get(sym) {
                 tokens.push(Token::BinaryOp(op.alias));
             } else if let Some(op) = token_registry.unary_operators.get(sym) {
@@ -135,6 +165,7 @@ pub fn tokenize_string(
             } else {
                 return Err(AbacusError::UnknownUnit(sym.to_string()));
             }
+
             continue;
         }
 
@@ -194,6 +225,41 @@ mod tests {
         assert_eq!(tokens[1], Token::OpenParen);
         assert!(matches!(tokens[2], Token::Val(_)));
         assert_eq!(tokens[3], Token::CloseParen);
+    }
+
+    #[test]
+    fn tokenizes_functions_and_commas() {
+        let token_reg = TokenRegistry::standard();
+        let unit_reg = UnitRegistry::standard();
+
+        let tokens = tokenize_string(&token_reg, &unit_reg, "mean(10, 0.5, 5)").unwrap();
+        assert_eq!(tokens[1], Token::OpenParen);
+        assert_eq!(tokens[2], Token::Float(10.0));
+        assert_eq!(tokens[3], Token::Comma);
+        assert_eq!(tokens[4], Token::Float(0.5));
+        assert_eq!(tokens[5], Token::Comma);
+        assert_eq!(tokens[6], Token::Float(5.0));
+        assert_eq!(tokens[7], Token::CloseParen);
+    }
+
+    #[test]
+    fn executes_registered_functions() {
+        let token_reg = TokenRegistry::standard();
+        let unit_reg = UnitRegistry::standard();
+
+        // sin(45 deg)
+        let sin_op = &token_reg.function_operators["sin"];
+        let angle = unit_reg.value(45.0, "deg").unwrap();
+        let sin_res = sin_op.apply(&[angle]).unwrap();
+        assert!((sin_res.canonical - (std::f64::consts::FRAC_1_SQRT_2)).abs() < 1e-10);
+
+        // mean(10 m, 20 m, 30 m)
+        let mean_op = &token_reg.function_operators["mean"];
+        let v1 = unit_reg.value(10.0, "m").unwrap();
+        let v2 = unit_reg.value(20.0, "m").unwrap();
+        let v3 = unit_reg.value(30.0, "m").unwrap();
+        let mean_res = mean_op.apply(&[v1, v2, v3]).unwrap();
+        assert_eq!(mean_res.to_display(), "20 m");
     }
 
     #[test]

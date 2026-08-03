@@ -53,7 +53,7 @@ const TRADE_HISTORICAL_UNITS: &[TradeUnitDef] = &[
         keys: &["poundal", "poundals", "pdl"],
         display: "pdl",
         scalar: 138.254_954_376,
-        dimensions: Dimensions([1, 1, -2, 0, 0, 0, 0, 0]),
+        dimensions: Dimensions([1.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
     },
 ];
 

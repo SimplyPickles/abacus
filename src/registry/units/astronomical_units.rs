@@ -49,7 +49,7 @@ const ASTRO_UNITS: &[AstroUnitDef] = &[
         keys: &["jansky", "Jy"],
         display: "Jy",
         scalar: 1e-23,
-        dimensions: Dimensions([0, 1, -2, 0, 0, 0, 0, 0]),
+        dimensions: Dimensions([0.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
     },
 ];
 

@@ -46,7 +46,7 @@ const HUMOROUS_UNITS: &[HumorousUnitDef] = &[
         keys: &["furlong_per_fortnight", "furlongs_per_fortnight"],
         display: "fur/fortnight",
         scalar: 201.168 / 1_209_600.0,
-        dimensions: Dimensions([1, 0, -1, 0, 0, 0, 0, 0]),
+        dimensions: Dimensions([1.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
     },
     // Barn-megaparsec: 1e-28 m^2 * 3.0856775814913673e22 m = 3.0856775814913673e-6 m^3
     HumorousUnitDef {
