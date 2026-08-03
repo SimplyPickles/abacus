@@ -13,9 +13,14 @@
   - `5 m + 5` $\to$ `10 m` and `5 cm + 5` $\to$ `10 cm` (dimensionless numbers automatically adopt adjacent units in addition/subtraction).
   - `1 as inches` $\to$ `1 in` (attaches units to unitless values).
   - Bare unit expressions like `1m/m` or `5 km / m` evaluate cleanly to `1` or `5000`.
-- 📊 **Statistical Functions & Range Expansion**:
-  - Functions accept discrete arguments or range syntax (`1..5`, `1 m .. 5 m`).
+- 📊 **Statistical Functions & Range Step Expansion**:
+  - Functions accept discrete arguments, standard ranges (`1..5`, `1 m .. 5 m`), or explicit **range step syntax** (`1..9..2`, `0 m .. 10 m .. 2 m`, `0 km .. 1 km .. 250 m`).
   - Includes `sum`, `mean`, `median`, `mode`, `range`, `var`, `std`, `quantile`, `percentile`, `iqr`, and `corr` (Pearson correlation).
+- 🎲 **Combinatorics**: `!` (factorial operator), `factorial(n)`, `nCr(n, r)` / `comb(n, r)` (combinations), `nPr(n, r)` / `perm(n, r)` (permutations).
+- ➗ **Unit-Aware Modulo & Math Helpers**:
+  - `%` operator and `mod(a, b)` / `modulo(a, b)` (e.g. `10 m % 3 m` $\to$ `1 m`, `10 cm % 3` $\to$ `1 cm`).
+  - `clamp(x, min, max)` (preserves unit, e.g. `clamp(15 m, 0 m, 10 m)` $\to$ `10 m`).
+  - `gcd(a, b)` and `lcm(a, b)`.
 - 📐 **Trigonometry, Logarithms & Math Library**:
   - **Trigonometric & Hyperbolic**: `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh` (supports angle units like `rad`, `deg`, `°`, `turn`, `arcmin`, `arcsec`).
   - **Logarithmic & Exponential**: `ln`, `log10`, `log2`, `log(x, base)`, `exp`.

@@ -226,12 +226,20 @@ impl<'a> Parser<'a> {
                     loop {
                         let arg = self.parse_expr(0)?;
 
-                        // Check for range: arg..end
+                        // Check for range: arg..end or arg..end..step
                         if self.peek() == Some(&Token::Range) {
                             self.advance(); // consume `..`
                             let end = self.parse_expr(0)?;
-                            let expanded = Self::expand_range(arg, end)?;
-                            args.extend(expanded);
+                            if self.peek() == Some(&Token::Range) {
+                                self.advance(); // consume second `..`
+                                let step_val = self.parse_expr(0)?;
+                                let expanded =
+                                    Self::expand_range_with_step(arg, end, Some(step_val))?;
+                                args.extend(expanded);
+                            } else {
+                                let expanded = Self::expand_range_with_step(arg, end, None)?;
+                                args.extend(expanded);
+                            }
                         } else {
                             args.push(arg);
                         }
@@ -261,17 +269,14 @@ impl<'a> Parser<'a> {
     /// For right-associative operators (e.g. `^`), right_bp = left_bp.
     fn infix_bp(&self, name: &str) -> (u8, u8) {
         if let Some(op) = self.token_registry.binary_operators.get(name) {
-            // Map the operator's registered precedence to Pratt binding powers.
-            // We multiply by 2 and add a base offset to leave room for
-            // conversion (bp 1) and prefix operators.
             let base = (op.precedence * 2) + 2;
             if op.right_associative {
-                (base, base)
+                (base + 1, base)
             } else {
                 (base, base + 1)
             }
         } else {
-            (0, 1)
+            (0, 0)
         }
     }
 
@@ -293,23 +298,40 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// Expand a range between two values.
-    /// The step size is determined by the start value's unit.
-    fn expand_range(start: Value, end: Value) -> Result<Vec<Value>, AbacusError> {
+    /// Expand a range between start and end with optional custom step size.
+    fn expand_range_with_step(
+        start: Value,
+        end: Value,
+        custom_step: Option<Value>,
+    ) -> Result<Vec<Value>, AbacusError> {
         if !start.unit.is_compatible_with(&end.unit) {
             return Err(AbacusError::IncompatibleDimensions);
         }
 
         let start_val = start.canonical;
         let end_val = end.canonical;
-        // Step size of 1 in the display unit, converted to canonical units
-        let step = start.unit.scalar;
+
+        let step_abs = match custom_step {
+            Some(step_val) => {
+                if step_val.unit.is_compatible_with(&start.unit) {
+                    step_val.canonical.abs()
+                } else if step_val.unit.is_dimensionless() && !start.unit.is_dimensionless() {
+                    let amount = (step_val.canonical - step_val.unit.offset) / step_val.unit.scalar;
+                    (amount * start.unit.scalar).abs()
+                } else {
+                    return Err(AbacusError::IncompatibleDimensions);
+                }
+            }
+            None => start.unit.scalar.abs(),
+        };
+
+        if step_abs <= 0.0 {
+            return Err(AbacusError::IncompatibleFunctionArguments);
+        }
 
         let mut expanded = Vec::new();
         let mut current = start_val;
-
-        // Use a small epsilon for floating point comparison issues at boundaries
-        let epsilon = 1e-12 * step;
+        let epsilon = 1e-12 * step_abs.max(1.0);
 
         if start_val <= end_val {
             while current <= end_val + epsilon {
@@ -317,7 +339,7 @@ impl<'a> Parser<'a> {
                     canonical: current,
                     unit: std::sync::Arc::clone(&start.unit),
                 });
-                current += step;
+                current += step_abs;
             }
         } else {
             while current >= end_val - epsilon {
@@ -325,7 +347,7 @@ impl<'a> Parser<'a> {
                     canonical: current,
                     unit: std::sync::Arc::clone(&start.unit),
                 });
-                current -= step;
+                current -= step_abs;
             }
         }
 
@@ -576,9 +598,18 @@ mod tests {
 
     #[test]
     fn evaluates_range_with_different_units() {
-        // mean(1 m .. 500 cm) = mean(1m, 2m, 3m, 4m, 5m) = 3 m
-        let result = eval("mean(1 m .. 500 cm)").unwrap();
-        assert_eq!(result, "3 m");
+        // sum(1 m .. 500 cm) = sum(1m, 2m, 3m, 4m, 5m) = 15 m
+        let result = eval("sum(1 m .. 500 cm)").unwrap();
+        assert_eq!(result, "15 m");
+    }
+
+    #[test]
+    fn evaluates_range_with_custom_step() {
+        assert_eq!(eval("sum(1..9..2)").unwrap(), "25");
+        assert_eq!(eval("mean(0 m .. 10 m .. 2 m)").unwrap(), "5 m");
+        assert_eq!(eval("mean(0 m .. 10 m .. 2)").unwrap(), "5 m");
+        assert_eq!(eval("mean(10 m .. 0 m .. 2 m)").unwrap(), "5 m");
+        assert_eq!(eval("sum(0 km .. 1 km .. 250 m)").unwrap(), "2.5 km");
     }
 
     // ── Statistical & Distribution functions ──
