@@ -4,7 +4,7 @@ use crate::Value;
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     // Operators
-    BinaryOp(&'static str),    // e.g., '+', '-', '*', '/'
+    BinaryOp(&'static str), // e.g., '+', '-', '*', '/'
     UnaryOp(&'static str),  // e.g., 'sqrt' for square root or '!' for factorial
 
     ConversionOp,

@@ -1,6 +1,6 @@
 use crate::{
+    AbacusError, Unit, Value, evaluation::tokenizer::registry::unary::operators::UnaryOp,
     units::dimensions::Dimensions,
-    evaluation::tokenizer::registry::unary::operators::UnaryOp, AbacusError, Unit, Value,
 };
 use std::sync::Arc;
 
@@ -32,8 +32,12 @@ fn sqrt(a: Value) -> Result<Value, AbacusError> {
 
     let mut new_display = a.unit.display.clone();
     if new_display.numerator.len() % 2 == 0 && new_display.denominator.len() % 2 == 0 {
-        new_display.numerator.truncate(new_display.numerator.len() / 2);
-        new_display.denominator.truncate(new_display.denominator.len() / 2);
+        new_display
+            .numerator
+            .truncate(new_display.numerator.len() / 2);
+        new_display
+            .denominator
+            .truncate(new_display.denominator.len() / 2);
     }
 
     let new_unit = Arc::new(Unit {
@@ -60,7 +64,6 @@ fn factorial(a: Value) -> Result<Value, AbacusError> {
         unit: a.unit,
     })
 }
-
 
 pub fn register_general() -> Vec<UnaryOp> {
     vec![

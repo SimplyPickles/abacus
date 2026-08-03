@@ -1,6 +1,6 @@
 use abacus::{
-    evaluation::tokenizer::{registry::token_registry::TokenRegistry, tokenize::tokenize_string},
     AbacusError, UnitRegistry,
+    evaluation::tokenizer::{registry::token_registry::TokenRegistry, tokenize::tokenize_string},
 };
 
 fn main() -> Result<(), AbacusError> {
@@ -13,4 +13,3 @@ fn main() -> Result<(), AbacusError> {
 
     Ok(())
 }
-

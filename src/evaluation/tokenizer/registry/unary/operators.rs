@@ -13,4 +13,3 @@ impl UnaryOp {
         (self.func)(value)
     }
 }
-

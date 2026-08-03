@@ -1,7 +1,4 @@
-use crate::{
-    evaluation::tokenizer::registry::binary::operators::BinaryOp, AbacusError, Value,
-};
-
+use crate::{AbacusError, Value, evaluation::tokenizer::registry::binary::operators::BinaryOp};
 
 fn add(a: Value, b: Value) -> Result<Value, AbacusError> {
     a + b
@@ -18,7 +15,6 @@ fn mul(a: Value, b: Value) -> Result<Value, AbacusError> {
 fn div(a: Value, b: Value) -> Result<Value, AbacusError> {
     a / b
 }
-
 
 fn exp(a: Value, b: Value) -> Result<Value, AbacusError> {
     if a.unit.is_affine() || b.unit.is_affine() {

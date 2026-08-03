@@ -1,6 +1,6 @@
 use crate::{
-    evaluation::tokenizer::{registry::token_registry::TokenRegistry, tokens::Token},
     AbacusError, UnitRegistry, Value,
+    evaluation::tokenizer::{registry::token_registry::TokenRegistry, tokens::Token},
 };
 
 const CONVERSION_KEYWORDS: [&str; 3] = ["as", "to", "in"];
@@ -48,7 +48,11 @@ pub fn tokenize_string(
 
         // Numbers (digit or starting with '.' followed by a digit)
         if c.is_ascii_digit()
-            || (c == '.' && chars.clone().nth(1).map_or(false, |(_, next_c)| next_c.is_ascii_digit()))
+            || (c == '.'
+                && chars
+                    .clone()
+                    .nth(1)
+                    .map_or(false, |(_, next_c)| next_c.is_ascii_digit()))
         {
             let start = i;
             let mut has_dot = false;
@@ -62,7 +66,8 @@ pub fn tokenize_string(
                     break;
                 }
             }
-            let num_str = &input_text[start..chars.peek().map_or(input_text.len(), |&(idx, _)| idx)];
+            let num_str =
+                &input_text[start..chars.peek().map_or(input_text.len(), |&(idx, _)| idx)];
             let val = num_str
                 .parse::<f64>()
                 .map_err(|_| AbacusError::UnknownUnit(num_str.to_string()))?;
@@ -73,7 +78,13 @@ pub fn tokenize_string(
                     let mut unit_end = unit_start;
                     let mut unit_chars = chars.clone();
                     while let Some((idx, sym_c)) = unit_chars.peek().cloned() {
-                        if sym_c.is_alphanumeric() || sym_c == '_' || sym_c == '^' || sym_c == '°' || sym_c == 'Å' || sym_c == 'Ω' {
+                        if sym_c.is_alphanumeric()
+                            || sym_c == '_'
+                            || sym_c == '^'
+                            || sym_c == '°'
+                            || sym_c == 'Å'
+                            || sym_c == 'Ω'
+                        {
                             unit_end = idx + sym_c.len_utf8();
                             unit_chars.next();
                         } else {
@@ -98,7 +109,13 @@ pub fn tokenize_string(
             let start = i;
             let mut end = i;
             while let Some(&(idx, sym_c)) = chars.peek() {
-                if sym_c.is_alphanumeric() || sym_c == '_' || sym_c == '^' || sym_c == '°' || sym_c == 'Å' || sym_c == 'Ω' {
+                if sym_c.is_alphanumeric()
+                    || sym_c == '_'
+                    || sym_c == '^'
+                    || sym_c == '°'
+                    || sym_c == 'Å'
+                    || sym_c == 'Ω'
+                {
                     end = idx + sym_c.len_utf8();
                     chars.next();
                 } else {
@@ -187,4 +204,3 @@ mod tests {
         assert!(tokenize_string(&token_reg, &unit_reg, "xyz").is_err());
     }
 }
-
