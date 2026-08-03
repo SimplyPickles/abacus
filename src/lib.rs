@@ -1,3 +1,5 @@
+pub mod evaluation;
+
 pub mod error;
 pub mod registry;
 pub mod units;

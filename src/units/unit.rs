@@ -172,6 +172,10 @@ impl Unit {
             display: UnitExpr::dimensionless(),
         }
     }
+
+    pub fn is_dimensionless(&self) -> bool {
+        self.dimensions == Dimensions::DIMENSIONLESS
+    }
 }
 
 #[cfg(test)]
