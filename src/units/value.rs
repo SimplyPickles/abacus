@@ -45,7 +45,7 @@ impl Value {
         self.convert_to(registry.unit(symbol)?)
     }
 
-    pub fn in_unit(&self, registry: &UnitRegistry, symbol: &str) -> Result<Self, AbacusError> {
+    pub fn as_unit(&self, registry: &UnitRegistry, symbol: &str) -> Result<Self, AbacusError> {
         self.to(registry, symbol)
     }
 
