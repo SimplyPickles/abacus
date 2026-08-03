@@ -3,8 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use crate::evaluation::tokenizer::registry::{
     binary::{arithmetic::register_arithmetic, operators::BinaryOp},
     function::{
-        binomial::register_binomial, geometric::register_geometric, normal::register_normal,
-        operators::FunctionOp, poisson::register_poisson, stats::register_stats,
+        distributions::register_distributions, operators::FunctionOp, stats::register_stats,
         trig::register_trig,
     },
     unary::{general::register_general, operators::UnaryOp},
@@ -39,10 +38,7 @@ impl TokenRegistry {
         let mut functions: Vec<FunctionOp> = Vec::new();
         functions.append(&mut register_trig());
         functions.append(&mut register_stats());
-        functions.append(&mut register_binomial());
-        functions.append(&mut register_geometric());
-        functions.append(&mut register_poisson());
-        functions.append(&mut register_normal());
+        functions.append(&mut register_distributions());
 
         let paren = vec!['(', ')'];
 

@@ -64,7 +64,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Entry point: parse the full expression at minimum binding power 0.
-    pub fn parse(&mut self) -> Result<String, AbacusError> {
+    pub fn parse(&mut self) -> Result<Value, AbacusError> {
         let result = self.parse_expr(0)?;
 
         // Ensure all tokens were consumed
@@ -78,7 +78,7 @@ impl<'a> Parser<'a> {
             return Err(AbacusError::UnexpectedEnd);
         }
 
-        Ok(result.to_display())
+        Ok(result)
     }
 
     /// Core Pratt expression parser.
@@ -339,7 +339,7 @@ pub fn evaluate(
     token_registry: &TokenRegistry,
     unit_registry: &UnitRegistry,
     input: &str,
-) -> Result<String, AbacusError> {
+) -> Result<Value, AbacusError> {
     let tokens =
         crate::evaluation::tokenizer::tokenize::tokenize_string(token_registry, unit_registry, input)?;
     let mut parser = Parser::new(tokens, token_registry, unit_registry);
@@ -351,6 +351,12 @@ mod tests {
     use super::*;
 
     fn eval(input: &str) -> Result<String, AbacusError> {
+        let tok_reg = TokenRegistry::standard();
+        let unit_reg = UnitRegistry::standard();
+        evaluate(&tok_reg, &unit_reg, input).map(|v| v.to_display())
+    }
+
+    fn eval_val(input: &str) -> Result<Value, AbacusError> {
         let tok_reg = TokenRegistry::standard();
         let unit_reg = UnitRegistry::standard();
         evaluate(&tok_reg, &unit_reg, input)
@@ -504,32 +510,51 @@ mod tests {
         assert_eq!(eval("median(1 m, 10 m, 5 m)").unwrap(), "5 m");
         assert_eq!(eval("mode(2 m, 5 m, 2 m)").unwrap(), "2 m");
         assert_eq!(eval("var(1 m .. 5 m)").unwrap(), "2.5 m^2");
+        assert_eq!(eval("quantile(1 m .. 5 m, 0.5)").unwrap(), "3 m");
+        assert_eq!(eval("percentile(1 m .. 5 m, 50)").unwrap(), "3 m");
+        assert_eq!(eval("iqr(1 m .. 5 m)").unwrap(), "2 m");
+
+        let corr_val = eval_val("corr(1..5, 2..6)").unwrap().canonical;
+        assert!((corr_val - 1.0).abs() < 1e-6);
     }
 
     #[test]
     fn evaluates_distribution_functions() {
-        let bpdf = eval_f64("binompdf(10, 0.5, 5)");
+        // binompdf(10, 0.5, 5) = 252 * (0.5)^10 = 0.24609375
+        let bpdf = eval_val("binompdf(10, 0.5, 5)").unwrap().canonical;
         assert!((bpdf - 0.24609375).abs() < 1e-6);
 
-        let bcdf = eval_f64("binomcdf(10, 0.5, 5)");
+        // binomcdf(10, 0.5, 5)
+        let bcdf = eval_val("binomcdf(10, 0.5, 5)").unwrap().canonical;
         assert!((bcdf - 0.623046875).abs() < 1e-6);
 
-        assert!((eval_f64("geompdf(0.5, 3)") - 0.125).abs() < 1e-6);
+        // geompdf(0.5, 3) = (0.5)^2 * 0.5 = 0.125
+        assert!((eval_val("geompdf(0.5, 3)").unwrap().canonical - 0.125).abs() < 1e-6);
 
-        assert!((eval_f64("poissonpdf(3, 2)") - 0.2240418).abs() < 1e-5);
+        // poissonpdf(3, 2)
+        assert!((eval_val("poissonpdf(3, 2)").unwrap().canonical - 0.2240418).abs() < 1e-5);
 
-        assert!((eval_f64("normcdf(0)") - 0.5).abs() < 1e-6);
+        // normcdf(0) = 0.5
+        assert!((eval_val("normcdf(0)").unwrap().canonical - 0.5).abs() < 1e-6);
 
-        assert!((eval_f64("normcdf(70 kg, 65 kg, 5 kg)") - 0.8413447).abs() < 1e-5);
+        // normcdf with units: normcdf(70 kg, 65 kg, 5 kg)
+        assert!((eval_val("normcdf(70 kg, 65 kg, 5 kg)").unwrap().canonical - 0.8413447).abs() < 1e-5);
 
-        fn eval_f64(expression: &str) -> f64 {
-            eval(expression)
-                .unwrap()
-                .parse::<f64>()
-                .unwrap()
-        }
+        // Student's t: tcdf(10, 0) = 0.5
+        assert!((eval_val("tcdf(10, 0)").unwrap().canonical - 0.5).abs() < 1e-6);
+
+        // Chi-Square: chisqcdf(10, 10) ≈ 0.5595
+        assert!((eval_val("chisqcdf(10, 10)").unwrap().canonical - 0.5595).abs() < 1e-3);
+
+        // Exponential: expcdf(0.5, 2) = 1 - e^-1 ≈ 0.63212
+        assert!((eval_val("expcdf(0.5, 2)").unwrap().canonical - 0.63212).abs() < 1e-4);
+
+        // Hypergeometric: hypgeompdf(20, 7, 12, 4) = 45045 / 125970 ≈ 0.357585
+        assert!((eval_val("hypgeompdf(20, 7, 12, 4)").unwrap().canonical - 0.357585).abs() < 1e-4);
+
+        // Uniform: unifcdf(0, 10, 5) = 0.5
+        assert!((eval_val("unifcdf(0, 10, 5)").unwrap().canonical - 0.5).abs() < 1e-6);
     }
-
 
     // ── Complex combined expressions ──
 

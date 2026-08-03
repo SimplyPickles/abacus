@@ -1,10 +1,21 @@
 use crate::{
-    units::unit::Unit,
+    units::{unit::Unit, unit::UnitExpr, dimensions::Dimensions},
     AbacusError, Value, evaluation::tokenizer::registry::function::operators::FunctionOp,
 };
 use std::sync::Arc;
 
-/// Ensure all arguments are compatible with the first argument's unit.
+fn make_dimensionless(val: f64) -> Value {
+    Value {
+        canonical: val,
+        unit: Arc::new(Unit {
+            scalar: 1.0,
+            offset: 0.0,
+            dimensions: Dimensions::DIMENSIONLESS,
+            display: UnitExpr::dimensionless(),
+        }),
+    }
+}
+
 fn check_compatible_units<'a>(args: &'a [Value]) -> Result<&'a Arc<Unit>, AbacusError> {
     if args.is_empty() {
         return Err(AbacusError::IncompatibleFunctionArguments);
@@ -105,7 +116,6 @@ fn mode_fn(args: &[Value]) -> Result<Value, AbacusError> {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
 
-    // Find the most frequent canonical value (with small tolerance for floats)
     let mut max_count = 0;
     let mut mode_val = args[0].canonical;
 
@@ -138,9 +148,8 @@ fn var_fn(args: &[Value]) -> Result<Value, AbacusError> {
         .iter()
         .map(|v| (v.canonical - mean).powi(2))
         .sum::<f64>()
-        / ((args.len() - 1) as f64); // sample variance
+        / ((args.len() - 1) as f64);
 
-    // Variance unit is squared dimensions
     let squared_unit = Arc::new(Unit {
         scalar: first_unit.scalar * first_unit.scalar,
         offset: 0.0,
@@ -172,6 +181,127 @@ fn std_fn(args: &[Value]) -> Result<Value, AbacusError> {
         canonical: stdev,
         unit: Arc::clone(first_unit),
     })
+}
+
+/// Helper for linear interpolation quantile calculation
+fn calc_quantile(data: &[Value], q: f64) -> f64 {
+    let mut values: Vec<f64> = data.iter().map(|v| v.canonical).collect();
+    values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+
+    if values.len() == 1 {
+        return values[0];
+    }
+
+    let pos = q * ((values.len() - 1) as f64);
+    let idx = pos.floor() as usize;
+    let frac = pos - (idx as f64);
+
+    if idx >= values.len() - 1 {
+        values[values.len() - 1]
+    } else {
+        values[idx] + frac * (values[idx + 1] - values[idx])
+    }
+}
+
+/// quantile(data..., q) where q in [0, 1]
+fn quantile_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    if args.len() < 2 {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+
+    let q_arg = &args[args.len() - 1];
+    if !q_arg.unit.is_dimensionless() {
+        return Err(AbacusError::IncompatibleDimensions);
+    }
+
+    let q = q_arg.canonical;
+    if q < 0.0 || q > 1.0 {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+
+    let data = &args[..args.len() - 1];
+    let first_unit = check_compatible_units(data)?;
+    let val = calc_quantile(data, q);
+
+    Ok(Value {
+        canonical: val,
+        unit: Arc::clone(first_unit),
+    })
+}
+
+/// percentile(data..., p) where p in [0, 100]
+fn percentile_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    if args.len() < 2 {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+
+    let p_arg = &args[args.len() - 1];
+    if !p_arg.unit.is_dimensionless() {
+        return Err(AbacusError::IncompatibleDimensions);
+    }
+
+    let p = p_arg.canonical;
+    if p < 0.0 || p > 100.0 {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+
+    let data = &args[..args.len() - 1];
+    let first_unit = check_compatible_units(data)?;
+    let val = calc_quantile(data, p / 100.0);
+
+    Ok(Value {
+        canonical: val,
+        unit: Arc::clone(first_unit),
+    })
+}
+
+/// iqr(data...) -> Q3 - Q1
+fn iqr_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    let first_unit = check_compatible_units(args)?;
+    let q3 = calc_quantile(args, 0.75);
+    let q1 = calc_quantile(args, 0.25);
+
+    Ok(Value {
+        canonical: q3 - q1,
+        unit: Arc::clone(first_unit),
+    })
+}
+
+/// corr(x_range, y_range) or corr(x1..xN, y1..yN)
+fn corr_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    if args.len() < 4 || args.len() % 2 != 0 {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+
+    let n = args.len() / 2;
+    let x_data = &args[..n];
+    let y_data = &args[n..];
+
+    let _x_unit = check_compatible_units(x_data)?;
+    let _y_unit = check_compatible_units(y_data)?;
+
+    let x_mean = x_data.iter().map(|v| v.canonical).sum::<f64>() / (n as f64);
+    let y_mean = y_data.iter().map(|v| v.canonical).sum::<f64>() / (n as f64);
+
+    let mut cov_sum = 0.0;
+    let mut x_var_sum = 0.0;
+    let mut y_var_sum = 0.0;
+
+    for i in 0..n {
+        let dx = x_data[i].canonical - x_mean;
+        let dy = y_data[i].canonical - y_mean;
+        cov_sum += dx * dy;
+        x_var_sum += dx * dx;
+        y_var_sum += dy * dy;
+    }
+
+    let denom = (x_var_sum * y_var_sum).sqrt();
+    if denom == 0.0 {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+
+    let r = cov_sum / denom;
+    Ok(make_dimensionless(r))
 }
 
 pub fn register_stats() -> Vec<FunctionOp> {
@@ -241,6 +371,36 @@ pub fn register_stats() -> Vec<FunctionOp> {
             min_args: 2,
             max_args: usize::MAX,
             func: std_fn,
+        },
+        FunctionOp {
+            name: "quantile",
+            min_args: 2,
+            max_args: usize::MAX,
+            func: quantile_fn,
+        },
+        FunctionOp {
+            name: "percentile",
+            min_args: 2,
+            max_args: usize::MAX,
+            func: percentile_fn,
+        },
+        FunctionOp {
+            name: "iqr",
+            min_args: 1,
+            max_args: usize::MAX,
+            func: iqr_fn,
+        },
+        FunctionOp {
+            name: "corr",
+            min_args: 4,
+            max_args: usize::MAX,
+            func: corr_fn,
+        },
+        FunctionOp {
+            name: "correlation",
+            min_args: 4,
+            max_args: usize::MAX,
+            func: corr_fn,
         },
     ]
 }
