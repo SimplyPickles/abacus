@@ -99,6 +99,21 @@ impl Add<&Value> for &Value {
         }
 
         if !self.unit.is_compatible_with(&rhs.unit) {
+            if rhs.unit.is_dimensionless() && !self.unit.is_dimensionless() {
+                let rhs_amount = (rhs.canonical - rhs.unit.offset) / rhs.unit.scalar;
+                let rhs_promoted = Value::new(rhs_amount, Arc::clone(&self.unit));
+                return Ok(Value {
+                    canonical: self.canonical + rhs_promoted.canonical,
+                    unit: Arc::clone(&self.unit),
+                });
+            } else if self.unit.is_dimensionless() && !rhs.unit.is_dimensionless() {
+                let self_amount = (self.canonical - self.unit.offset) / self.unit.scalar;
+                let self_promoted = Value::new(self_amount, Arc::clone(&rhs.unit));
+                return Ok(Value {
+                    canonical: self_promoted.canonical + rhs.canonical,
+                    unit: Arc::clone(&rhs.unit),
+                });
+            }
             return Err(AbacusError::IncompatibleDimensions);
         }
 
@@ -140,6 +155,21 @@ impl Sub<&Value> for &Value {
         }
 
         if !self.unit.is_compatible_with(&rhs.unit) {
+            if rhs.unit.is_dimensionless() && !self.unit.is_dimensionless() {
+                let rhs_amount = (rhs.canonical - rhs.unit.offset) / rhs.unit.scalar;
+                let rhs_promoted = Value::new(rhs_amount, Arc::clone(&self.unit));
+                return Ok(Value {
+                    canonical: self.canonical - rhs_promoted.canonical,
+                    unit: Arc::clone(&self.unit),
+                });
+            } else if self.unit.is_dimensionless() && !rhs.unit.is_dimensionless() {
+                let self_amount = (self.canonical - self.unit.offset) / self.unit.scalar;
+                let self_promoted = Value::new(self_amount, Arc::clone(&rhs.unit));
+                return Ok(Value {
+                    canonical: self_promoted.canonical - rhs.canonical,
+                    unit: Arc::clone(&rhs.unit),
+                });
+            }
             return Err(AbacusError::IncompatibleDimensions);
         }
 

@@ -10,23 +10,38 @@ pub use units::{dimensions::Dimensions, unit::Unit, value::Value};
 
 use std::sync::OnceLock;
 
+use crate::evaluation::{parser::parse::evaluate, tokenizer::registry::token_registry::TokenRegistry};
+
 static UNITS: OnceLock<UnitRegistry> = OnceLock::new();
 
 pub fn global_units() -> &'static UnitRegistry {
     UNITS.get_or_init(UnitRegistry::standard)
 }
 
-pub fn unit(symbol: &str) -> Result<std::sync::Arc<Unit>, AbacusError> {
-    global_units().unit(symbol)
+static TOKENS: OnceLock<TokenRegistry> = OnceLock::new();
+
+pub fn global_tokens() -> &'static TokenRegistry {
+    TOKENS.get_or_init(TokenRegistry::standard)
 }
 
-pub fn value(amount: f64, symbol: &str) -> Result<Value, AbacusError> {
-    Ok(Value::new(amount, unit(symbol)?))
+pub fn eval(expr: &str) -> Result<Value, AbacusError> {
+    let tokens = global_tokens();
+    let units = global_units();
+
+    evaluate(tokens, units, expr)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    pub fn unit(symbol: &str) -> Result<std::sync::Arc<Unit>, AbacusError> {
+        global_units().unit(symbol)
+    }
+
+    pub fn value(amount: f64, symbol: &str) -> Result<Value, AbacusError> {
+        Ok(Value::new(amount, unit(symbol)?))
+    }
 
     #[test]
     fn looks_up_units_by_symbol() {

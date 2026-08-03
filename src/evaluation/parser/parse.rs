@@ -373,6 +373,15 @@ mod tests {
     }
 
     #[test]
+    fn evaluates_dimensionless_addition_subtraction() {
+        assert_eq!(eval("5 m + 5").unwrap(), "10 m");
+        assert_eq!(eval("5 cm + 5").unwrap(), "10 cm");
+        assert_eq!(eval("5 + 5 m").unwrap(), "10 m");
+        assert_eq!(eval("5 cm - 2").unwrap(), "3 cm");
+        assert_eq!(eval("10 - 3 cm").unwrap(), "7 cm");
+    }
+
+    #[test]
     fn evaluates_subtraction() {
         let result = eval("10 kg - 3 kg").unwrap();
         assert_eq!(result, "7 kg");
