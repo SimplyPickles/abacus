@@ -53,6 +53,26 @@ fn unifcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
     Ok(make_dimensionless(cdf))
 }
 
+/// invunif(p, a, b)
+fn invunif_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    for arg in args {
+        if !arg.unit.is_dimensionless() {
+            return Err(AbacusError::IncompatibleDimensions);
+        }
+    }
+
+    let p = args[0].canonical;
+    let a = args[1].canonical;
+    let b = args[2].canonical;
+
+    if p < 0.0 || p > 1.0 || a >= b {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+
+    let x = a + p * (b - a);
+    Ok(make_dimensionless(x))
+}
+
 pub fn register_uniform() -> Vec<FunctionOp> {
     vec![
         FunctionOp {
@@ -66,6 +86,12 @@ pub fn register_uniform() -> Vec<FunctionOp> {
             min_args: 3,
             max_args: 3,
             func: unifcdf_fn,
+        },
+        FunctionOp {
+            name: "invunif",
+            min_args: 3,
+            max_args: 3,
+            func: invunif_fn,
         },
     ]
 }

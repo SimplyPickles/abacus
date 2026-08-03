@@ -188,7 +188,39 @@ pub fn tokenize_string(
         idx += 1;
     }
 
-    Ok(resolved)
+    // Insert implicit multiplication `BinaryOp("*")` between adjacent terms (e.g. `5(2+3)`, `2 sqrt(9)`)
+    let is_left = |tok: &Token| {
+        matches!(
+            tok,
+            Token::Val(_) | Token::Float(_) | Token::Unit(_) | Token::CloseParen
+        )
+    };
+
+    let is_right = |tok: &Token| match tok {
+        Token::Val(_) | Token::Float(_) | Token::Unit(_) | Token::OpenParen | Token::Function(_) => {
+            true
+        }
+        Token::UnaryOp(name) => {
+            if let Some(op) = token_registry.unary_operators.get(*name) {
+                op.prefix
+            } else {
+                false
+            }
+        }
+        _ => false,
+    };
+
+    let mut final_tokens: Vec<Token> = Vec::new();
+    for i in 0..resolved.len() {
+        final_tokens.push(resolved[i].clone());
+        if i + 1 < resolved.len() {
+            if is_left(&resolved[i]) && is_right(&resolved[i + 1]) {
+                final_tokens.push(Token::BinaryOp("*"));
+            }
+        }
+    }
+
+    Ok(final_tokens)
 }
 
 #[cfg(test)]

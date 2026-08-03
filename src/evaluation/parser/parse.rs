@@ -573,6 +573,35 @@ mod tests {
 
         // Uniform: unifcdf(0, 10, 5) = 0.5
         assert!((eval_val("unifcdf(0, 10, 5)").unwrap().canonical - 0.5).abs() < 1e-6);
+
+        // Inverse CDFs
+        let z_star = eval_val("invnorm(0.975)").unwrap().canonical;
+        assert!((z_star - 1.95996).abs() < 1e-3);
+
+        let inv_norm_units = eval("invnorm(0.975, 100 kg, 15 kg)").unwrap();
+        assert_eq!(inv_norm_units, "129.38573407034812 kg");
+
+        let t_star = eval_val("invt(0.975, 10)").unwrap().canonical;
+        assert!((t_star - 2.22814).abs() < 1e-3);
+
+        let chisq_star = eval_val("invchisq(0.95, 10)").unwrap().canonical;
+        assert!((chisq_star - 18.307).abs() < 1e-2);
+
+        let exp_star = eval_val("invexp(0.63212, 0.5)").unwrap().canonical;
+        assert!((exp_star - 2.0).abs() < 1e-3);
+
+        let unif_star = eval_val("invunif(0.5, 0, 10)").unwrap().canonical;
+        assert!((unif_star - 5.0).abs() < 1e-6);
+    }
+
+    // ── Implicit Multiplication ──
+
+    #[test]
+    fn evaluates_implicit_multiplication() {
+        assert_eq!(eval("5(2 + 3)").unwrap(), "25");
+        assert_eq!(eval("(2 + 3)(4 + 5)").unwrap(), "45");
+        assert_eq!(eval("2 sqrt(9 m^2)").unwrap(), "6 m");
+        assert_eq!(eval("2(10 m)").unwrap(), "20 m");
     }
 
     // ── Complex combined expressions ──

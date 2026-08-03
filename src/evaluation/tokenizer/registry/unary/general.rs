@@ -84,7 +84,7 @@ pub fn register_general() -> Vec<UnaryOp> {
             alias: "sqrt",
             func: sqrt,
             precedence: 2,
-            prefix: false,
+            prefix: true,
         },
         UnaryOp {
             alias: "!",

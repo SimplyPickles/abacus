@@ -1,8 +1,9 @@
 use crate::{
-    AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::make_dimensionless, operators::FunctionOp,
+        distributions::special::{erfinv, make_dimensionless},
+        operators::FunctionOp,
     },
+    AbacusError, Value,
 };
 use std::f64::consts::TAU;
 
@@ -64,6 +65,51 @@ fn normcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
     Ok(make_dimensionless(cdf))
 }
 
+/// invnorm(p) or invnorm(p, mean, std)
+fn invnorm_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    if args.len() == 1 {
+        if !args[0].unit.is_dimensionless() {
+            return Err(AbacusError::IncompatibleDimensions);
+        }
+        let p = args[0].canonical;
+        if p <= 0.0 || p >= 1.0 {
+            return Err(AbacusError::IncompatibleFunctionArguments);
+        }
+        let z = std::f64::consts::SQRT_2 * erfinv(2.0 * p - 1.0);
+        Ok(make_dimensionless(z))
+    } else if args.len() == 3 {
+        let p_arg = &args[0];
+        if !p_arg.unit.is_dimensionless() {
+            return Err(AbacusError::IncompatibleDimensions);
+        }
+        let p = p_arg.canonical;
+        if p <= 0.0 || p >= 1.0 {
+            return Err(AbacusError::IncompatibleFunctionArguments);
+        }
+
+        let mean_unit = &args[1].unit;
+        if !args[2].unit.is_compatible_with(mean_unit) {
+            return Err(AbacusError::IncompatibleDimensions);
+        }
+
+        let mean = args[1].canonical;
+        let std = args[2].canonical;
+        if std <= 0.0 {
+            return Err(AbacusError::IncompatibleFunctionArguments);
+        }
+
+        let z = std::f64::consts::SQRT_2 * erfinv(2.0 * p - 1.0);
+        let x = mean + std * z;
+
+        Ok(Value {
+            canonical: x,
+            unit: std::sync::Arc::clone(mean_unit),
+        })
+    } else {
+        Err(AbacusError::IncompatibleFunctionArguments)
+    }
+}
+
 pub fn register_normal() -> Vec<FunctionOp> {
     vec![
         FunctionOp {
@@ -77,6 +123,12 @@ pub fn register_normal() -> Vec<FunctionOp> {
             min_args: 1,
             max_args: 3,
             func: normcdf_fn,
+        },
+        FunctionOp {
+            name: "invnorm",
+            min_args: 1,
+            max_args: 3,
+            func: invnorm_fn,
         },
     ]
 }

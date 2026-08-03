@@ -43,6 +43,25 @@ fn expcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
     Ok(make_dimensionless(cdf))
 }
 
+/// invexp(p, lambda)
+fn invexp_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    for arg in args {
+        if !arg.unit.is_dimensionless() {
+            return Err(AbacusError::IncompatibleDimensions);
+        }
+    }
+
+    let p = args[0].canonical;
+    let lambda = args[1].canonical;
+
+    if p <= 0.0 || p >= 1.0 || lambda <= 0.0 {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+
+    let x = -(1.0 - p).ln() / lambda;
+    Ok(make_dimensionless(x))
+}
+
 pub fn register_exponential() -> Vec<FunctionOp> {
     vec![
         FunctionOp {
@@ -56,6 +75,12 @@ pub fn register_exponential() -> Vec<FunctionOp> {
             min_args: 2,
             max_args: 2,
             func: expcdf_fn,
+        },
+        FunctionOp {
+            name: "invexp",
+            min_args: 2,
+            max_args: 2,
+            func: invexp_fn,
         },
     ]
 }

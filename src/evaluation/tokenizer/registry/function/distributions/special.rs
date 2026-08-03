@@ -16,6 +16,21 @@ pub fn make_dimensionless(val: f64) -> Value {
     }
 }
 
+pub fn erfinv(x: f64) -> f64 {
+    if x <= -1.0 {
+        return f64::NEG_INFINITY;
+    }
+    if x >= 1.0 {
+        return f64::INFINITY;
+    }
+    let a = 0.147;
+    let log_term = (1.0 - x * x).ln();
+    let term1 = 2.0 / (std::f64::consts::PI * a) + log_term / 2.0;
+    let inner = term1 * term1 - log_term / a;
+    let sign = if x < 0.0 { -1.0 } else { 1.0 };
+    sign * ((inner.sqrt() - term1)).sqrt()
+}
+
 pub fn n_cr(n: u64, k: u64) -> f64 {
     if k > n {
         return 0.0;
