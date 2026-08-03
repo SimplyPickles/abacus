@@ -1,8 +1,8 @@
 use crate::{
+    AbacusError, Value,
     evaluation::tokenizer::registry::function::{
         distributions::special::make_dimensionless, operators::FunctionOp,
     },
-    AbacusError, Value,
 };
 
 fn factorial(n: u64) -> f64 {

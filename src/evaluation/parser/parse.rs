@@ -1,6 +1,6 @@
 use crate::{
-    evaluation::tokenizer::{registry::token_registry::TokenRegistry, tokens::Token},
     AbacusError, UnitRegistry, Value,
+    evaluation::tokenizer::{registry::token_registry::TokenRegistry, tokens::Token},
 };
 
 /// A Pratt parser that consumes a `Vec<Token>` produced by the tokenizer
@@ -70,10 +70,7 @@ impl<'a> Parser<'a> {
         // Ensure all tokens were consumed
         if self.pos < self.tokens.len() {
             if let Some(tok) = self.peek() {
-                return Err(AbacusError::UnexpectedToken(format!(
-                    "{:?}",
-                    tok
-                )));
+                return Err(AbacusError::UnexpectedToken(format!("{:?}", tok)));
             }
             return Err(AbacusError::UnexpectedEnd);
         }
@@ -157,15 +154,21 @@ impl<'a> Parser<'a> {
 
             Some(Token::Float(num)) => {
                 // A bare float without a unit — wrap in dimensionless Value
-                Ok(Value::new(num, self.unit_registry.unit("1").unwrap_or_else(|_| {
-                    use crate::units::{dimensions::Dimensions, unit::{Unit, UnitExpr}};
-                    std::sync::Arc::new(Unit {
-                        scalar: 1.0,
-                        offset: 0.0,
-                        dimensions: Dimensions::DIMENSIONLESS,
-                        display: UnitExpr::dimensionless(),
-                    })
-                })))
+                Ok(Value::new(
+                    num,
+                    self.unit_registry.unit("1").unwrap_or_else(|_| {
+                        use crate::units::{
+                            dimensions::Dimensions,
+                            unit::{Unit, UnitExpr},
+                        };
+                        std::sync::Arc::new(Unit {
+                            scalar: 1.0,
+                            offset: 0.0,
+                            dimensions: Dimensions::DIMENSIONLESS,
+                            display: UnitExpr::dimensionless(),
+                        })
+                    }),
+                ))
             }
 
             // Grouped expression: ( expr )
@@ -203,7 +206,6 @@ impl<'a> Parser<'a> {
                 op.apply(operand)
             }
 
-
             // Function call: name(arg1, arg2, ...)
             Some(Token::Function(name)) => {
                 let func = self
@@ -213,8 +215,9 @@ impl<'a> Parser<'a> {
                     .ok_or_else(|| AbacusError::UnexpectedToken(name.to_string()))?
                     .clone();
 
-                self.expect(&Token::OpenParen)
-                    .map_err(|_| AbacusError::UnexpectedToken("expected '(' after function name".to_string()))?;
+                self.expect(&Token::OpenParen).map_err(|_| {
+                    AbacusError::UnexpectedToken("expected '(' after function name".to_string())
+                })?;
 
                 let mut args = Vec::new();
 
@@ -240,7 +243,6 @@ impl<'a> Parser<'a> {
                         }
                     }
                 }
-
 
                 self.expect(&Token::CloseParen)
                     .map_err(|_| AbacusError::UnclosedParen)?;
@@ -337,8 +339,11 @@ pub fn evaluate(
     unit_registry: &UnitRegistry,
     input: &str,
 ) -> Result<Value, AbacusError> {
-    let tokens =
-        crate::evaluation::tokenizer::tokenize::tokenize_string(token_registry, unit_registry, input)?;
+    let tokens = crate::evaluation::tokenizer::tokenize::tokenize_string(
+        token_registry,
+        unit_registry,
+        input,
+    )?;
     let mut parser = Parser::new(tokens, token_registry, unit_registry);
     parser.parse()
 }
@@ -550,7 +555,9 @@ mod tests {
         assert!((eval_val("normcdf(0)").unwrap().canonical - 0.5).abs() < 1e-6);
 
         // normcdf with units: normcdf(70 kg, 65 kg, 5 kg)
-        assert!((eval_val("normcdf(70 kg, 65 kg, 5 kg)").unwrap().canonical - 0.8413447).abs() < 1e-5);
+        assert!(
+            (eval_val("normcdf(70 kg, 65 kg, 5 kg)").unwrap().canonical - 0.8413447).abs() < 1e-5
+        );
 
         // Student's t: tcdf(10, 0) = 0.5
         assert!((eval_val("tcdf(10, 0)").unwrap().canonical - 0.5).abs() < 1e-6);

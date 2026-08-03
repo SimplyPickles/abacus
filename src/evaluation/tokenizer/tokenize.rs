@@ -131,7 +131,6 @@ pub fn tokenize_string(
             continue;
         }
 
-
         // Identifiers (units, conversion operators, named unary ops like sqrt)
         if c.is_alphabetic() || c == '_' || c == '°' || c == 'Å' || c == 'Ω' {
             let start = i;

@@ -1,9 +1,9 @@
 use crate::{
+    AbacusError, Value,
     evaluation::tokenizer::registry::function::{
         distributions::special::{gamma_p, lgamma, make_dimensionless},
         operators::FunctionOp,
     },
-    AbacusError, Value,
 };
 
 /// chisqpdf(df, x)
@@ -21,7 +21,8 @@ fn chisqpdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
 
-    let log_pdf = (df / 2.0 - 1.0) * x.ln() - x / 2.0 - (df / 2.0) * (2.0f64).ln() - lgamma(df / 2.0);
+    let log_pdf =
+        (df / 2.0 - 1.0) * x.ln() - x / 2.0 - (df / 2.0) * (2.0f64).ln() - lgamma(df / 2.0);
     Ok(make_dimensionless(log_pdf.exp()))
 }
 

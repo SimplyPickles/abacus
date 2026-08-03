@@ -27,7 +27,9 @@ fn exp(a: Value, b: Value) -> Result<Value, AbacusError> {
             let current = a.unit.display.render();
             new_display.numerator.clear();
             new_display.denominator.clear();
-            new_display.numerator.push(format!("({})^{}", current, b.canonical));
+            new_display
+                .numerator
+                .push(format!("({})^{}", current, b.canonical));
         }
 
         let new_unit = std::sync::Arc::new(crate::units::unit::Unit {

@@ -1,8 +1,8 @@
 use crate::{
+    AbacusError, Value,
     evaluation::tokenizer::registry::function::{
         distributions::special::make_dimensionless, operators::FunctionOp,
     },
-    AbacusError, Value,
 };
 
 /// unifpdf(a, b, x)
@@ -21,11 +21,7 @@ fn unifpdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
 
-    let pdf = if x >= a && x <= b {
-        1.0 / (b - a)
-    } else {
-        0.0
-    };
+    let pdf = if x >= a && x <= b { 1.0 / (b - a) } else { 0.0 };
 
     Ok(make_dimensionless(pdf))
 }

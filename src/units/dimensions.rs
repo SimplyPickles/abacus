@@ -7,7 +7,10 @@ pub struct Dimensions(pub [f64; DIMENSION_COUNT]);
 
 impl PartialEq for Dimensions {
     fn eq(&self, other: &Self) -> bool {
-        self.0.iter().zip(other.0.iter()).all(|(a, b)| (a - b).abs() < 1e-9)
+        self.0
+            .iter()
+            .zip(other.0.iter())
+            .all(|(a, b)| (a - b).abs() < 1e-9)
     }
 }
 

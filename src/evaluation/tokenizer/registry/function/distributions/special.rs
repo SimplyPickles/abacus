@@ -1,6 +1,6 @@
 use crate::{
-    units::{dimensions::Dimensions, unit::Unit, unit::UnitExpr},
     Value,
+    units::{dimensions::Dimensions, unit::Unit, unit::UnitExpr},
 };
 use std::sync::Arc;
 

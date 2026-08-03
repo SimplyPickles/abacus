@@ -1,7 +1,6 @@
 use abacus::{
-    evaluation::parser::parse::evaluate,
+    AbacusError, UnitRegistry, evaluation::parser::parse::evaluate,
     evaluation::tokenizer::registry::token_registry::TokenRegistry,
-    AbacusError, UnitRegistry,
 };
 
 fn main() -> Result<(), AbacusError> {
