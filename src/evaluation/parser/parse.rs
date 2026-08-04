@@ -19,6 +19,7 @@ pub struct Parser<'a> {
     pos: usize,
     token_registry: &'a TokenRegistry,
     unit_registry: &'a UnitRegistry,
+    pub has_explicit_conversion: bool,
 }
 
 impl<'a> Parser<'a> {
@@ -32,6 +33,7 @@ impl<'a> Parser<'a> {
             pos: 0,
             token_registry,
             unit_registry,
+            has_explicit_conversion: false,
         }
     }
 
@@ -129,6 +131,7 @@ impl<'a> Parser<'a> {
                     break;
                 }
                 self.advance();
+                self.has_explicit_conversion = true;
                 // The RHS of a conversion can be a unit symbol or compound unit expression
                 let target_val = self.parse_expr(1)?;
                 lhs = lhs.convert_to(target_val.unit)?;
@@ -368,7 +371,11 @@ pub fn evaluate(
     )?;
     let mut parser = Parser::new(tokens, token_registry, unit_registry);
     let val = parser.parse()?;
-    val.to_derived(unit_registry)
+    if parser.has_explicit_conversion {
+        Ok(val)
+    } else {
+        val.to_derived(unit_registry)
+    }
 }
 
 #[cfg(test)]
@@ -548,6 +555,27 @@ mod tests {
     }
 
     #[test]
+    fn evaluates_financial_functions() {
+        let payment = eval_val("pmt(0.004166666666666667, 360, 200000)").unwrap().canonical;
+        assert!((payment - (-1073.64)).abs() < 1e-1);
+
+        let future_val = eval_val("fv(0.05, 10, -1000, 0)").unwrap().canonical;
+        assert!((future_val - 12577.89).abs() < 1e-1);
+
+        let pres_val = eval_val("pv(0.05, 10, -1000, 0)").unwrap().canonical;
+        assert!((pres_val - 7721.73).abs() < 1e-1);
+
+        let npv_res = eval_val("npv(0.1, 300, 400, 500)").unwrap().canonical;
+        assert!((npv_res - 978.96).abs() < 1e-1);
+
+        let irr_res = eval_val("irr(-100, 60, 60)").unwrap().canonical;
+        assert!((irr_res - 0.13066).abs() < 1e-3);
+
+        let comp_res = eval_val("compound(1000, 0.05, 10)").unwrap().canonical;
+        assert!((comp_res - 1628.89).abs() < 1e-1);
+    }
+
+    #[test]
     fn evaluates_mean_function() {
         let result = eval("mean(10 m, 20 m, 30 m)").unwrap();
         assert_eq!(result, "20 m");
@@ -573,6 +601,7 @@ mod tests {
     fn evaluates_unit_conversion() {
         let result = eval("5 km to m").unwrap();
         assert_eq!(result, "5000 m");
+        assert_eq!(eval("50 J to N*m").unwrap(), "50 N*m");
     }
 
     #[test]

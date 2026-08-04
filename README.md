@@ -13,7 +13,7 @@
   - `5 m + 5` $\to$ `10 m` and `5 cm + 5` $\to$ `10 cm` (dimensionless numbers automatically adopt adjacent units in addition/subtraction).
   - `1 as inches` $\to$ `1 in` (attaches units to unitless values).
   - Bare unit expressions like `1m/m` or `5 km / m` evaluate cleanly to `1` or `5000`.
-- 💡 **Automatic Derived SI Unit Reduction**: Compound unit calculations automatically reduce to named derived SI units at the end of evaluation (e.g. `10 N * 5 m` $\to$ `50 J`, `100 W * 5 s` $\to$ `500 J`, `12 V * 2 A` $\to$ `24 W`, `10 N / 2 m^2` $\to$ `5 Pa`, `5 C / 2 s` $\to$ `2.5 A`).
+- 💡 **Automatic Derived SI Unit Reduction**: Compound unit calculations automatically reduce to named derived SI units at the end of evaluation (e.g. `10 N * 5 m` $\to$ `50 J`, `100 W * 5 s` $\to$ `500 J`, `12 V * 2 A` $\to$ `24 W`), while respecting explicit user conversion targets (e.g. `50 J to N*m` $\to$ `50 N*m`).
 - 📊 **Statistical Functions & Range Step Expansion**:
   - Functions accept discrete arguments, standard ranges (`1..5`, `1 m .. 5 m`), or explicit **range step syntax** (`1..9..2`, `0 m .. 10 m .. 2 m`, `0 km .. 1 km .. 250 m`).
   - Includes `sum`, `mean`, `median`, `mode`, `range`, `var`, `std`, `quantile`, `percentile`, `iqr`, and `corr` (Pearson correlation).
@@ -22,6 +22,13 @@
   - `%` operator and `mod(a, b)` / `modulo(a, b)` (e.g. `10 m % 3 m` $\to$ `1 m`, `10 cm % 3` $\to$ `1 cm`).
   - `clamp(x, min, max)` (preserves unit, e.g. `clamp(15 m, 0 m, 10 m)` $\to$ `10 m`).
   - `gcd(a, b)` and `lcm(a, b)`.
+- 💰 **Financial & TVM Functions**:
+  - `pmt(rate, nper, pv, [fv])`: Loan / annuity payment.
+  - `fv(rate, nper, pmt, [pv])`: Future Value.
+  - `pv(rate, nper, pmt, [fv])`: Present Value.
+  - `npv(rate, cf1, cf2, ...)`: Net Present Value.
+  - `irr(cf0, cf1, cf2, ...)`: Internal Rate of Return.
+  - `compound(principal, rate, time, [n])`: Compound interest.
 - 📐 **Trigonometry, Logarithms & Math Library**:
   - **Trigonometric & Hyperbolic**: `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh` (supports angle units like `rad`, `deg`, `°`, `turn`, `arcmin`, `arcsec`).
   - **Logarithmic & Exponential**: `ln`, `log10`, `log2`, `log(x, base)`, `exp`.
