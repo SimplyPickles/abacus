@@ -1,4 +1,4 @@
-use crate::{error::AbacusError, units::unit::Unit};
+use crate::{error::AbacusError, registry::unit_registry, units::unit::Unit};
 
 use std::{
     fmt,
@@ -80,6 +80,13 @@ impl Value {
 
     pub fn to_units_display(&self) -> String {
         self.unit.display.render()
+    }
+
+    pub fn simplify_unit_display(&mut self, unit_registry: &UnitRegistry) {
+        let unit = self
+            .unit
+            .simplify_display_with(|sym| unit_registry.get(sym));
+        self.unit = Arc::new(unit);
     }
 }
 
@@ -216,7 +223,6 @@ impl Mul<&Value> for &Value {
             dimensions: self.unit.dimensions + rhs.unit.dimensions,
             display: self.unit.display.multiply(&rhs.unit.display),
         };
-        unit.simplify_display();
 
         Ok(Value {
             canonical: self.canonical * rhs.canonical,
@@ -261,7 +267,6 @@ impl Div<&Value> for &Value {
             dimensions: self.unit.dimensions - rhs.unit.dimensions,
             display: self.unit.display.divide(&rhs.unit.display),
         };
-        unit.simplify_display();
 
         Ok(Value {
             canonical: self.canonical / rhs.canonical,
@@ -362,7 +367,10 @@ mod tests {
         .unwrap();
         assert_eq!(speed.to_display(), "5 m/s");
 
-        let distance = (speed * Value::new(5.0, unit(1.0, Dimensions::TIME, "s"))).unwrap();
+        let mut distance = (speed * Value::new(5.0, unit(1.0, Dimensions::TIME, "s"))).unwrap();
+        let std_unit_reg = UnitRegistry::standard();
+        distance.simplify_unit_display(&std_unit_reg);
+
         assert_eq!(distance.canonical, 25.0);
         assert_eq!(distance.unit.dimensions, Dimensions::LENGTH);
         assert_eq!(distance.to_display(), "25 m");

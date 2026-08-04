@@ -8,34 +8,61 @@ pub use error::AbacusError;
 pub use registry::unit_registry::UnitRegistry;
 pub use units::{dimensions::Dimensions, unit::Unit, value::Value};
 
-use std::sync::OnceLock;
-
 use crate::evaluation::{
     parser::parse::evaluate, tokenizer::registry::token_registry::TokenRegistry,
 };
 
-static UNITS: OnceLock<UnitRegistry> = OnceLock::new();
-
-pub fn global_units() -> &'static UnitRegistry {
-    UNITS.get_or_init(UnitRegistry::standard)
+pub struct Abacus {
+    pub units: UnitRegistry,
+    pub tokens: TokenRegistry,
 }
 
-static TOKENS: OnceLock<TokenRegistry> = OnceLock::new();
+impl Abacus {
+    pub fn new() -> Self {
+        Self {
+            units: UnitRegistry::new(),
+            tokens: TokenRegistry::new(),
+        }
+    }
 
-pub fn global_tokens() -> &'static TokenRegistry {
-    TOKENS.get_or_init(TokenRegistry::standard)
+    pub fn standard() -> Self {
+        Self {
+            units: UnitRegistry::standard(),
+            tokens: TokenRegistry::standard(),
+        }
+    }
+
+    pub fn eval(&self, expr: &str) -> Result<Value, AbacusError> {
+        evaluate(&self.tokens, &self.units, expr)
+    }
 }
 
-pub fn eval(expr: &str) -> Result<Value, AbacusError> {
-    let tokens = global_tokens();
-    let units = global_units();
-
-    evaluate(tokens, units, expr)
+impl Default for Abacus {
+    fn default() -> Self {
+        Abacus::new()
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::OnceLock;
+
+    static UNITS: OnceLock<UnitRegistry> = OnceLock::new();
+
+    pub fn global_units() -> &'static UnitRegistry {
+        UNITS.get_or_init(UnitRegistry::standard)
+    }
+
+    static TOKENS: OnceLock<TokenRegistry> = OnceLock::new();
+
+    pub fn global_tokens() -> &'static TokenRegistry {
+        TOKENS.get_or_init(TokenRegistry::standard)
+    }
+
+    pub fn eval(expr: &str) -> Result<Value, AbacusError> {
+        evaluate(global_tokens(), global_units(), expr)
+    }
 
     pub fn unit(symbol: &str) -> Result<std::sync::Arc<Unit>, AbacusError> {
         global_units().unit(symbol)

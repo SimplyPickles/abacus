@@ -403,7 +403,15 @@ pub fn evaluate(
     if parser.has_explicit_conversion {
         Ok(val)
     } else {
-        val.to_derived(unit_registry)
+        let mut v = val.to_derived(unit_registry);
+        match v {
+            Ok(mut v) => {
+                v.simplify_unit_display(unit_registry);
+                Ok(v)
+            }
+
+            Err(e) => Err(e),
+        }
     }
 }
 

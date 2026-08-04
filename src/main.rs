@@ -1,7 +1,8 @@
-use abacus::{AbacusError, eval};
+use abacus::{Abacus, AbacusError};
 
 fn main() -> Result<(), AbacusError> {
-    println!("6min +0.5hours- 1s: {}", eval("6min +0.5h- 1s")?);
+    let calc = Abacus::standard();
+    println!("{}", calc.eval("50km + 10km")?);
 
     Ok(())
 }
