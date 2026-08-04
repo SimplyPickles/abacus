@@ -2,7 +2,7 @@ use crate::Value;
 
 // Represents a token parsed from the input string
 #[derive(Debug, Clone, PartialEq)]
-pub enum Token {
+pub enum Token<'a> {
     // Operators
     BinaryOp(&'static str), // e.g., '+', '-', '*', '/'
     UnaryOp(&'static str),  // e.g., 'sqrt' for square root or '!' for factorial
@@ -11,8 +11,8 @@ pub enum Token {
     ConversionOp,
 
     // Values
-    Float(f64),   // parsed number
-    Unit(String), // "kg", "m", "ft"
+    Float(f64),    // parsed number
+    Unit(&'a str), // "kg", "m", "ft" borrowed directly from input text
 
     // Grouping & Delimiters
     OpenParen,

@@ -1,16 +1,17 @@
 use crate::{
+    AbacusError, Value,
     evaluation::tokenizer::registry::function::{
         distributions::special::{erfinv, gamma_p, lgamma, make_dimensionless},
         operators::FunctionOp,
     },
-    AbacusError, Value,
 };
 
 fn compute_chisqpdf(df: f64, x: f64) -> f64 {
     if x <= 0.0 {
         return 0.0;
     }
-    let log_pdf = (df / 2.0 - 1.0) * x.ln() - x / 2.0 - (df / 2.0) * (2.0f64).ln() - lgamma(df / 2.0);
+    let log_pdf =
+        (df / 2.0 - 1.0) * x.ln() - x / 2.0 - (df / 2.0) * (2.0f64).ln() - lgamma(df / 2.0);
     log_pdf.exp()
 }
 

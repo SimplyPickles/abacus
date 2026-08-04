@@ -15,7 +15,7 @@ use crate::{
 ///   5 — Exponentiation (`^`, right-associative)
 ///   6 — Postfix (`!`)
 pub struct Parser<'a> {
-    tokens: Vec<Token>,
+    tokens: Vec<Token<'a>>,
     pos: usize,
     token_registry: &'a TokenRegistry,
     unit_registry: &'a UnitRegistry,
@@ -24,7 +24,7 @@ pub struct Parser<'a> {
 
 impl<'a> Parser<'a> {
     pub fn new(
-        tokens: Vec<Token>,
+        tokens: Vec<Token<'a>>,
         token_registry: &'a TokenRegistry,
         unit_registry: &'a UnitRegistry,
     ) -> Self {
@@ -38,12 +38,12 @@ impl<'a> Parser<'a> {
     }
 
     /// Peek at the current token without consuming it.
-    fn peek(&self) -> Option<&Token> {
+    fn peek(&self) -> Option<&Token<'a>> {
         self.tokens.get(self.pos)
     }
 
     /// Consume the current token and advance.
-    fn advance(&mut self) -> Option<Token> {
+    fn advance(&mut self) -> Option<Token<'a>> {
         if self.pos < self.tokens.len() {
             let tok = self.tokens[self.pos].clone();
             self.pos += 1;
@@ -54,7 +54,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Expect and consume a specific token, or return an error.
-    fn expect(&mut self, expected: &Token) -> Result<(), AbacusError> {
+    fn expect(&mut self, expected: &Token<'a>) -> Result<(), AbacusError> {
         match self.peek() {
             Some(tok) if tok == expected => {
                 self.advance();
@@ -233,16 +233,14 @@ impl<'a> Parser<'a> {
                         if self.peek() == Some(&Token::Range) {
                             self.advance(); // consume `..`
                             let end = self.parse_expr(0)?;
-                            if self.peek() == Some(&Token::Range) {
+                            let custom_step = if self.peek() == Some(&Token::Range) {
                                 self.advance(); // consume second `..`
-                                let step_val = self.parse_expr(0)?;
-                                let expanded =
-                                    Self::expand_range_with_step(arg, end, Some(step_val))?;
-                                args.extend(expanded);
+                                Some(self.parse_expr(0)?)
                             } else {
-                                let expanded = Self::expand_range_with_step(arg, end, None)?;
-                                args.extend(expanded);
-                            }
+                                None
+                            };
+                            let seq = RangeSeq::new(arg, end, custom_step)?;
+                            args.extend(seq.iter());
                         } else {
                             args.push(arg);
                         }
@@ -300,16 +298,21 @@ impl<'a> Parser<'a> {
             10
         }
     }
+}
 
+/// A streaming sequence generator for arithmetic ranges.
+pub struct RangeSeq {
+    pub start: f64,
+    pub step: f64,
+    pub count: usize,
+    pub unit: std::sync::Arc<crate::units::unit::Unit>,
+}
+
+impl RangeSeq {
     /// Maximum number of values permitted in range step expansion.
     pub const MAX_RANGE_ELEMENTS: usize = 100_000;
 
-    /// Expand a range between start and end with optional custom step size.
-    fn expand_range_with_step(
-        start: Value,
-        end: Value,
-        custom_step: Option<Value>,
-    ) -> Result<Vec<Value>, AbacusError> {
+    pub fn new(start: Value, end: Value, custom_step: Option<Value>) -> Result<Self, AbacusError> {
         if !start.unit.is_compatible_with(&end.unit) {
             return Err(AbacusError::IncompatibleDimensions);
         }
@@ -335,40 +338,52 @@ impl<'a> Parser<'a> {
             return Err(AbacusError::IncompatibleFunctionArguments);
         }
 
-        let estimated_count = ((end_val - start_val).abs() / step_abs).floor();
+        let diff = (end_val - start_val).abs();
+        let estimated_count = (diff / step_abs).floor() + 1.0;
         if estimated_count > Self::MAX_RANGE_ELEMENTS as f64 {
             return Err(AbacusError::IncompatibleFunctionArguments);
         }
 
-        let mut expanded = Vec::new();
+        let mut count = 0;
         let mut current = start_val;
         let epsilon = 1e-12 * step_abs.max(1.0);
-
-        if start_val <= end_val {
+        let step = if start_val <= end_val {
             while current <= end_val + epsilon {
-                if expanded.len() >= Self::MAX_RANGE_ELEMENTS {
+                count += 1;
+                if count > Self::MAX_RANGE_ELEMENTS {
                     return Err(AbacusError::IncompatibleFunctionArguments);
                 }
-                expanded.push(Value {
-                    canonical: current,
-                    unit: std::sync::Arc::clone(&start.unit),
-                });
                 current += step_abs;
             }
+            step_abs
         } else {
             while current >= end_val - epsilon {
-                if expanded.len() >= Self::MAX_RANGE_ELEMENTS {
+                count += 1;
+                if count > Self::MAX_RANGE_ELEMENTS {
                     return Err(AbacusError::IncompatibleFunctionArguments);
                 }
-                expanded.push(Value {
-                    canonical: current,
-                    unit: std::sync::Arc::clone(&start.unit),
-                });
                 current -= step_abs;
             }
-        }
+            -step_abs
+        };
 
-        Ok(expanded)
+        Ok(Self {
+            start: start_val,
+            step,
+            count,
+            unit: start.unit,
+        })
+    }
+
+    /// Stream `Value` instances from this range on demand.
+    pub fn iter(&self) -> impl Iterator<Item = Value> + '_ {
+        let unit = &self.unit;
+        let start = self.start;
+        let step = self.step;
+        (0..self.count).map(move |i| Value {
+            canonical: start + (i as f64) * step,
+            unit: std::sync::Arc::clone(unit),
+        })
     }
 }
 
@@ -518,11 +533,21 @@ mod tests {
     fn evaluates_trig_and_hyperbolic_functions() {
         assert!((eval_val("cos(0)").unwrap().canonical - 1.0).abs() < 1e-10);
         assert!((eval_val("tan(0)").unwrap().canonical - 0.0).abs() < 1e-10);
-        assert!((eval_val("sin(45 deg)").unwrap().canonical - std::f64::consts::FRAC_1_SQRT_2).abs() < 1e-6);
-        assert!((eval_val("asin(1)").unwrap().canonical - std::f64::consts::FRAC_PI_2).abs() < 1e-6);
+        assert!(
+            (eval_val("sin(45 deg)").unwrap().canonical - std::f64::consts::FRAC_1_SQRT_2).abs()
+                < 1e-6
+        );
+        assert!(
+            (eval_val("asin(1)").unwrap().canonical - std::f64::consts::FRAC_PI_2).abs() < 1e-6
+        );
         assert!((eval_val("acos(1)").unwrap().canonical - 0.0).abs() < 1e-6);
-        assert!((eval_val("atan(1)").unwrap().canonical - std::f64::consts::FRAC_PI_4).abs() < 1e-6);
-        assert!((eval_val("atan2(1 m, 1 m)").unwrap().canonical - std::f64::consts::FRAC_PI_4).abs() < 1e-6);
+        assert!(
+            (eval_val("atan(1)").unwrap().canonical - std::f64::consts::FRAC_PI_4).abs() < 1e-6
+        );
+        assert!(
+            (eval_val("atan2(1 m, 1 m)").unwrap().canonical - std::f64::consts::FRAC_PI_4).abs()
+                < 1e-6
+        );
         assert!((eval_val("sinh(0)").unwrap().canonical - 0.0).abs() < 1e-10);
         assert!((eval_val("cosh(0)").unwrap().canonical - 1.0).abs() < 1e-10);
     }
@@ -570,7 +595,9 @@ mod tests {
 
     #[test]
     fn evaluates_financial_functions() {
-        let payment = eval_val("pmt(0.004166666666666667, 360, 200000)").unwrap().canonical;
+        let payment = eval_val("pmt(0.004166666666666667, 360, 200000)")
+            .unwrap()
+            .canonical;
         assert!((payment - (-1073.64)).abs() < 1e-1);
 
         let future_val = eval_val("fv(0.05, 10, -1000, 0)").unwrap().canonical;

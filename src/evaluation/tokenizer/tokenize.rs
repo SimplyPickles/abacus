@@ -5,11 +5,11 @@ use crate::{
 
 const CONVERSION_KEYWORDS: [&str; 3] = ["as", "to", "in"];
 
-pub fn tokenize_string(
+pub fn tokenize_string<'a>(
     token_registry: &TokenRegistry,
     unit_registry: &UnitRegistry,
-    input_text: &str,
-) -> Result<Vec<Token>, AbacusError> {
+    input_text: &'a str,
+) -> Result<Vec<Token<'a>>, AbacusError> {
     let mut tokens = Vec::new();
     let mut chars = input_text.char_indices().peekable();
 
@@ -214,7 +214,7 @@ pub fn tokenize_string(
             } else if let Some(op) = token_registry.unary_operators.get(sym) {
                 tokens.push(Token::UnaryOp(op.alias));
             } else if unit_registry.contains(sym) {
-                tokens.push(Token::Unit(sym.to_string()));
+                tokens.push(Token::Unit(sym));
             } else {
                 return Err(AbacusError::UnknownUnit(sym.to_string()));
             }
@@ -251,9 +251,11 @@ pub fn tokenize_string(
     };
 
     let is_right = |tok: &Token| match tok {
-        Token::Val(_) | Token::Float(_) | Token::Unit(_) | Token::OpenParen | Token::Function(_) => {
-            true
-        }
+        Token::Val(_)
+        | Token::Float(_)
+        | Token::Unit(_)
+        | Token::OpenParen
+        | Token::Function(_) => true,
         Token::UnaryOp(name) => {
             if let Some(op) = token_registry.unary_operators.get(*name) {
                 op.prefix
@@ -296,7 +298,7 @@ mod tests {
         assert_eq!(tokens2.len(), 3);
         assert!(matches!(tokens2[0], Token::Val(_)));
         assert_eq!(tokens2[1], Token::ConversionOp);
-        assert_eq!(tokens2[2], Token::Unit("m^3".to_string()));
+        assert_eq!(tokens2[2], Token::Unit("m^3"));
     }
 
     #[test]

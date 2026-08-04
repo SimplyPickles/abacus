@@ -4,9 +4,8 @@ use crate::evaluation::tokenizer::registry::{
     binary::{arithmetic::register_arithmetic, operators::BinaryOp},
     function::{
         combinatorics::register_combinatorics, distributions::register_distributions,
-        financial::register_financial, math::register_math,
-        math_helpers::register_math_helpers, operators::FunctionOp, stats::register_stats,
-        trig::register_trig,
+        financial::register_financial, math::register_math, math_helpers::register_math_helpers,
+        operators::FunctionOp, stats::register_stats, trig::register_trig,
     },
     unary::{general::register_general, operators::UnaryOp},
 };

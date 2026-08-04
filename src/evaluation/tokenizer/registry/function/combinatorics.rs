@@ -1,9 +1,9 @@
 use crate::{
+    AbacusError, Value,
     evaluation::tokenizer::registry::function::{
         distributions::special::{make_dimensionless, n_cr},
         operators::FunctionOp,
     },
-    AbacusError, Value,
 };
 
 fn n_pr(n: u64, r: u64) -> f64 {
@@ -39,7 +39,13 @@ fn n_cr_fn(args: &[Value]) -> Result<Value, AbacusError> {
     }
     let n_val = args[0].canonical;
     let r_val = args[1].canonical;
-    if n_val < 0.0 || r_val < 0.0 || r_val > n_val || !n_val.is_finite() || !r_val.is_finite() || n_val > 1000.0 {
+    if n_val < 0.0
+        || r_val < 0.0
+        || r_val > n_val
+        || !n_val.is_finite()
+        || !r_val.is_finite()
+        || n_val > 1000.0
+    {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
     let n = n_val.round() as u64;
@@ -56,7 +62,13 @@ fn n_pr_fn(args: &[Value]) -> Result<Value, AbacusError> {
     }
     let n_val = args[0].canonical;
     let r_val = args[1].canonical;
-    if n_val < 0.0 || r_val < 0.0 || r_val > n_val || !n_val.is_finite() || !r_val.is_finite() || n_val > 170.0 {
+    if n_val < 0.0
+        || r_val < 0.0
+        || r_val > n_val
+        || !n_val.is_finite()
+        || !r_val.is_finite()
+        || n_val > 170.0
+    {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
     let n = n_val.round() as u64;

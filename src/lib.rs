@@ -10,7 +10,9 @@ pub use units::{dimensions::Dimensions, unit::Unit, value::Value};
 
 use std::sync::OnceLock;
 
-use crate::evaluation::{parser::parse::evaluate, tokenizer::registry::token_registry::TokenRegistry};
+use crate::evaluation::{
+    parser::parse::evaluate, tokenizer::registry::token_registry::TokenRegistry,
+};
 
 static UNITS: OnceLock<UnitRegistry> = OnceLock::new();
 

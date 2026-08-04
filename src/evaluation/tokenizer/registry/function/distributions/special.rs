@@ -28,7 +28,7 @@ pub fn erfinv(x: f64) -> f64 {
     let term1 = 2.0 / (std::f64::consts::PI * a) + log_term / 2.0;
     let inner = term1 * term1 - log_term / a;
     let sign = if x < 0.0 { -1.0 } else { 1.0 };
-    sign * ((inner.sqrt() - term1)).sqrt()
+    sign * (inner.sqrt() - term1).sqrt()
 }
 
 pub fn n_cr(n: u64, k: u64) -> f64 {
