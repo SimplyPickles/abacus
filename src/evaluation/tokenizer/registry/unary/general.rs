@@ -61,8 +61,11 @@ fn factorial(a: Value) -> Result<Value, AbacusError> {
     if !a.unit.is_dimensionless() {
         return Err(AbacusError::IncompatibleDimensions);
     }
-    let n = a.canonical as u64;
-    let result = (1..=n).fold(1u64, |acc, x| acc * x) as f64;
+    if a.canonical < 0.0 || !a.canonical.is_finite() || a.canonical > 170.0 {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+    let n = a.canonical.round() as u64;
+    let result = (1..=n).fold(1.0, |acc, x| acc * (x as f64));
     Ok(Value {
         canonical: result,
         unit: a.unit,

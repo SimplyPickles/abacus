@@ -23,7 +23,7 @@ fn factorial_fn(args: &[Value]) -> Result<Value, AbacusError> {
         return Err(AbacusError::IncompatibleDimensions);
     }
     let n_val = args[0].canonical;
-    if n_val < 0.0 {
+    if n_val < 0.0 || !n_val.is_finite() || n_val > 170.0 {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
     let n = n_val.round() as u64;
@@ -39,7 +39,7 @@ fn n_cr_fn(args: &[Value]) -> Result<Value, AbacusError> {
     }
     let n_val = args[0].canonical;
     let r_val = args[1].canonical;
-    if n_val < 0.0 || r_val < 0.0 || r_val > n_val {
+    if n_val < 0.0 || r_val < 0.0 || r_val > n_val || !n_val.is_finite() || !r_val.is_finite() || n_val > 1000.0 {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
     let n = n_val.round() as u64;
@@ -56,7 +56,7 @@ fn n_pr_fn(args: &[Value]) -> Result<Value, AbacusError> {
     }
     let n_val = args[0].canonical;
     let r_val = args[1].canonical;
-    if n_val < 0.0 || r_val < 0.0 || r_val > n_val {
+    if n_val < 0.0 || r_val < 0.0 || r_val > n_val || !n_val.is_finite() || !r_val.is_finite() || n_val > 170.0 {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
     let n = n_val.round() as u64;

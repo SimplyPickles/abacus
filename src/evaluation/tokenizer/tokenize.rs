@@ -76,10 +76,11 @@ pub fn tokenize_string(
         {
             let start = i;
             let mut has_dot = false;
+            let mut has_exp = false;
             while let Some(&(_, num_c)) = chars.peek() {
                 if num_c.is_ascii_digit() {
                     chars.next();
-                } else if num_c == '.' && !has_dot {
+                } else if num_c == '.' && !has_dot && !has_exp {
                     // Peek ahead: if the next char after this '.' is also '.',
                     // then this is the start of `..` (range), not a decimal point.
                     let mut dot_lookahead = chars.clone();
@@ -89,6 +90,27 @@ pub fn tokenize_string(
                     }
                     has_dot = true;
                     chars.next();
+                } else if (num_c == 'e' || num_c == 'E') && !has_exp {
+                    let mut exp_lookahead = chars.clone();
+                    exp_lookahead.next(); // skip 'e' or 'E'
+                    if let Some(&(_, sign_c)) = exp_lookahead.peek() {
+                        if sign_c == '+' || sign_c == '-' {
+                            exp_lookahead.next();
+                        }
+                    }
+                    if let Some(&(_, digit_c)) = exp_lookahead.peek() {
+                        if digit_c.is_ascii_digit() {
+                            has_exp = true;
+                            chars.next(); // consume 'e'/'E'
+                            if let Some(&(_, sign_c)) = chars.peek() {
+                                if sign_c == '+' || sign_c == '-' {
+                                    chars.next(); // consume '+' or '-'
+                                }
+                            }
+                            continue;
+                        }
+                    }
+                    break;
                 } else {
                     break;
                 }
@@ -99,7 +121,7 @@ pub fn tokenize_string(
                 .parse::<f64>()
                 .map_err(|_| AbacusError::UnknownUnit(num_str.to_string()))?;
 
-            // Check if immediately followed by an unspaced unit identifier (e.g. 5km, 10m)
+            // Check if immediately followed by an unspaced unit identifier (e.g. 5km, 10m, 1s^-1)
             if let Some(&(unit_start, unit_c)) = chars.peek() {
                 if unit_c.is_alphabetic() || unit_c == '°' || unit_c == 'Å' || unit_c == 'Ω' {
                     let mut unit_end = unit_start;
@@ -107,13 +129,29 @@ pub fn tokenize_string(
                     while let Some((idx, sym_c)) = unit_chars.peek().cloned() {
                         if sym_c.is_alphanumeric()
                             || sym_c == '_'
-                            || sym_c == '^'
                             || sym_c == '°'
                             || sym_c == 'Å'
                             || sym_c == 'Ω'
                         {
                             unit_end = idx + sym_c.len_utf8();
                             unit_chars.next();
+                        } else if sym_c == '^' {
+                            unit_end = idx + sym_c.len_utf8();
+                            unit_chars.next();
+                            if let Some((sign_idx, sign_c)) = unit_chars.peek().cloned() {
+                                if sign_c == '+' || sign_c == '-' {
+                                    unit_end = sign_idx + sign_c.len_utf8();
+                                    unit_chars.next();
+                                }
+                            }
+                            while let Some((digit_idx, digit_c)) = unit_chars.peek().cloned() {
+                                if digit_c.is_ascii_digit() || digit_c == '.' {
+                                    unit_end = digit_idx + digit_c.len_utf8();
+                                    unit_chars.next();
+                                } else {
+                                    break;
+                                }
+                            }
                         } else {
                             break;
                         }
@@ -138,13 +176,29 @@ pub fn tokenize_string(
             while let Some(&(idx, sym_c)) = chars.peek() {
                 if sym_c.is_alphanumeric()
                     || sym_c == '_'
-                    || sym_c == '^'
                     || sym_c == '°'
                     || sym_c == 'Å'
                     || sym_c == 'Ω'
                 {
                     end = idx + sym_c.len_utf8();
                     chars.next();
+                } else if sym_c == '^' {
+                    end = idx + sym_c.len_utf8();
+                    chars.next();
+                    if let Some(&(sign_idx, sign_c)) = chars.peek() {
+                        if sign_c == '+' || sign_c == '-' {
+                            end = sign_idx + sign_c.len_utf8();
+                            chars.next();
+                        }
+                    }
+                    while let Some(&(digit_idx, digit_c)) = chars.peek() {
+                        if digit_c.is_ascii_digit() || digit_c == '.' {
+                            end = digit_idx + digit_c.len_utf8();
+                            chars.next();
+                        } else {
+                            break;
+                        }
+                    }
                 } else {
                     break;
                 }

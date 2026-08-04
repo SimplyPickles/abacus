@@ -301,6 +301,9 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Maximum number of values permitted in range step expansion.
+    pub const MAX_RANGE_ELEMENTS: usize = 100_000;
+
     /// Expand a range between start and end with optional custom step size.
     fn expand_range_with_step(
         start: Value,
@@ -328,7 +331,12 @@ impl<'a> Parser<'a> {
             None => start.unit.scalar.abs(),
         };
 
-        if step_abs <= 0.0 {
+        if !start_val.is_finite() || !end_val.is_finite() || step_abs.is_nan() || step_abs <= 0.0 {
+            return Err(AbacusError::IncompatibleFunctionArguments);
+        }
+
+        let estimated_count = ((end_val - start_val).abs() / step_abs).floor();
+        if estimated_count > Self::MAX_RANGE_ELEMENTS as f64 {
             return Err(AbacusError::IncompatibleFunctionArguments);
         }
 
@@ -338,6 +346,9 @@ impl<'a> Parser<'a> {
 
         if start_val <= end_val {
             while current <= end_val + epsilon {
+                if expanded.len() >= Self::MAX_RANGE_ELEMENTS {
+                    return Err(AbacusError::IncompatibleFunctionArguments);
+                }
                 expanded.push(Value {
                     canonical: current,
                     unit: std::sync::Arc::clone(&start.unit),
@@ -346,6 +357,9 @@ impl<'a> Parser<'a> {
             }
         } else {
             while current >= end_val - epsilon {
+                if expanded.len() >= Self::MAX_RANGE_ELEMENTS {
+                    return Err(AbacusError::IncompatibleFunctionArguments);
+                }
                 expanded.push(Value {
                     canonical: current,
                     unit: std::sync::Arc::clone(&start.unit),
@@ -767,5 +781,38 @@ mod tests {
     #[test]
     fn errors_on_incompatible_addition() {
         assert!(eval("5 m + 3 s").is_err());
+    }
+
+    #[test]
+    fn evaluates_scientific_notation() {
+        assert!((eval_val("1e-10").unwrap().canonical - 1e-10).abs() < 1e-25);
+        assert!((eval_val("6.022e23").unwrap().canonical - 6.022e23).abs() < 1e15);
+        assert!((eval_val("1.5E5").unwrap().canonical - 150000.0).abs() < 1e-6);
+        assert_eq!(eval("1e3 m to km").unwrap(), "1 km");
+        assert_eq!(eval("5e-1 m + 50 cm").unwrap(), "1 m");
+    }
+
+    #[test]
+    fn evaluates_negative_and_fractional_exponent_units() {
+        assert_eq!(eval("1 s^-1 to Hz").unwrap(), "1 Hz");
+        assert_eq!(eval("5 s^-1 * 2 s").unwrap(), "10");
+        assert_eq!(eval("9 m^0.5").unwrap(), "9 m^0.5");
+        let sqrt_val = eval_val("9 m^0.5").unwrap().canonical;
+        assert_eq!(sqrt_val, 9.0);
+    }
+
+    #[test]
+    fn errors_on_excessive_range_expansion() {
+        assert!(eval("sum(1..1000000)").is_err());
+        assert!(eval("mean(0 m .. 1000000 m .. 0.001 m)").is_err());
+    }
+
+    #[test]
+    fn evaluates_factorial_safety_and_large_values() {
+        assert!(eval("(-5)!").is_err());
+        assert!(eval("factorial(-5)").is_err());
+        assert!(eval("200!").is_err());
+        let val_25 = eval_val("25!").unwrap().canonical;
+        assert!((val_25 - 1.5511210043330986e25).abs() < 1e15);
     }
 }

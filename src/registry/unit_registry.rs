@@ -80,29 +80,52 @@ impl UnitRegistry {
         }
 
         if let Some((base_sym, exp_str)) = symbol.rsplit_once('^') {
-            if let Ok(exp) = exp_str.parse::<i8>() {
-                if exp > 0 {
-                    if let Some(base_unit) = self.units.get(base_sym) {
-                        let exp_usize = exp as usize;
-                        let scalar = base_unit.scalar.powi(exp as i32);
-                        let dimensions = base_unit.dimensions * (exp as f64);
-                        let display = crate::units::unit::UnitExpr {
-                            numerator: vec![base_sym.to_string(); exp_usize],
-                            denominator: Vec::new(),
-                        };
-                        let unit = Arc::new(Unit {
-                            scalar,
-                            offset: 0.0,
-                            dimensions,
-                            display,
-                        });
+            if let Ok(exp) = exp_str.parse::<f64>() {
+                if let Some(base_unit) = self.units.get(base_sym) {
+                    let scalar = base_unit.scalar.powf(exp);
+                    let dimensions = base_unit.dimensions * exp;
 
-                        if let Ok(mut guard) = self.cache.write() {
-                            guard.insert(symbol.to_string(), Arc::clone(&unit));
+                    let is_integer = (exp - exp.round()).abs() < 1e-9;
+                    let display = if is_integer {
+                        let exp_int = exp.round() as i64;
+                        if exp_int > 0 {
+                            crate::units::unit::UnitExpr {
+                                numerator: vec![base_sym.to_string(); exp_int as usize],
+                                denominator: Vec::new(),
+                            }
+                        } else if exp_int < 0 {
+                            crate::units::unit::UnitExpr {
+                                numerator: Vec::new(),
+                                denominator: vec![base_sym.to_string(); (-exp_int) as usize],
+                            }
+                        } else {
+                            crate::units::unit::UnitExpr::dimensionless()
                         }
+                    } else if exp > 0.0 {
+                        crate::units::unit::UnitExpr {
+                            numerator: vec![format!("{base_sym}^{exp_str}")],
+                            denominator: Vec::new(),
+                        }
+                    } else {
+                        let pos_exp_str = exp_str.trim_start_matches('-');
+                        crate::units::unit::UnitExpr {
+                            numerator: Vec::new(),
+                            denominator: vec![format!("{base_sym}^{pos_exp_str}")],
+                        }
+                    };
 
-                        return Ok(unit);
+                    let unit = Arc::new(Unit {
+                        scalar,
+                        offset: 0.0,
+                        dimensions,
+                        display,
+                    });
+
+                    if let Ok(mut guard) = self.cache.write() {
+                        guard.insert(symbol.to_string(), Arc::clone(&unit));
                     }
+
+                    return Ok(unit);
                 }
             }
         }
