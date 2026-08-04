@@ -305,6 +305,256 @@ fn corr_fn(args: &[Value]) -> Result<Value, AbacusError> {
     Ok(make_dimensionless(r))
 }
 
+fn var_p_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    let first_unit = check_compatible_units(args)?;
+    if args.is_empty() {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+
+    let mean = args.iter().map(|v| v.canonical).sum::<f64>() / (args.len() as f64);
+    let variance = args
+        .iter()
+        .map(|v| (v.canonical - mean).powi(2))
+        .sum::<f64>()
+        / (args.len() as f64);
+
+    let squared_unit = Arc::new(Unit {
+        scalar: first_unit.scalar * first_unit.scalar,
+        offset: 0.0,
+        dimensions: first_unit.dimensions * 2.0,
+        display: first_unit.display.multiply(&first_unit.display),
+    });
+
+    Ok(Value {
+        canonical: variance,
+        unit: squared_unit,
+    })
+}
+
+fn std_p_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    let first_unit = check_compatible_units(args)?;
+    if args.is_empty() {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+
+    let mean = args.iter().map(|v| v.canonical).sum::<f64>() / (args.len() as f64);
+    let variance = args
+        .iter()
+        .map(|v| (v.canonical - mean).powi(2))
+        .sum::<f64>()
+        / (args.len() as f64);
+    let stdev = variance.sqrt();
+
+    Ok(Value {
+        canonical: stdev,
+        unit: Arc::clone(first_unit),
+    })
+}
+
+fn geomean_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    let first_unit = check_compatible_units(args)?;
+    let n = args.len() as f64;
+    let mut log_sum = 0.0;
+    for v in args {
+        if v.canonical <= 0.0 {
+            return Err(AbacusError::IncompatibleFunctionArguments);
+        }
+        log_sum += v.canonical.ln();
+    }
+    let gm = (log_sum / n).exp();
+
+    Ok(Value {
+        canonical: gm,
+        unit: Arc::clone(first_unit),
+    })
+}
+
+fn harmean_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    let first_unit = check_compatible_units(args)?;
+    let n = args.len() as f64;
+    let mut inv_sum = 0.0;
+    for v in args {
+        if v.canonical == 0.0 {
+            return Err(AbacusError::IncompatibleFunctionArguments);
+        }
+        inv_sum += 1.0 / v.canonical;
+    }
+    let hm = n / inv_sum;
+
+    Ok(Value {
+        canonical: hm,
+        unit: Arc::clone(first_unit),
+    })
+}
+
+fn cov_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    if args.len() < 4 || args.len() % 2 != 0 {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+
+    let n = args.len() / 2;
+    let x_data = &args[..n];
+    let y_data = &args[n..];
+
+    let x_unit = check_compatible_units(x_data)?;
+    let y_unit = check_compatible_units(y_data)?;
+
+    let x_mean = x_data.iter().map(|v| v.canonical).sum::<f64>() / (n as f64);
+    let y_mean = y_data.iter().map(|v| v.canonical).sum::<f64>() / (n as f64);
+
+    let mut cov_sum = 0.0;
+    for i in 0..n {
+        let dx = x_data[i].canonical - x_mean;
+        let dy = y_data[i].canonical - y_mean;
+        cov_sum += dx * dy;
+    }
+
+    let sample_cov = cov_sum / ((n - 1) as f64);
+    let product_unit = Arc::new(Unit {
+        scalar: x_unit.scalar * y_unit.scalar,
+        offset: 0.0,
+        dimensions: x_unit.dimensions + y_unit.dimensions,
+        display: x_unit.display.multiply(&y_unit.display),
+    });
+
+    Ok(Value {
+        canonical: sample_cov,
+        unit: product_unit,
+    })
+}
+
+fn cov_p_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    if args.len() < 4 || args.len() % 2 != 0 {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+
+    let n = args.len() / 2;
+    let x_data = &args[..n];
+    let y_data = &args[n..];
+
+    let x_unit = check_compatible_units(x_data)?;
+    let y_unit = check_compatible_units(y_data)?;
+
+    let x_mean = x_data.iter().map(|v| v.canonical).sum::<f64>() / (n as f64);
+    let y_mean = y_data.iter().map(|v| v.canonical).sum::<f64>() / (n as f64);
+
+    let mut cov_sum = 0.0;
+    for i in 0..n {
+        let dx = x_data[i].canonical - x_mean;
+        let dy = y_data[i].canonical - y_mean;
+        cov_sum += dx * dy;
+    }
+
+    let pop_cov = cov_sum / (n as f64);
+    let product_unit = Arc::new(Unit {
+        scalar: x_unit.scalar * y_unit.scalar,
+        offset: 0.0,
+        dimensions: x_unit.dimensions + y_unit.dimensions,
+        display: x_unit.display.multiply(&y_unit.display),
+    });
+
+    Ok(Value {
+        canonical: pop_cov,
+        unit: product_unit,
+    })
+}
+
+fn skew_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    let _first_unit = check_compatible_units(args)?;
+    let n = args.len() as f64;
+    if n < 3.0 {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+
+    let mean = args.iter().map(|v| v.canonical).sum::<f64>() / n;
+    let mut m2 = 0.0;
+    let mut m3 = 0.0;
+
+    for v in args {
+        let diff = v.canonical - mean;
+        m2 += diff * diff;
+        m3 += diff * diff * diff;
+    }
+
+    let var = m2 / n;
+    if var == 0.0 {
+        return Ok(make_dimensionless(0.0));
+    }
+    let skewness = (m3 / n) / var.powf(1.5);
+
+    Ok(make_dimensionless(skewness))
+}
+
+fn kurt_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    let _first_unit = check_compatible_units(args)?;
+    let n = args.len() as f64;
+    if n < 4.0 {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+
+    let mean = args.iter().map(|v| v.canonical).sum::<f64>() / n;
+    let mut m2 = 0.0;
+    let mut m4 = 0.0;
+
+    for v in args {
+        let diff = v.canonical - mean;
+        m2 += diff * diff;
+        m4 += diff.powi(4);
+    }
+
+    let var = m2 / n;
+    if var == 0.0 {
+        return Ok(make_dimensionless(0.0));
+    }
+    let excess_kurtosis = (m4 / n) / (var * var) - 3.0;
+
+    Ok(make_dimensionless(excess_kurtosis))
+}
+
+fn mad_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    let first_unit = check_compatible_units(args)?;
+    let n = args.len() as f64;
+    let mean = args.iter().map(|v| v.canonical).sum::<f64>() / n;
+    let mad_val = args.iter().map(|v| (v.canonical - mean).abs()).sum::<f64>() / n;
+
+    Ok(Value {
+        canonical: mad_val,
+        unit: Arc::clone(first_unit),
+    })
+}
+
+fn rms_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    let first_unit = check_compatible_units(args)?;
+    let n = args.len() as f64;
+    let mean_sq = args.iter().map(|v| v.canonical * v.canonical).sum::<f64>() / n;
+    let rms_val = mean_sq.sqrt();
+
+    Ok(Value {
+        canonical: rms_val,
+        unit: Arc::clone(first_unit),
+    })
+}
+
+fn zscore_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    if args.len() != 3 {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+    let x = &args[0];
+    let mean = &args[1];
+    let std = &args[2];
+
+    if !x.unit.is_compatible_with(&mean.unit) || !x.unit.is_compatible_with(&std.unit) {
+        return Err(AbacusError::IncompatibleDimensions);
+    }
+
+    if std.canonical == 0.0 {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+
+    let z = (x.canonical - mean.canonical) / std.canonical;
+    Ok(make_dimensionless(z))
+}
+
 pub fn register_stats() -> Vec<FunctionOp> {
     vec![
         FunctionOp {
@@ -318,6 +568,18 @@ pub fn register_stats() -> Vec<FunctionOp> {
             min_args: 1,
             max_args: usize::MAX,
             func: mean_fn,
+        },
+        FunctionOp {
+            name: "geomean",
+            min_args: 1,
+            max_args: usize::MAX,
+            func: geomean_fn,
+        },
+        FunctionOp {
+            name: "harmean",
+            min_args: 1,
+            max_args: usize::MAX,
+            func: harmean_fn,
         },
         FunctionOp {
             name: "min",
@@ -356,6 +618,18 @@ pub fn register_stats() -> Vec<FunctionOp> {
             func: var_fn,
         },
         FunctionOp {
+            name: "var_s",
+            min_args: 2,
+            max_args: usize::MAX,
+            func: var_fn,
+        },
+        FunctionOp {
+            name: "var_p",
+            min_args: 1,
+            max_args: usize::MAX,
+            func: var_p_fn,
+        },
+        FunctionOp {
             name: "variance",
             min_args: 2,
             max_args: usize::MAX,
@@ -368,10 +642,88 @@ pub fn register_stats() -> Vec<FunctionOp> {
             func: std_fn,
         },
         FunctionOp {
+            name: "std_s",
+            min_args: 2,
+            max_args: usize::MAX,
+            func: std_fn,
+        },
+        FunctionOp {
+            name: "std_p",
+            min_args: 1,
+            max_args: usize::MAX,
+            func: std_p_fn,
+        },
+        FunctionOp {
             name: "stdev",
             min_args: 2,
             max_args: usize::MAX,
             func: std_fn,
+        },
+        FunctionOp {
+            name: "cov",
+            min_args: 4,
+            max_args: usize::MAX,
+            func: cov_fn,
+        },
+        FunctionOp {
+            name: "cov_s",
+            min_args: 4,
+            max_args: usize::MAX,
+            func: cov_fn,
+        },
+        FunctionOp {
+            name: "cov_p",
+            min_args: 4,
+            max_args: usize::MAX,
+            func: cov_p_fn,
+        },
+        FunctionOp {
+            name: "skew",
+            min_args: 3,
+            max_args: usize::MAX,
+            func: skew_fn,
+        },
+        FunctionOp {
+            name: "skewness",
+            min_args: 3,
+            max_args: usize::MAX,
+            func: skew_fn,
+        },
+        FunctionOp {
+            name: "kurt",
+            min_args: 4,
+            max_args: usize::MAX,
+            func: kurt_fn,
+        },
+        FunctionOp {
+            name: "kurtosis",
+            min_args: 4,
+            max_args: usize::MAX,
+            func: kurt_fn,
+        },
+        FunctionOp {
+            name: "mad",
+            min_args: 1,
+            max_args: usize::MAX,
+            func: mad_fn,
+        },
+        FunctionOp {
+            name: "rms",
+            min_args: 1,
+            max_args: usize::MAX,
+            func: rms_fn,
+        },
+        FunctionOp {
+            name: "zscore",
+            min_args: 3,
+            max_args: 3,
+            func: zscore_fn,
+        },
+        FunctionOp {
+            name: "standardize",
+            min_args: 3,
+            max_args: 3,
+            func: zscore_fn,
         },
         FunctionOp {
             name: "quantile",

@@ -658,6 +658,12 @@ mod tests {
         assert_eq!(eval("sum(1..5)").unwrap(), "15");
         assert_eq!(eval("range(1 m .. 5 m)").unwrap(), "4 m");
         assert_eq!(eval("median(1 m, 10 m, 5 m)").unwrap(), "5 m");
+        assert_eq!(eval("geomean(2 m, 8 m)").unwrap(), "4 m");
+        assert_eq!(eval("harmean(2 m, 8 m)").unwrap(), "3.2 m");
+        assert_eq!(eval("mad(1 m, 2 m, 3 m, 4 m, 5 m)").unwrap(), "1.2 m");
+        assert!((eval_val("rms(3 m, 4 m)").unwrap().canonical - 3.5355339059327378).abs() < 1e-6);
+        assert_eq!(eval("zscore(10 m, 5 m, 2.5 m)").unwrap(), "2");
+        assert_eq!(eval("cov(1..3, 2..4)").unwrap(), "1");
         assert_eq!(eval("mode(2 m, 5 m, 2 m)").unwrap(), "2 m");
         assert_eq!(eval("var(1 m .. 5 m)").unwrap(), "2.5 m^2");
         assert_eq!(eval("quantile(1 m .. 5 m, 0.5)").unwrap(), "3 m");

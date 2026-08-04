@@ -16,7 +16,9 @@
 - 💡 **Automatic Derived SI Unit Reduction**: Compound unit calculations automatically reduce to named derived SI units at the end of evaluation (e.g. `10 N * 5 m` $\to$ `50 J`, `100 W * 5 s` $\to$ `500 J`, `12 V * 2 A` $\to$ `24 W`), while respecting explicit user conversion targets (e.g. `50 J to N*m` $\to$ `50 N*m`).
 - 📊 **Statistical Functions & Range Step Expansion**:
   - Functions accept discrete arguments, standard ranges (`1..5`, `1 m .. 5 m`), or explicit **range step syntax** (`1..9..2`, `0 m .. 10 m .. 2 m`, `0 km .. 1 km .. 250 m`).
-  - Includes `sum`, `mean`, `median`, `mode`, `range`, `var`, `std`, `quantile`, `percentile`, `iqr`, and `corr` (Pearson correlation).
+  - **Descriptive & Averages**: `sum`, `mean`, `geomean`, `harmean`, `median`, `mode`, `min`, `max`, `range`, `mad` (mean absolute deviation), `rms` (root mean square).
+  - **Variance & Dispersion**: `var` / `var_s` (sample variance), `var_p` (population variance), `std` / `std_s` (sample stdev), `std_p` (population stdev), `quantile`, `percentile`, `iqr`.
+  - **Bivariate & Shape**: `cov` / `cov_s` (sample covariance), `cov_p` (population covariance), `corr` (Pearson correlation), `skew` / `skewness`, `kurt` / `kurtosis`, `zscore` / `standardize`.
 - 🎲 **Combinatorics**: `!` (factorial operator), `factorial(n)`, `nCr(n, r)` / `comb(n, r)` (combinations), `nPr(n, r)` / `perm(n, r)` (permutations).
 - ➗ **Unit-Aware Modulo & Math Helpers**:
   - `%` operator and `mod(a, b)` / `modulo(a, b)` (e.g. `10 m % 3 m` $\to$ `1 m`, `10 cm % 3` $\to$ `1 cm`).
