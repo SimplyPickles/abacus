@@ -367,7 +367,8 @@ pub fn evaluate(
         input,
     )?;
     let mut parser = Parser::new(tokens, token_registry, unit_registry);
-    parser.parse()
+    let val = parser.parse()?;
+    val.to_derived(unit_registry)
 }
 
 #[cfg(test)]
@@ -427,6 +428,15 @@ mod tests {
         assert_eq!(eval("1 m / m").unwrap(), "1");
         assert_eq!(eval("5 km / m").unwrap(), "5000");
         assert_eq!(eval("km / h").unwrap(), "1 km/h");
+    }
+
+    #[test]
+    fn evaluates_automatic_derived_unit_reduction() {
+        assert_eq!(eval("10 N * 5 m").unwrap(), "50 J");
+        assert_eq!(eval("100 W * 5 s").unwrap(), "500 J");
+        assert_eq!(eval("12 V * 2 A").unwrap(), "24 W");
+        assert_eq!(eval("10 N / 2 m^2").unwrap(), "5 Pa");
+        assert_eq!(eval("5 C / 2 s").unwrap(), "2.5 A");
     }
 
     // ── Operator precedence ──

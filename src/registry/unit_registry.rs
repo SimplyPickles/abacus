@@ -50,8 +50,8 @@ impl UnitRegistry {
         dimensions: &crate::units::dimensions::Dimensions,
     ) -> Option<Arc<Unit>> {
         let priority_symbols = [
-            "N", "J", "W", "Pa", "Hz", "V", "C", "F", "Ω", "S", "Wb", "T", "H", "lx", "kat", "Bq",
-            "Gy", "Sv", "lm",
+            "N", "J", "W", "Pa", "Hz", "V", "C", "F", "Ω", "S", "Wb", "T", "H", "A", "lx", "kat",
+            "Bq", "Gy", "Sv", "lm",
         ];
 
         for &sym in &priority_symbols {

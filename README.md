@@ -13,6 +13,7 @@
   - `5 m + 5` $\to$ `10 m` and `5 cm + 5` $\to$ `10 cm` (dimensionless numbers automatically adopt adjacent units in addition/subtraction).
   - `1 as inches` $\to$ `1 in` (attaches units to unitless values).
   - Bare unit expressions like `1m/m` or `5 km / m` evaluate cleanly to `1` or `5000`.
+- 💡 **Automatic Derived SI Unit Reduction**: Compound unit calculations automatically reduce to named derived SI units at the end of evaluation (e.g. `10 N * 5 m` $\to$ `50 J`, `100 W * 5 s` $\to$ `500 J`, `12 V * 2 A` $\to$ `24 W`, `10 N / 2 m^2` $\to$ `5 Pa`, `5 C / 2 s` $\to$ `2.5 A`).
 - 📊 **Statistical Functions & Range Step Expansion**:
   - Functions accept discrete arguments, standard ranges (`1..5`, `1 m .. 5 m`), or explicit **range step syntax** (`1..9..2`, `0 m .. 10 m .. 2 m`, `0 km .. 1 km .. 250 m`).
   - Includes `sum`, `mean`, `median`, `mode`, `range`, `var`, `std`, `quantile`, `percentile`, `iqr`, and `corr` (Pearson correlation).
