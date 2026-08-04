@@ -1,4 +1,4 @@
-use crate::{UnitRegistry, units::dimensions::Dimensions};
+use crate::units::dimensions::Dimensions;
 
 #[derive(Debug)]
 pub struct Unit {
@@ -114,10 +114,6 @@ fn render_units(units: &[String]) -> String {
 use std::sync::Arc;
 
 impl Unit {
-    // pub fn simplify_display(&mut self) {
-    //     self.simplify_display_with(|sym| global_units().get(sym));
-    // }
-
     pub fn simplify_display_with(&self, lookup: impl Fn(&str) -> Option<Arc<Unit>>) -> Unit {
         let un = self;
         let mut scalar = un.scalar;

@@ -26,7 +26,7 @@ impl TokenRegistry {
             unary_operators: HashMap::new(),
             function_operators: HashMap::new(),
 
-            paren_operators: Vec::new(),
+            paren_operators: vec!['(', ')'],
         }
     }
 
@@ -45,8 +45,6 @@ impl TokenRegistry {
         functions.append(&mut register_stats());
         functions.append(&mut register_distributions());
 
-        let paren = vec!['(', ')'];
-
         Self {
             binary_operators: binary
                 .into_iter()
@@ -61,7 +59,21 @@ impl TokenRegistry {
                 .map(|op| (op.name.to_string(), Arc::new(op)))
                 .collect(),
 
-            paren_operators: paren,
+            paren_operators: vec!['(', ')'],
         }
+    }
+
+    pub fn register_binary_operator(&mut self, alias: &str, op: BinaryOp) {
+        self.binary_operators
+            .insert(alias.to_string(), Arc::new(op));
+    }
+
+    pub fn register_unary_operator(&mut self, alias: &str, op: UnaryOp) {
+        self.unary_operators.insert(alias.to_string(), Arc::new(op));
+    }
+
+    pub fn register_function_operator(&mut self, alias: &str, op: FunctionOp) {
+        self.function_operators
+            .insert(alias.to_string(), Arc::new(op));
     }
 }

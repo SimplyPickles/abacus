@@ -1,4 +1,5 @@
-use crate::{error::AbacusError, registry::unit_registry, units::unit::Unit};
+use crate::registry::UnitRegistry;
+use crate::{error::AbacusError, units::unit::Unit};
 
 use std::{
     fmt,
@@ -20,8 +21,6 @@ impl PartialEq for Value {
 }
 
 #[allow(dead_code)]
-use crate::registry::UnitRegistry;
-
 impl Value {
     pub fn new(value: f64, unit: Arc<Unit>) -> Self {
         Self {
@@ -217,7 +216,7 @@ impl Mul<&Value> for &Value {
             return Err(AbacusError::AffineUnitOperation("multiply"));
         }
 
-        let mut unit = Unit {
+        let unit = Unit {
             scalar: self.unit.scalar * rhs.unit.scalar,
             offset: 0.0,
             dimensions: self.unit.dimensions + rhs.unit.dimensions,
@@ -261,7 +260,7 @@ impl Div<&Value> for &Value {
             return Err(AbacusError::AffineUnitOperation("divide"));
         }
 
-        let mut unit = Unit {
+        let unit = Unit {
             scalar: self.unit.scalar / rhs.unit.scalar,
             offset: 0.0,
             dimensions: self.unit.dimensions - rhs.unit.dimensions,

@@ -4,12 +4,18 @@ pub mod error;
 pub mod registry;
 pub mod units;
 
+use std::sync::Arc;
+
 pub use error::AbacusError;
 pub use registry::unit_registry::UnitRegistry;
 pub use units::{dimensions::Dimensions, unit::Unit, value::Value};
 
 use crate::evaluation::{
-    parser::parse::evaluate, tokenizer::registry::token_registry::TokenRegistry,
+    parser::parse::evaluate,
+    tokenizer::registry::{
+        binary::operators::BinaryOp, function::operators::FunctionOp,
+        token_registry::TokenRegistry, unary::operators::UnaryOp,
+    },
 };
 
 pub struct Abacus {
@@ -25,6 +31,10 @@ impl Abacus {
         }
     }
 
+    pub fn from_registry(units: UnitRegistry, tokens: TokenRegistry) -> Self {
+        Self { units, tokens }
+    }
+
     pub fn standard() -> Self {
         Self {
             units: UnitRegistry::standard(),
@@ -34,6 +44,22 @@ impl Abacus {
 
     pub fn eval(&self, expr: &str) -> Result<Value, AbacusError> {
         evaluate(&self.tokens, &self.units, expr)
+    }
+
+    pub fn register_unit(&mut self, alias: &str, unit: Unit) {
+        self.units.insert_unit(alias, Arc::from(unit));
+    }
+
+    pub fn register_binop_token(&mut self, op: BinaryOp) {
+        self.tokens.register_binary_operator(op.alias, op);
+    }
+
+    pub fn register_unop_token(&mut self, op: UnaryOp) {
+        self.tokens.register_unary_operator(op.alias, op);
+    }
+
+    pub fn register_function_token(&mut self, op: FunctionOp) {
+        self.tokens.register_function_operator(op.name, op);
     }
 }
 
@@ -52,16 +78,6 @@ mod tests {
 
     pub fn global_units() -> &'static UnitRegistry {
         UNITS.get_or_init(UnitRegistry::standard)
-    }
-
-    static TOKENS: OnceLock<TokenRegistry> = OnceLock::new();
-
-    pub fn global_tokens() -> &'static TokenRegistry {
-        TOKENS.get_or_init(TokenRegistry::standard)
-    }
-
-    pub fn eval(expr: &str) -> Result<Value, AbacusError> {
-        evaluate(global_tokens(), global_units(), expr)
     }
 
     pub fn unit(symbol: &str) -> Result<std::sync::Arc<Unit>, AbacusError> {
