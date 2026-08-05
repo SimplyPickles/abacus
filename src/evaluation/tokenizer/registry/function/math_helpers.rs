@@ -1,7 +1,8 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::make_dimensionless, operators::FunctionOp,
+        distributions::special::make_dimensionless,
+        operators::{FunctionOp, FunctionTarget},
     },
 };
 use std::sync::Arc;
@@ -129,31 +130,31 @@ pub fn register_math_helpers() -> Vec<FunctionOp> {
             name: "clamp",
             min_args: 3,
             max_args: 3,
-            func: clamp_fn,
+            func: FunctionTarget::Scalar(clamp_fn),
         },
         FunctionOp {
             name: "gcd",
             min_args: 2,
             max_args: 2,
-            func: gcd_fn,
+            func: FunctionTarget::Scalar(gcd_fn),
         },
         FunctionOp {
             name: "lcm",
             min_args: 2,
             max_args: 2,
-            func: lcm_fn,
+            func: FunctionTarget::Scalar(lcm_fn),
         },
         FunctionOp {
             name: "mod",
             min_args: 2,
             max_args: 2,
-            func: modulo_fn,
+            func: FunctionTarget::Scalar(modulo_fn),
         },
         FunctionOp {
             name: "modulo",
             min_args: 2,
             max_args: 2,
-            func: modulo_fn,
+            func: FunctionTarget::Scalar(modulo_fn),
         },
     ]
 }

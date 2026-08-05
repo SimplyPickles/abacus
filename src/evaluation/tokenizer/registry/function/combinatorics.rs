@@ -2,7 +2,7 @@ use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
         distributions::special::{make_dimensionless, n_cr},
-        operators::FunctionOp,
+        operators::{FunctionOp, FunctionTarget},
     },
 };
 
@@ -82,31 +82,31 @@ pub fn register_combinatorics() -> Vec<FunctionOp> {
             name: "factorial",
             min_args: 1,
             max_args: 1,
-            func: factorial_fn,
+            func: FunctionTarget::Scalar(factorial_fn),
         },
         FunctionOp {
             name: "nCr",
             min_args: 2,
             max_args: 2,
-            func: n_cr_fn,
+            func: FunctionTarget::Scalar(n_cr_fn),
         },
         FunctionOp {
             name: "comb",
             min_args: 2,
             max_args: 2,
-            func: n_cr_fn,
+            func: FunctionTarget::Scalar(n_cr_fn),
         },
         FunctionOp {
             name: "nPr",
             min_args: 2,
             max_args: 2,
-            func: n_pr_fn,
+            func: FunctionTarget::Scalar(n_pr_fn),
         },
         FunctionOp {
             name: "perm",
             min_args: 2,
             max_args: 2,
-            func: n_pr_fn,
+            func: FunctionTarget::Scalar(n_pr_fn),
         },
     ]
 }

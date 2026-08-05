@@ -295,7 +295,7 @@ impl<'a> Parser<'a> {
                 self.expect(&Token::CloseParen)
                     .map_err(|_| AbacusError::UnclosedParen)?;
 
-                Ok(EvalResult::Scalar(func.apply(&args)?))
+                func.apply(&args)
             }
 
             Some(tok) => Err(AbacusError::UnexpectedToken(format!("{:?}", tok))),

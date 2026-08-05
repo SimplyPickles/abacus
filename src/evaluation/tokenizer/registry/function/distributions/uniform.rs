@@ -1,7 +1,8 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::make_dimensionless, operators::FunctionOp,
+        distributions::special::make_dimensionless,
+        operators::{FunctionOp, FunctionTarget},
     },
 };
 
@@ -79,19 +80,19 @@ pub fn register_uniform() -> Vec<FunctionOp> {
             name: "unifpdf",
             min_args: 3,
             max_args: 3,
-            func: unifpdf_fn,
+            func: FunctionTarget::Scalar(unifpdf_fn),
         },
         FunctionOp {
             name: "unifcdf",
             min_args: 3,
             max_args: 3,
-            func: unifcdf_fn,
+            func: FunctionTarget::Scalar(unifcdf_fn),
         },
         FunctionOp {
             name: "invunif",
             min_args: 3,
             max_args: 3,
-            func: invunif_fn,
+            func: FunctionTarget::Scalar(invunif_fn),
         },
     ]
 }

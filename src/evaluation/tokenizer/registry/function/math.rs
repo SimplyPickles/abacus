@@ -1,7 +1,8 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::make_dimensionless, operators::FunctionOp,
+        distributions::special::make_dimensionless,
+        operators::{FunctionOp, FunctionTarget},
     },
 };
 use std::sync::Arc;
@@ -127,61 +128,61 @@ pub fn register_math() -> Vec<FunctionOp> {
             name: "ln",
             min_args: 1,
             max_args: 1,
-            func: ln_fn,
+            func: FunctionTarget::Scalar(ln_fn),
         },
         FunctionOp {
             name: "log10",
             min_args: 1,
             max_args: 1,
-            func: log10_fn,
+            func: FunctionTarget::Scalar(log10_fn),
         },
         FunctionOp {
             name: "log2",
             min_args: 1,
             max_args: 1,
-            func: log2_fn,
+            func: FunctionTarget::Scalar(log2_fn),
         },
         FunctionOp {
             name: "log",
             min_args: 1,
             max_args: 2,
-            func: log_fn,
+            func: FunctionTarget::Scalar(log_fn),
         },
         FunctionOp {
             name: "exp",
             min_args: 1,
             max_args: 1,
-            func: exp_fn,
+            func: FunctionTarget::Scalar(exp_fn),
         },
         FunctionOp {
             name: "abs",
             min_args: 1,
             max_args: 1,
-            func: abs_fn,
+            func: FunctionTarget::Scalar(abs_fn),
         },
         FunctionOp {
             name: "floor",
             min_args: 1,
             max_args: 1,
-            func: floor_fn,
+            func: FunctionTarget::Scalar(floor_fn),
         },
         FunctionOp {
             name: "ceil",
             min_args: 1,
             max_args: 1,
-            func: ceil_fn,
+            func: FunctionTarget::Scalar(ceil_fn),
         },
         FunctionOp {
             name: "round",
             min_args: 1,
             max_args: 1,
-            func: round_fn,
+            func: FunctionTarget::Scalar(round_fn),
         },
         FunctionOp {
             name: "sign",
             min_args: 1,
             max_args: 1,
-            func: sign_fn,
+            func: FunctionTarget::Scalar(sign_fn),
         },
     ]
 }

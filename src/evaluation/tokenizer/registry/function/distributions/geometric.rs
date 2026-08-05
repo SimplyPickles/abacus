@@ -1,7 +1,8 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::make_dimensionless, operators::FunctionOp,
+        distributions::special::make_dimensionless,
+        operators::{FunctionOp, FunctionTarget},
     },
 };
 
@@ -51,13 +52,13 @@ pub fn register_geometric() -> Vec<FunctionOp> {
             name: "geompdf",
             min_args: 2,
             max_args: 2,
-            func: geompdf_fn,
+            func: FunctionTarget::Scalar(geompdf_fn),
         },
         FunctionOp {
             name: "geomcdf",
             min_args: 2,
             max_args: 2,
-            func: geomcdf_fn,
+            func: FunctionTarget::Scalar(geomcdf_fn),
         },
     ]
 }

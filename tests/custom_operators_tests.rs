@@ -1,4 +1,4 @@
-use abacus::{Abacus, BinaryOp, FunctionOp, Token, UnaryOp, Value};
+use abacus::{Abacus, BinaryOp, FunctionOp, FunctionTarget, Token, UnaryOp, Value};
 
 #[test]
 fn test_tokenize_method() {
@@ -30,7 +30,7 @@ fn test_register_custom_function() {
         name: "dbl",
         min_args: 1,
         max_args: 1,
-        func: double_val,
+        func: FunctionTarget::Scalar(double_val),
     });
 
     assert_eq!(calc.eval("dbl(10 m)").unwrap().to_display(), "20 m");

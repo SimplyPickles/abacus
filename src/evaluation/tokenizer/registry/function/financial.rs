@@ -1,7 +1,8 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::make_dimensionless, operators::FunctionOp,
+        distributions::special::make_dimensionless,
+        operators::{FunctionOp, FunctionTarget},
     },
 };
 use std::sync::Arc;
@@ -207,37 +208,37 @@ pub fn register_financial() -> Vec<FunctionOp> {
             name: "pmt",
             min_args: 3,
             max_args: 4,
-            func: pmt_fn,
+            func: FunctionTarget::Scalar(pmt_fn),
         },
         FunctionOp {
             name: "fv",
             min_args: 3,
             max_args: 4,
-            func: fv_fn,
+            func: FunctionTarget::Scalar(fv_fn),
         },
         FunctionOp {
             name: "pv",
             min_args: 3,
             max_args: 4,
-            func: pv_fn,
+            func: FunctionTarget::Scalar(pv_fn),
         },
         FunctionOp {
             name: "npv",
             min_args: 2,
             max_args: 255,
-            func: npv_fn,
+            func: FunctionTarget::Scalar(npv_fn),
         },
         FunctionOp {
             name: "irr",
             min_args: 2,
             max_args: 255,
-            func: irr_fn,
+            func: FunctionTarget::Scalar(irr_fn),
         },
         FunctionOp {
             name: "compound",
             min_args: 3,
             max_args: 4,
-            func: compound_fn,
+            func: FunctionTarget::Scalar(compound_fn),
         },
     ]
 }

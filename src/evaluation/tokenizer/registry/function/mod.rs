@@ -1,3 +1,4 @@
+pub mod ci;
 pub mod combinatorics;
 pub mod distributions;
 pub mod financial;
@@ -6,3 +7,5 @@ pub mod math_helpers;
 pub mod operators;
 pub mod stats;
 pub mod trig;
+
+pub use operators::{FunctionOp, FunctionTarget};

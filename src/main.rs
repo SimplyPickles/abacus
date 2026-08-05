@@ -21,5 +21,11 @@ fn main() -> Result<(), AbacusError> {
     // Implicit multiplication
     println!("[5 [1, 3]] = {}", calc.eval("5 [1, 3]").unwrap().to_display()); // → [5, 15]
 
+
+    // Confidence interval
+    println!("ci(10 m, 12 m, 11 m, 14 m) = {}", calc.eval("ci(10 m, 12 m, 11 m, 14 m)").unwrap().to_display()); // → [9.032469116204215 m, 14.467530883795785 m]
+    println!("1-PropZInt(45, 100) = {}", calc.eval("1-PropZInt(45, 100)").unwrap().to_display()); // → [9.032469116204215 m, 14.467530883795785 m]
+    //
+
     Ok(())
 }

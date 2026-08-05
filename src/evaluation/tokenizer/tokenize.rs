@@ -55,6 +55,7 @@ pub fn tokenize_string<'a>(
         enum MatchedOp {
             Binary(&'static str),
             Unary(&'static str),
+            Func(&'static str),
         }
 
         let mut best_match: Option<(&str, MatchedOp)> = None;
@@ -117,6 +118,36 @@ pub fn tokenize_string<'a>(
             }
         }
 
+        for (name, op) in &token_registry.function_operators {
+            if remaining.starts_with(name.as_str()) {
+                if let Some(last_char) = name.chars().last() {
+                    if last_char.is_alphanumeric() || last_char == '_' || last_char == '-' {
+                        let next_slice = &remaining[name.len()..];
+                        if let Some(next_char) = next_slice.chars().next() {
+                            if next_char.is_alphanumeric()
+                                || next_char == '_'
+                                || next_char == '-'
+                                || next_char == '°'
+                                || next_char == 'Å'
+                                || next_char == 'Ω'
+                            {
+                                continue;
+                            }
+                        }
+                    }
+                }
+
+                let match_len = name.len();
+                if let Some((best_alias, _)) = best_match {
+                    if match_len > best_alias.len() {
+                        best_match = Some((name.as_str(), MatchedOp::Func(op.name)));
+                    }
+                } else {
+                    best_match = Some((name.as_str(), MatchedOp::Func(op.name)));
+                }
+            }
+        }
+
         if let Some((alias, matched_op)) = best_match {
             let char_count = alias.chars().count();
             for _ in 0..char_count {
@@ -125,6 +156,7 @@ pub fn tokenize_string<'a>(
             match matched_op {
                 MatchedOp::Binary(op_alias) => tokens.push(Token::BinaryOp(op_alias)),
                 MatchedOp::Unary(op_alias) => tokens.push(Token::UnaryOp(op_alias)),
+                MatchedOp::Func(fn_name) => tokens.push(Token::Function(fn_name)),
             }
             continue;
         }
@@ -419,7 +451,7 @@ mod tests {
         let sin_op = &token_reg.function_operators["sin"];
         let angle = unit_reg.value(45.0, "deg").unwrap();
         let sin_res = sin_op.apply(&[angle]).unwrap();
-        assert!((sin_res.canonical - (std::f64::consts::FRAC_1_SQRT_2)).abs() < 1e-10);
+        assert!((sin_res.into_scalar().unwrap().canonical - (std::f64::consts::FRAC_1_SQRT_2)).abs() < 1e-10);
 
         // mean(10 m, 20 m, 30 m)
         let mean_op = &token_reg.function_operators["mean"];

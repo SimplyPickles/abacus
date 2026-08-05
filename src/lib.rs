@@ -16,7 +16,8 @@ pub use units::{
 };
 
 pub use evaluation::tokenizer::registry::{
-    binary::operators::BinaryOp, function::operators::FunctionOp, token_registry::TokenRegistry,
+    binary::operators::BinaryOp, function::operators::FunctionOp,
+    function::operators::FunctionTarget, token_registry::TokenRegistry,
     unary::operators::UnaryOp,
 };
 

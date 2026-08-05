@@ -44,6 +44,8 @@ impl TokenRegistry {
         functions.append(&mut register_financial());
         functions.append(&mut register_stats());
         functions.append(&mut register_distributions());
+        use crate::evaluation::tokenizer::registry::function::ci::register_ci;
+        functions.append(&mut register_ci());
 
         Self {
             binary_operators: binary

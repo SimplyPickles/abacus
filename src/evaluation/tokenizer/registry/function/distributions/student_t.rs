@@ -2,7 +2,7 @@ use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
         distributions::special::{beta_inc, erfinv, lgamma, make_dimensionless},
-        operators::FunctionOp,
+        operators::{FunctionOp, FunctionTarget},
     },
 };
 
@@ -59,19 +59,9 @@ fn tcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
     Ok(make_dimensionless(compute_tcdf(df, t)))
 }
 
-/// invt(p, df)
-fn invt_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
-
-    let p = args[0].canonical;
-    let df = args[1].canonical;
-
+pub fn compute_invt(p: f64, df: f64) -> f64 {
     if p <= 0.0 || p >= 1.0 || df <= 0.0 {
-        return Err(AbacusError::IncompatibleFunctionArguments);
+        return f64::NAN;
     }
 
     let z = std::f64::consts::SQRT_2 * erfinv(2.0 * p - 1.0);
@@ -89,8 +79,30 @@ fn invt_fn(args: &[Value]) -> Result<Value, AbacusError> {
         }
         t -= diff / pdf;
     }
+    t
+}
 
-    Ok(make_dimensionless(t))
+/// invt(p, df)
+fn invt_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    for arg in args {
+        if !arg.unit.is_dimensionless() {
+            return Err(AbacusError::IncompatibleDimensions);
+        }
+    }
+
+    let p = args[0].canonical;
+    let df = args[1].canonical;
+
+    if p <= 0.0 || p >= 1.0 || df <= 0.0 {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+
+    let res = compute_invt(p, df);
+    if res.is_nan() {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+
+    Ok(make_dimensionless(res))
 }
 
 pub fn register_student_t() -> Vec<FunctionOp> {
@@ -99,19 +111,19 @@ pub fn register_student_t() -> Vec<FunctionOp> {
             name: "tpdf",
             min_args: 2,
             max_args: 2,
-            func: tpdf_fn,
+            func: FunctionTarget::Scalar(tpdf_fn),
         },
         FunctionOp {
             name: "tcdf",
             min_args: 2,
             max_args: 2,
-            func: tcdf_fn,
+            func: FunctionTarget::Scalar(tcdf_fn),
         },
         FunctionOp {
             name: "invt",
             min_args: 2,
             max_args: 2,
-            func: invt_fn,
+            func: FunctionTarget::Scalar(invt_fn),
         },
     ]
 }

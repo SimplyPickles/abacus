@@ -2,7 +2,7 @@ use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
         distributions::special::{erfinv, gamma_p, lgamma, make_dimensionless},
-        operators::FunctionOp,
+        operators::{FunctionOp, FunctionTarget},
     },
 };
 
@@ -103,19 +103,19 @@ pub fn register_chi_square() -> Vec<FunctionOp> {
             name: "chisqpdf",
             min_args: 2,
             max_args: 2,
-            func: chisqpdf_fn,
+            func: FunctionTarget::Scalar(chisqpdf_fn),
         },
         FunctionOp {
             name: "chisqcdf",
             min_args: 2,
             max_args: 2,
-            func: chisqcdf_fn,
+            func: FunctionTarget::Scalar(chisqcdf_fn),
         },
         FunctionOp {
             name: "invchisq",
             min_args: 2,
             max_args: 2,
-            func: invchisq_fn,
+            func: FunctionTarget::Scalar(invchisq_fn),
         },
     ]
 }

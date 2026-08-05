@@ -1,7 +1,8 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::make_dimensionless, operators::FunctionOp,
+        distributions::special::make_dimensionless,
+        operators::{FunctionOp, FunctionTarget},
     },
 };
 
@@ -59,13 +60,13 @@ pub fn register_poisson() -> Vec<FunctionOp> {
             name: "poissonpdf",
             min_args: 2,
             max_args: 2,
-            func: poissonpdf_fn,
+            func: FunctionTarget::Scalar(poissonpdf_fn),
         },
         FunctionOp {
             name: "poissoncdf",
             min_args: 2,
             max_args: 2,
-            func: poissoncdf_fn,
+            func: FunctionTarget::Scalar(poissoncdf_fn),
         },
     ]
 }

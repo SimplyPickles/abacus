@@ -2,7 +2,7 @@ use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
         distributions::special::{make_dimensionless, n_cr},
-        operators::FunctionOp,
+        operators::{FunctionOp, FunctionTarget},
     },
 };
 
@@ -62,13 +62,13 @@ pub fn register_binomial() -> Vec<FunctionOp> {
             name: "binompdf",
             min_args: 3,
             max_args: 3,
-            func: binompdf_fn,
+            func: FunctionTarget::Scalar(binompdf_fn),
         },
         FunctionOp {
             name: "binomcdf",
             min_args: 3,
             max_args: 3,
-            func: binomcdf_fn,
+            func: FunctionTarget::Scalar(binomcdf_fn),
         },
     ]
 }
