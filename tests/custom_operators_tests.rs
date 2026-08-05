@@ -9,9 +9,9 @@ fn test_tokenize_method() {
     assert_eq!(
         tokens,
         vec![
-            Token::Val(calc.eval("5 m").unwrap()),
+            Token::Val(calc.eval_scalar("5 m").unwrap()),
             Token::BinaryOp("+"),
-            Token::Val(calc.eval("3 m").unwrap()),
+            Token::Val(calc.eval_scalar("3 m").unwrap()),
         ]
     );
 }
@@ -76,11 +76,7 @@ fn test_register_multi_char_binary_operator_plus_plus() {
     let tokens = calc.tokenize("5 ++ 3").unwrap();
     assert_eq!(
         tokens,
-        vec![
-            Token::Float(5.0),
-            Token::BinaryOp("++"),
-            Token::Float(3.0),
-        ]
+        vec![Token::Float(5.0), Token::BinaryOp("++"), Token::Float(3.0),]
     );
 
     assert_eq!(calc.eval("5 ++ 3").unwrap().to_display(), "28");

@@ -33,7 +33,10 @@ fn test_unknown_unit_lookup_fails() {
     let registry = UnitRegistry::standard();
     let res = registry.unit("invalid_unit");
 
-    assert_eq!(res.unwrap_err(), AbacusError::UnknownUnit("invalid_unit".to_string()));
+    assert_eq!(
+        res.unwrap_err(),
+        AbacusError::UnknownUnit("invalid_unit".to_string())
+    );
 }
 
 #[test]

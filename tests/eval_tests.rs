@@ -1,10 +1,10 @@
-use abacus::{eval, Abacus, AbacusError};
+use abacus::{Abacus, AbacusError, eval};
 
 #[test]
 fn test_basic_arithmetic() {
     // Verifies basic scalar operations (+, -, *, /, ^, %) using Pratt parser precedence
     let calc = Abacus::standard();
-    
+
     assert_eq!(calc.eval("2 + 3").unwrap().to_display(), "5");
     assert_eq!(calc.eval("10 - 4").unwrap().to_display(), "6");
     assert_eq!(calc.eval("6 * 7").unwrap().to_display(), "42");
@@ -69,8 +69,14 @@ fn test_statistical_functions() {
     // Verifies built-in statistical functions operating on physical unit ranges and discrete arguments
     assert_eq!(eval("sum(1 m .. 5 m)").unwrap().to_display(), "15 m");
     assert_eq!(eval("mean(10 m .. 30 m)").unwrap().to_display(), "20 m");
-    assert_eq!(eval("median(1 m, 10 m, 5 m, 20 m)").unwrap().to_display(), "7.5 m");
-    assert_eq!(eval("mode(2 m, 5 m, 2 m, 8 m)").unwrap().to_display(), "2 m");
+    assert_eq!(
+        eval("median(1 m, 10 m, 5 m, 20 m)").unwrap().to_display(),
+        "7.5 m"
+    );
+    assert_eq!(
+        eval("mode(2 m, 5 m, 2 m, 8 m)").unwrap().to_display(),
+        "2 m"
+    );
     assert_eq!(eval("min(3 m, 1 m, 5 m)").unwrap().to_display(), "1 m");
     assert_eq!(eval("max(3 m, 1 m, 5 m)").unwrap().to_display(), "5 m");
     assert_eq!(eval("range(1 m .. 10 m)").unwrap().to_display(), "9 m");
@@ -81,7 +87,10 @@ fn test_statistical_functions() {
 fn test_range_step_expansion() {
     // Tests explicit step expansion syntax in ranges (start..end..step)
     assert_eq!(eval("sum(1..9..2)").unwrap().to_display(), "25");
-    assert_eq!(eval("mean(0 m .. 10 m .. 2 m)").unwrap().to_display(), "5 m");
+    assert_eq!(
+        eval("mean(0 m .. 10 m .. 2 m)").unwrap().to_display(),
+        "5 m"
+    );
 }
 
 #[test]
@@ -113,27 +122,39 @@ fn test_combinatorics() {
 #[test]
 fn test_probability_distributions() {
     // Tests continuous normal CDF and inverse cumulative distribution functions
-    let result = eval("normcdf(0)").unwrap().canonical;
+    let result = Abacus::standard()
+        .eval_scalar("normcdf(0)")
+        .unwrap()
+        .canonical;
     assert!((result - 0.5).abs() < 1e-5);
 
-    let norm_val = eval("normcdf(70 kg, 65 kg, 5 kg)").unwrap().canonical;
+    let norm_val = Abacus::standard()
+        .eval_scalar("normcdf(70 kg, 65 kg, 5 kg)")
+        .unwrap()
+        .canonical;
     assert!((norm_val - 0.8413447).abs() < 1e-4);
 
-    let invnorm_val = eval("invnorm(0.975)").unwrap().canonical;
+    let invnorm_val = Abacus::standard()
+        .eval_scalar("invnorm(0.975)")
+        .unwrap()
+        .canonical;
     assert!((invnorm_val - 1.95996).abs() < 1e-3);
 }
 
 #[test]
 fn test_financial_functions() {
     // Tests loan payment PMT function
-    let pmt_val = eval("pmt(0.05 / 12, 360, 200000)").unwrap().canonical;
+    let pmt_val = Abacus::standard()
+        .eval_scalar("pmt(0.05 / 12, 360, 200000)")
+        .unwrap()
+        .canonical;
     assert!((pmt_val - (-1073.64)).abs() < 1e-1);
 }
 
 #[test]
 fn test_unary_increment_decrement() {
     // Tests prefix (++x, --x) and postfix (x++, x--) incrementers and decrementers
-    
+
     // Dimensionless numbers
     assert_eq!(eval("++5").unwrap().to_display(), "6");
     assert_eq!(eval("5++").unwrap().to_display(), "6");

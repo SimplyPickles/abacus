@@ -38,6 +38,18 @@ pub fn tokenize_string<'a>(
             continue;
         }
 
+        if c == '[' {
+            tokens.push(Token::OpenBracket);
+            chars.next();
+            continue;
+        }
+
+        if c == ']' {
+            tokens.push(Token::CloseBracket);
+            chars.next();
+            continue;
+        }
+
         // Registered operator checks (prioritizing longer length operators like `++` over `+`)
         let remaining = &input_text[i..];
         enum MatchedOp {
@@ -310,7 +322,11 @@ pub fn tokenize_string<'a>(
     let is_left = |tok: &Token| {
         matches!(
             tok,
-            Token::Val(_) | Token::Float(_) | Token::Unit(_) | Token::CloseParen
+            Token::Val(_)
+                | Token::Float(_)
+                | Token::Unit(_)
+                | Token::CloseParen
+                | Token::CloseBracket
         )
     };
 
@@ -319,6 +335,7 @@ pub fn tokenize_string<'a>(
         | Token::Float(_)
         | Token::Unit(_)
         | Token::OpenParen
+        | Token::OpenBracket
         | Token::Function(_) => true,
         Token::UnaryOp(name) => {
             if let Some(op) = token_registry.unary_operators.get(*name) {

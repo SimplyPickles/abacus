@@ -8,11 +8,16 @@ use std::sync::Arc;
 
 pub use error::AbacusError;
 pub use registry::unit_registry::UnitRegistry;
-pub use units::{dimensions::Dimensions, unit::Unit, value::Value};
+pub use units::{
+    dimensions::Dimensions,
+    interval::{EvalResult, Interval},
+    unit::Unit,
+    value::Value,
+};
 
 pub use evaluation::tokenizer::registry::{
-    binary::operators::BinaryOp, function::operators::FunctionOp,
-    token_registry::TokenRegistry, unary::operators::UnaryOp,
+    binary::operators::BinaryOp, function::operators::FunctionOp, token_registry::TokenRegistry,
+    unary::operators::UnaryOp,
 };
 
 pub use evaluation::tokenizer::tokens::Token;
@@ -47,8 +52,14 @@ impl Abacus {
         tokenize_string(&self.tokens, &self.units, expr)
     }
 
-    pub fn eval(&self, expr: &str) -> Result<Value, AbacusError> {
+    pub fn eval(&self, expr: &str) -> Result<EvalResult, AbacusError> {
         evaluate(&self.tokens, &self.units, expr)
+    }
+
+    /// Evaluate an expression, returning only scalar results.
+    /// Returns an error if the result is an interval.
+    pub fn eval_scalar(&self, expr: &str) -> Result<Value, AbacusError> {
+        self.eval(expr)?.into_scalar()
     }
 
     pub fn register_unit(&mut self, alias: &str, unit: Unit) {
@@ -74,7 +85,7 @@ impl Default for Abacus {
     }
 }
 
-pub fn eval(expr: &str) -> Result<Value, AbacusError> {
+pub fn eval(expr: &str) -> Result<EvalResult, AbacusError> {
     Abacus::standard().eval(expr)
 }
 

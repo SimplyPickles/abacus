@@ -9,6 +9,8 @@ pub enum AbacusError {
     UnexpectedToken(String),
     UnexpectedEnd,
     UnclosedParen,
+    UnclosedBracket,
+    IntervalInFunction,
 }
 
 impl fmt::Display for AbacusError {
@@ -25,6 +27,10 @@ impl fmt::Display for AbacusError {
             Self::UnexpectedToken(tok) => write!(f, "unexpected token: {tok}"),
             Self::UnexpectedEnd => write!(f, "unexpected end of expression"),
             Self::UnclosedParen => write!(f, "unclosed parenthesis"),
+            Self::UnclosedBracket => write!(f, "unclosed bracket in interval"),
+            Self::IntervalInFunction => {
+                write!(f, "interval values cannot be passed as function arguments")
+            }
         }
     }
 }

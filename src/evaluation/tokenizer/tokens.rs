@@ -17,6 +17,8 @@ pub enum Token<'a> {
     // Grouping & Delimiters
     OpenParen,
     CloseParen,
+    OpenBracket,
+    CloseBracket,
     Comma,
     Range, // `..` for range expressions inside functions, e.g. mean(1..10)
 

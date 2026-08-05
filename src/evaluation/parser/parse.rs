@@ -1,6 +1,7 @@
 use crate::{
     AbacusError, UnitRegistry, Value,
     evaluation::tokenizer::{registry::token_registry::TokenRegistry, tokens::Token},
+    units::interval::{EvalResult, Interval},
 };
 
 /// A Pratt parser that consumes a `Vec<Token>` produced by the tokenizer
@@ -66,7 +67,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Entry point: parse the full expression at minimum binding power 0.
-    pub fn parse(&mut self) -> Result<Value, AbacusError> {
+    pub fn parse(&mut self) -> Result<EvalResult, AbacusError> {
         let result = self.parse_expr(0)?;
 
         // Ensure all tokens were consumed
@@ -84,7 +85,7 @@ impl<'a> Parser<'a> {
     ///
     /// `min_bp` is the minimum binding power — the parser will keep consuming
     /// infix operators whose left binding power is ≥ `min_bp`.
-    fn parse_expr(&mut self, min_bp: u8) -> Result<Value, AbacusError> {
+    fn parse_expr(&mut self, min_bp: u8) -> Result<EvalResult, AbacusError> {
         // ── NUD (prefix / atom) ──
         let mut lhs = self.parse_prefix()?;
 
@@ -100,7 +101,7 @@ impl<'a> Parser<'a> {
                             break;
                         }
                         self.advance();
-                        lhs = op.apply(lhs)?;
+                        lhs = lhs.apply_unary(op)?;
                         continue;
                     }
                 }
@@ -120,7 +121,7 @@ impl<'a> Parser<'a> {
                     .binary_operators
                     .get(name)
                     .ok_or_else(|| AbacusError::UnexpectedToken(name.to_string()))?;
-                lhs = op.apply(lhs, rhs)?;
+                lhs = lhs.apply_binary(op, rhs)?;
                 continue;
             }
 
@@ -132,9 +133,10 @@ impl<'a> Parser<'a> {
                 }
                 self.advance();
                 self.has_explicit_conversion = true;
-                // The RHS of a conversion can be a unit symbol or compound unit expression
-                let target_val = self.parse_expr(1)?;
-                lhs = lhs.convert_to(target_val.unit)?;
+                // The RHS of a conversion must be a scalar unit expression
+                let target_result = self.parse_expr(1)?;
+                let target_unit = target_result.unit().clone();
+                lhs = lhs.convert_to(target_unit)?;
                 continue;
             }
 
@@ -146,18 +148,18 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse a prefix expression (NUD in Pratt terminology).
-    fn parse_prefix(&mut self) -> Result<Value, AbacusError> {
+    fn parse_prefix(&mut self) -> Result<EvalResult, AbacusError> {
         match self.advance() {
-            Some(Token::Val(val)) => Ok(val),
+            Some(Token::Val(val)) => Ok(EvalResult::Scalar(val)),
 
             Some(Token::Unit(unit_sym)) => {
                 let unit = self.unit_registry.unit(&unit_sym)?;
-                Ok(Value::new(1.0, unit))
+                Ok(EvalResult::Scalar(Value::new(1.0, unit)))
             }
 
             Some(Token::Float(num)) => {
                 // A bare float without a unit — wrap in dimensionless Value
-                Ok(Value::new(
+                Ok(EvalResult::Scalar(Value::new(
                     num,
                     self.unit_registry.unit("1").unwrap_or_else(|_| {
                         use crate::units::{
@@ -171,7 +173,7 @@ impl<'a> Parser<'a> {
                             display: UnitExpr::dimensionless(),
                         })
                     }),
-                ))
+                )))
             }
 
             // Grouped expression: ( expr )
@@ -180,6 +182,30 @@ impl<'a> Parser<'a> {
                 self.expect(&Token::CloseParen)
                     .map_err(|_| AbacusError::UnclosedParen)?;
                 Ok(val)
+            }
+
+            // Interval expression: [ lo , hi ]
+            Some(Token::OpenBracket) => {
+                let lo_result = self.parse_expr(0)?;
+                self.expect(&Token::Comma).map_err(|_| {
+                    AbacusError::UnexpectedToken("expected ',' in interval [lo, hi]".to_string())
+                })?;
+                let hi_result = self.parse_expr(0)?;
+                self.expect(&Token::CloseBracket)
+                    .map_err(|_| AbacusError::UnclosedBracket)?;
+
+                let lo = lo_result.into_scalar().map_err(|_| {
+                    AbacusError::UnexpectedToken(
+                        "interval endpoints must be scalar values".to_string(),
+                    )
+                })?;
+                let hi = hi_result.into_scalar().map_err(|_| {
+                    AbacusError::UnexpectedToken(
+                        "interval endpoints must be scalar values".to_string(),
+                    )
+                })?;
+
+                Ok(EvalResult::Interval(Interval::new(lo, hi)?))
             }
 
             // Prefix unary operator: -expr, sqrt(expr)
@@ -194,7 +220,7 @@ impl<'a> Parser<'a> {
                     .clone();
                 let bp = self.prefix_bp("-");
                 let operand = self.parse_expr(bp)?;
-                op.apply(operand)
+                operand.apply_unary(&op)
             }
 
             Some(Token::UnaryOp(name)) => {
@@ -206,7 +232,7 @@ impl<'a> Parser<'a> {
                     .clone();
                 let bp = self.prefix_bp(name);
                 let operand = self.parse_expr(bp)?;
-                op.apply(operand)
+                operand.apply_unary(&op)
             }
 
             // Function call: name(arg1, arg2, ...)
@@ -227,15 +253,28 @@ impl<'a> Parser<'a> {
                 // Handle empty argument list: func()
                 if self.peek() != Some(&Token::CloseParen) {
                     loop {
-                        let arg = self.parse_expr(0)?;
+                        let arg_result = self.parse_expr(0)?;
+
+                        // Interval values cannot be function arguments
+                        let arg = arg_result
+                            .into_scalar()
+                            .map_err(|_| AbacusError::IntervalInFunction)?;
 
                         // Check for range: arg..end or arg..end..step
                         if self.peek() == Some(&Token::Range) {
                             self.advance(); // consume `..`
-                            let end = self.parse_expr(0)?;
+                            let end_result = self.parse_expr(0)?;
+                            let end = end_result
+                                .into_scalar()
+                                .map_err(|_| AbacusError::IntervalInFunction)?;
                             let custom_step = if self.peek() == Some(&Token::Range) {
                                 self.advance(); // consume second `..`
-                                Some(self.parse_expr(0)?)
+                                let step_result = self.parse_expr(0)?;
+                                Some(
+                                    step_result
+                                        .into_scalar()
+                                        .map_err(|_| AbacusError::IntervalInFunction)?,
+                                )
                             } else {
                                 None
                             };
@@ -256,7 +295,7 @@ impl<'a> Parser<'a> {
                 self.expect(&Token::CloseParen)
                     .map_err(|_| AbacusError::UnclosedParen)?;
 
-                func.apply(&args)
+                Ok(EvalResult::Scalar(func.apply(&args)?))
             }
 
             Some(tok) => Err(AbacusError::UnexpectedToken(format!("{:?}", tok))),
@@ -387,30 +426,32 @@ impl RangeSeq {
     }
 }
 
-/// Convenience function: tokenize and parse an expression string into a `Value`.
+/// Convenience function: tokenize and parse an expression string into an `EvalResult`.
 pub fn evaluate(
     token_registry: &TokenRegistry,
     unit_registry: &UnitRegistry,
     input: &str,
-) -> Result<Value, AbacusError> {
+) -> Result<EvalResult, AbacusError> {
     let tokens = crate::evaluation::tokenizer::tokenize::tokenize_string(
         token_registry,
         unit_registry,
         input,
     )?;
     let mut parser = Parser::new(tokens, token_registry, unit_registry);
-    let val = parser.parse()?;
+    let result = parser.parse()?;
     if parser.has_explicit_conversion {
-        Ok(val)
+        Ok(result)
     } else {
-        let val = val.to_derived(unit_registry);
-        match val {
-            Ok(mut v) => {
+        let result = result.to_derived(unit_registry)?;
+        match result {
+            EvalResult::Scalar(mut v) => {
                 v.simplify_unit_display(unit_registry);
-                Ok(v)
+                Ok(EvalResult::Scalar(v))
             }
-
-            Err(e) => Err(e),
+            EvalResult::Interval(mut i) => {
+                i.simplify_unit_display(unit_registry);
+                Ok(EvalResult::Interval(i))
+            }
         }
     }
 }
@@ -428,7 +469,7 @@ mod tests {
     fn eval_val(input: &str) -> Result<Value, AbacusError> {
         let tok_reg = TokenRegistry::standard();
         let unit_reg = UnitRegistry::standard();
-        evaluate(&tok_reg, &unit_reg, input)
+        evaluate(&tok_reg, &unit_reg, input)?.into_scalar()
     }
 
     // ── Basic arithmetic ──
