@@ -15,13 +15,25 @@ fn test_ti84_t_interval_sample_data() {
     // Tests TInterval with sample data: TInterval(10 m, 12 m, 11 m, 14 m)
     let result = eval("TInterval(10 m, 12 m, 11 m, 14 m)").unwrap();
     let display = result.to_display();
-    assert!(display.starts_with("[") && display.ends_with("]"), "Got display: {}", display);
+    assert!(
+        display.starts_with("[") && display.ends_with("]"),
+        "Got display: {}",
+        display
+    );
 
     if let EvalResult::Interval(interval) = result {
         let lo = (interval.lo.canonical - interval.lo.unit.offset) / interval.lo.unit.scalar;
         let hi = (interval.hi.canonical - interval.hi.unit.offset) / interval.hi.unit.scalar;
-        assert!((lo - 9.0326).abs() < 0.05, "lo should be ~9.03 m, got {}", lo);
-        assert!((hi - 14.4674).abs() < 0.05, "hi should be ~14.47 m, got {}", hi);
+        assert!(
+            (lo - 9.0326).abs() < 0.05,
+            "lo should be ~9.03 m, got {}",
+            lo
+        );
+        assert!(
+            (hi - 14.4674).abs() < 0.05,
+            "hi should be ~14.47 m, got {}",
+            hi
+        );
     } else {
         panic!("Expected interval result");
     }
@@ -32,13 +44,25 @@ fn test_ti84_t_interval_summary_stats() {
     // Tests TInterval with summary statistics: TInterval(100 m, 15 m, 25)
     let result = eval("TInterval(100 m, 15 m, 25)").unwrap();
     let display = result.to_display();
-    assert!(display.contains("m"), "Expected meters in display: {}", display);
+    assert!(
+        display.contains("m"),
+        "Expected meters in display: {}",
+        display
+    );
 
     if let EvalResult::Interval(interval) = result {
         let lo = (interval.lo.canonical - interval.lo.unit.offset) / interval.lo.unit.scalar;
         let hi = (interval.hi.canonical - interval.hi.unit.offset) / interval.hi.unit.scalar;
-        assert!((lo - 93.8083).abs() < 0.05, "lo should be ~93.81, got {}", lo);
-        assert!((hi - 106.1917).abs() < 0.05, "hi should be ~106.19, got {}", hi);
+        assert!(
+            (lo - 93.8083).abs() < 0.05,
+            "lo should be ~93.81, got {}",
+            lo
+        );
+        assert!(
+            (hi - 106.1917).abs() < 0.05,
+            "hi should be ~106.19, got {}",
+            hi
+        );
     } else {
         panic!("Expected interval result");
     }
@@ -54,7 +78,11 @@ fn test_ti84_z_interval_summary_stats() {
         let lo = (interval.lo.canonical - interval.lo.unit.offset) / interval.lo.unit.scalar;
         let hi = (interval.hi.canonical - interval.hi.unit.offset) / interval.hi.unit.scalar;
         assert!((lo - 97.06).abs() < 0.05, "lo should be ~97.06, got {}", lo);
-        assert!((hi - 102.94).abs() < 0.05, "hi should be ~102.94, got {}", hi);
+        assert!(
+            (hi - 102.94).abs() < 0.05,
+            "hi should be ~102.94, got {}",
+            hi
+        );
     } else {
         panic!("Expected interval result");
     }
@@ -86,14 +114,22 @@ fn test_ti84_2_samp_t_int() {
     // Tests 2-SampTInt(100 m, 15 m, 25, 90 m, 10 m, 30)
     let result = eval("2-SampTInt(100 m, 15 m, 25, 90 m, 10 m, 30)").unwrap();
     let display = result.to_display();
-    assert!(display.starts_with("[") && display.contains("m"), "Got display: {}", display);
+    assert!(
+        display.starts_with("[") && display.contains("m"),
+        "Got display: {}",
+        display
+    );
 
     if let EvalResult::Interval(interval) = result {
         let lo = (interval.lo.canonical - interval.lo.unit.offset) / interval.lo.unit.scalar;
         let hi = (interval.hi.canonical - interval.hi.unit.offset) / interval.hi.unit.scalar;
         // mean diff = 10 m, Welch df ≈ 41.3, SE ≈ 3.51 m, t*(95%) ≈ 2.02, MoE ≈ 7.09 m -> [2.91 m, 17.09 m]
         assert!((lo - 2.91).abs() < 0.5, "lo should be ~2.91 m, got {}", lo);
-        assert!((hi - 17.09).abs() < 0.5, "hi should be ~17.09 m, got {}", hi);
+        assert!(
+            (hi - 17.09).abs() < 0.5,
+            "hi should be ~17.09 m, got {}",
+            hi
+        );
     } else {
         panic!("Expected interval result");
     }
@@ -157,5 +193,9 @@ fn test_ti84_interval_with_arithmetic() {
     // TInterval(10 m, 12 m, 11 m, 14 m) * 2
     let result = eval("TInterval(10 m, 12 m, 11 m, 14 m) * 2").unwrap();
     let display = result.to_display();
-    assert!(display.starts_with("[") && display.contains("m"), "Got display: {}", display);
+    assert!(
+        display.starts_with("[") && display.contains("m"),
+        "Got display: {}",
+        display
+    );
 }

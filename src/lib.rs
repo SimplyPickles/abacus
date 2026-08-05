@@ -10,6 +10,7 @@ pub use error::AbacusError;
 pub use registry::unit_registry::UnitRegistry;
 pub use units::{
     dimensions::Dimensions,
+    hash::Hash,
     interval::{EvalResult, Interval},
     unit::Unit,
     value::Value,
@@ -17,8 +18,7 @@ pub use units::{
 
 pub use evaluation::tokenizer::registry::{
     binary::operators::BinaryOp, function::operators::FunctionOp,
-    function::operators::FunctionTarget, token_registry::TokenRegistry,
-    unary::operators::UnaryOp,
+    function::operators::FunctionTarget, token_registry::TokenRegistry, unary::operators::UnaryOp,
 };
 
 pub use evaluation::tokenizer::tokens::Token;
@@ -58,9 +58,15 @@ impl Abacus {
     }
 
     /// Evaluate an expression, returning only scalar results.
-    /// Returns an error if the result is an interval.
+    /// Returns an error if the result is an interval or hash.
     pub fn eval_scalar(&self, expr: &str) -> Result<Value, AbacusError> {
         self.eval(expr)?.into_scalar()
+    }
+
+    /// Evaluate an expression, returning only Hash results.
+    /// Returns an error if the result is not a Hash.
+    pub fn eval_hash(&self, expr: &str) -> Result<Hash, AbacusError> {
+        self.eval(expr)?.into_hash()
     }
 
     pub fn register_unit(&mut self, alias: &str, unit: Unit) {

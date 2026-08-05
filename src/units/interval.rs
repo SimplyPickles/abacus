@@ -130,11 +130,14 @@ impl PartialEq for Interval {
     }
 }
 
-/// The result of evaluating an expression — either a scalar `Value` or an `Interval`.
+use crate::units::hash::Hash;
+
+/// The result of evaluating an expression — a scalar `Value`, an `Interval`, or a `Hash` map of values.
 #[derive(Debug, Clone, PartialEq)]
 pub enum EvalResult {
     Scalar(Value),
     Interval(Interval),
+    Hash(Hash),
 }
 
 impl EvalResult {
@@ -156,6 +159,9 @@ impl EvalResult {
                 let r = Interval::from_value(r);
                 Ok(EvalResult::Interval(l.apply_binary(op, &r)?))
             }
+            _ => Err(AbacusError::UnexpectedToken(
+                "cannot perform arithmetic on hash result".to_string(),
+            )),
         }
     }
 
@@ -164,6 +170,9 @@ impl EvalResult {
         match self {
             EvalResult::Scalar(v) => Ok(EvalResult::Scalar(op.apply(v)?)),
             EvalResult::Interval(i) => Ok(EvalResult::Interval(i.apply_unary(op)?)),
+            EvalResult::Hash(_) => Err(AbacusError::UnexpectedToken(
+                "cannot perform unary operation on hash result".to_string(),
+            )),
         }
     }
 
@@ -172,6 +181,9 @@ impl EvalResult {
         match self {
             EvalResult::Scalar(v) => Ok(EvalResult::Scalar(v.convert_to(unit)?)),
             EvalResult::Interval(i) => Ok(EvalResult::Interval(i.convert_to(unit)?)),
+            EvalResult::Hash(_) => Err(AbacusError::UnexpectedToken(
+                "cannot convert unit on hash result".to_string(),
+            )),
         }
     }
 
@@ -180,6 +192,13 @@ impl EvalResult {
         match self {
             EvalResult::Scalar(v) => Ok(EvalResult::Scalar(v.to_derived(registry)?)),
             EvalResult::Interval(i) => Ok(EvalResult::Interval(i.to_derived(registry)?)),
+            EvalResult::Hash(h) => {
+                let mut new_hash = Hash::new();
+                for (k, v) in h.values {
+                    new_hash.insert(k, v.to_derived(registry)?);
+                }
+                Ok(EvalResult::Hash(new_hash))
+            }
         }
     }
 
@@ -188,6 +207,11 @@ impl EvalResult {
         match self {
             EvalResult::Scalar(v) => v.simplify_unit_display(registry),
             EvalResult::Interval(i) => i.simplify_unit_display(registry),
+            EvalResult::Hash(h) => {
+                for v in h.values.values_mut() {
+                    v.simplify_unit_display(registry);
+                }
+            }
         }
     }
 
@@ -196,15 +220,29 @@ impl EvalResult {
         match self {
             EvalResult::Scalar(v) => v.to_display(),
             EvalResult::Interval(i) => i.to_display(),
+            EvalResult::Hash(h) => h.to_display(),
         }
     }
 
-    /// Extract the scalar Value, or error if this is an Interval.
+    /// Extract the scalar Value, or error if this is an Interval or Hash.
     pub fn into_scalar(self) -> Result<Value, AbacusError> {
         match self {
             EvalResult::Scalar(v) => Ok(v),
             EvalResult::Interval(_) => Err(AbacusError::UnexpectedToken(
                 "interval result where scalar expected".to_string(),
+            )),
+            EvalResult::Hash(_) => Err(AbacusError::UnexpectedToken(
+                "hash result where scalar expected".to_string(),
+            )),
+        }
+    }
+
+    /// Extract the Hash, or error if this is not a Hash.
+    pub fn into_hash(self) -> Result<Hash, AbacusError> {
+        match self {
+            EvalResult::Hash(h) => Ok(h),
+            _ => Err(AbacusError::UnexpectedToken(
+                "hash expected".to_string(),
             )),
         }
     }
@@ -214,6 +252,22 @@ impl EvalResult {
         match self {
             EvalResult::Scalar(v) => &v.unit,
             EvalResult::Interval(i) => &i.lo.unit,
+            EvalResult::Hash(h) => {
+                if let Some(first_val) = h.values.values().next() {
+                    &first_val.unit
+                } else {
+                    static DIMENSIONLESS: std::sync::OnceLock<Arc<Unit>> = std::sync::OnceLock::new();
+                    DIMENSIONLESS.get_or_init(|| {
+                        use crate::units::{dimensions::Dimensions, unit::UnitExpr};
+                        Arc::new(Unit {
+                            scalar: 1.0,
+                            offset: 0.0,
+                            dimensions: Dimensions::DIMENSIONLESS,
+                            display: UnitExpr::dimensionless(),
+                        })
+                    })
+                }
+            }
         }
     }
 }

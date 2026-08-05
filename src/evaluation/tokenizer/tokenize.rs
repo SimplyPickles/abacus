@@ -50,6 +50,34 @@ pub fn tokenize_string<'a>(
             continue;
         }
 
+        if c == '.' {
+            let mut dot_lookahead = chars.clone();
+            dot_lookahead.next(); // skip '.'
+            if let Some(&(_, '.')) = dot_lookahead.peek() {
+                tokens.push(Token::Range);
+                chars.next();
+                chars.next();
+                continue;
+            } else if let Some(&(_, next_c)) = dot_lookahead.peek() {
+                if next_c.is_alphabetic() || next_c == '_' {
+                    chars.next(); // consume '.'
+                    let start = chars.peek().unwrap().0;
+                    let mut end = start;
+                    while let Some(&(idx, sym_c)) = chars.peek() {
+                        if sym_c.is_alphanumeric() || sym_c == '_' {
+                            end = idx + sym_c.len_utf8();
+                            chars.next();
+                        } else {
+                            break;
+                        }
+                    }
+                    let prop = input_text[start..end].to_string();
+                    tokens.push(Token::DotProperty(prop));
+                    continue;
+                }
+            }
+        }
+
         // Registered operator checks (prioritizing longer length operators like `++` over `+`)
         let remaining = &input_text[i..];
         enum MatchedOp {
@@ -189,15 +217,17 @@ pub fn tokenize_string<'a>(
                 if num_c.is_ascii_digit() {
                     chars.next();
                 } else if num_c == '.' && !has_dot && !has_exp {
-                    // Peek ahead: if the next char after this '.' is also '.',
-                    // then this is the start of `..` (range), not a decimal point.
+                    // Peek ahead: only consume '.' as decimal point if followed by a digit.
+                    // If followed by '.' (range `..`) or letter (property `.intercept`), stop number parsing.
                     let mut dot_lookahead = chars.clone();
                     dot_lookahead.next(); // skip past the '.'
-                    if let Some(&(_, '.')) = dot_lookahead.peek() {
-                        break; // stop number here — `..` is a range
+                    match dot_lookahead.peek() {
+                        Some(&(_, next_c)) if next_c.is_ascii_digit() => {
+                            has_dot = true;
+                            chars.next();
+                        }
+                        _ => break, // stop number here
                     }
-                    has_dot = true;
-                    chars.next();
                 } else if (num_c == 'e' || num_c == 'E') && !has_exp {
                     let mut exp_lookahead = chars.clone();
                     exp_lookahead.next(); // skip 'e' or 'E'
@@ -451,7 +481,10 @@ mod tests {
         let sin_op = &token_reg.function_operators["sin"];
         let angle = unit_reg.value(45.0, "deg").unwrap();
         let sin_res = sin_op.apply(&[angle]).unwrap();
-        assert!((sin_res.into_scalar().unwrap().canonical - (std::f64::consts::FRAC_1_SQRT_2)).abs() < 1e-10);
+        assert!(
+            (sin_res.into_scalar().unwrap().canonical - (std::f64::consts::FRAC_1_SQRT_2)).abs()
+                < 1e-10
+        );
 
         // mean(10 m, 20 m, 30 m)
         let mean_op = &token_reg.function_operators["mean"];

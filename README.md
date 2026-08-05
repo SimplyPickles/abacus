@@ -1,14 +1,18 @@
 # Abacus
 
-**Abacus** is a fast, zero-dependency, unit-aware mathematical evaluation engine written in Rust. It tracks physical dimensions across arithmetic operations, parses mathematical expressions with natural implicit multiplication and ranges, and includes a rich suite of statistical functions and probability distributions.
+**Abacus** is a fast, zero-dependency, unit-aware mathematical evaluation engine written in Rust. It tracks physical dimensions across arithmetic operations, parses mathematical expressions with natural implicit multiplication and ranges, and includes a rich suite of statistical functions, probability distributions, physical interval arithmetic, confidence intervals, and dimension-aware linear regression.
 
 ---
 
 ## ✨ Features
 
-- 🧮 **Pratt Parser Engine**: Evaluates expressions using Pratt parsing with operator precedence, parenthesized grouping, unary/binary/postfix operations, and unit conversions (`as`, `in`, `to`).
+- 🧮 **Pratt Parser Engine**: Evaluates expressions using Pratt parsing with operator precedence, parenthesized grouping, unary/binary/postfix operations, dot property access (`.field`), and unit conversions (`as`, `in`, `to`).
 - ✖️ **Implicit Multiplication (Juxtaposition)**: Supports natural mathematical expressions like `5(2 + 3)`, `(2 + 3)(4 + 5)`, and `2 sqrt(9 m^2)`.
-- 📏 **Dimension-Aware & Fractional Scaling**: Tracks physical dimensions across `+`, `-`, `*`, `/`, `^`, and `sqrt` using a 8-dimensional space (`[length, mass, time, current, temp, amount, luminous, info]`) with fractional exponent support.
+- 🎯 **Guaranteed Physical Interval Arithmetic**: Compute worst/best-case physical boundaries using bracket syntax `[lo, hi]` (e.g., `[9.8 m, 10.2 m] / [1.9 s, 2.1 s]` $\to$ `[4.666 m/s, 5.368 m/s]`).
+- 📈 **Dimension-Aware Linear Regression**: Compute linear regression with physical unit reduction (`linreg(x_data, y_data)` $\to$ returns a `Hash` with slope, intercept, $R^2$, $r$, standard error, and predictions).
+- 🏷️ **Dot Property Access**: Extract properties directly on Hash-returning functions in expressions (e.g. `linreg(...).intercept`, `linreg(...).slope * 5 s`).
+- 📊 **TI-84 Inferential Statistics**: Full confidence interval menu functions (`TInterval`, `ZInterval`, `1-PropZInt`, `2-SampTInt`, `2-SampZInt`, `2-PropZInt`).
+- 📏 **Dimension-Aware & Fractional Scaling**: Tracks physical dimensions across `+`, `-`, `*`, `/`, `^`, and `sqrt` using an 8-dimensional space (`[length, mass, time, current, temp, amount, luminous, info]`) with fractional exponent support.
 - 🔄 **Dimensionless & Bare Unit Promotion**:
   - `5 m + 5` $\to$ `10 m` and `5 cm + 5` $\to$ `10 cm` (dimensionless numbers automatically adopt adjacent units in addition/subtraction).
   - `1 as inches` $\to$ `1 in` (attaches units to unitless values).
@@ -20,17 +24,7 @@
   - **Variance & Dispersion**: `var` / `var_s` (sample variance), `var_p` (population variance), `std` / `std_s` (sample stdev), `std_p` (population stdev), `quantile`, `percentile`, `iqr`.
   - **Bivariate & Shape**: `cov` / `cov_s` (sample covariance), `cov_p` (population covariance), `corr` (Pearson correlation), `skew` / `skewness`, `kurt` / `kurtosis`, `zscore` / `standardize`.
 - 🎲 **Combinatorics**: `!` (factorial operator), `factorial(n)`, `nCr(n, r)` / `comb(n, r)` (combinations), `nPr(n, r)` / `perm(n, r)` (permutations).
-- ➗ **Unit-Aware Modulo & Math Helpers**:
-  - `%` operator and `mod(a, b)` / `modulo(a, b)` (e.g. `10 m % 3 m` $\to$ `1 m`, `10 cm % 3` $\to$ `1 cm`).
-  - `clamp(x, min, max)` (preserves unit, e.g. `clamp(15 m, 0 m, 10 m)` $\to$ `10 m`).
-  - `gcd(a, b)` and `lcm(a, b)`.
-- 💰 **Financial & TVM Functions**:
-  - `pmt(rate, nper, pv, [fv])`: Loan / annuity payment.
-  - `fv(rate, nper, pmt, [pv])`: Future Value.
-  - `pv(rate, nper, pmt, [fv])`: Present Value.
-  - `npv(rate, cf1, cf2, ...)`: Net Present Value.
-  - `irr(cf0, cf1, cf2, ...)`: Internal Rate of Return.
-  - `compound(principal, rate, time, [n])`: Compound interest.
+- 💰 **Financial & TVM Functions**: `pmt`, `fv`, `pv`, `npv`, `irr`, `compound`.
 - 📐 **Trigonometry, Logarithms & Math Library**:
   - **Trigonometric & Hyperbolic**: `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh` (supports angle units like `rad`, `deg`, `°`, `turn`, `arcmin`, `arcsec`).
   - **Logarithmic & Exponential**: `ln`, `log10`, `log2`, `log(x, base)`, `exp`.
@@ -51,29 +45,109 @@
 Add `abacus` to your `Cargo.toml`:
 
 ```rust
-use abacus::eval;
+use abacus::Abacus;
 
 fn main() {
-    // Basic unit arithmetic
-    println!("{}", eval("5 m + 3 m").unwrap());             // 8 m
-    println!("{}", eval("(5 m + 20 cm) as m").unwrap());     // 5.2 m
-    println!("{}", eval("5 km to m").unwrap());              // 5000 m
+    let calc = Abacus::standard();
 
-    // Implicit multiplication & dimensionless promotion
-    println!("{}", eval("5(2 + 3)").unwrap());              // 25
-    println!("{}", eval("5 m + 5").unwrap());               // 10 m
-    println!("{}", eval("5 cm + 5").unwrap());              // 10 cm
-    println!("{}", eval("1 as inches").unwrap());           // 1 in
+    // Basic unit arithmetic & derived SI reduction
+    println!("{}", calc.eval("10 N * 5 m").unwrap());              // 50 J
+    println!("{}", calc.eval("100 km / 2 h to m/s").unwrap());    // 13.88888888888889 m/s
 
-    // Ranges & Statistics
-    println!("{}", eval("sum(1 m .. 5 m)").unwrap());        // 15 m
-    println!("{}", eval("mean(10 m .. 30 m)").unwrap());     // 20 m
-    println!("{}", eval("corr(1..5, 2..6)").unwrap());       // 1
+    // Guaranteed Physical Interval Arithmetic
+    println!("{}", calc.eval("[9.8 m, 10.2 m] / [1.9 s, 2.1 s]").unwrap()); // [4.666 m/s, 5.368 m/s]
 
-    // Probability Distributions & Inverse CDFs
-    println!("{}", eval("normcdf(70 kg, 65 kg, 5 kg)").unwrap());   // 0.8413447
-    println!("{}", eval("invnorm(0.975, 100 kg, 15 kg)").unwrap()); // 129.38573 kg
-    println!("{}", eval("invt(0.975, 10)").unwrap());               // 2.2281388
+    // TI-84 Confidence Intervals
+    println!("{}", calc.eval("TInterval(10 m, 12 m, 11 m, 14 m)").unwrap()); // [9.032 m, 14.468 m]
+
+    // Linear Regression & Dot Property Access
+    println!("{}", calc.eval("linreg(1 s, 2 s, 3 s, 4 s, 10 m, 20 m, 30 m, 40 m)").unwrap());
+    // -> { intercept: 0 m, mean_x: 2.5 s, mean_y: 25 m, r: 1, r2: 1, se: 0 m, slope: 10 m/s }
+
+    println!("{}", calc.eval("linreg(1 s, 2 s, 3 s, 4 s, 10 m, 20 m, 30 m, 40 m).slope * 5 s").unwrap());
+    // -> 50 m
+}
+```
+
+---
+
+## 🔧 Defining & Registering Custom Functions
+
+Abacus supports defining custom functions with physical unit awareness. Functions are registered using `FunctionOp` with a `FunctionTarget` specifying whether the function returns a scalar `Value` or a rich `EvalResult` (`Scalar`, `Interval`, or `Hash`).
+
+### 1. Defining a Scalar Function (`FunctionTarget::Scalar`)
+
+Scalar functions take `&[Value]` and return `Result<Value, AbacusError>`.
+
+```rust
+use abacus::{Abacus, AbacusError, FunctionOp, FunctionTarget, Value};
+
+// Custom scalar function: doubles a value while preserving its physical unit
+fn double_val(args: &[Value]) -> Result<Value, AbacusError> {
+    if args.len() != 1 {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+    let val = &args[0];
+    Ok(Value::new(val.canonical * 2.0, val.unit.clone()))
+}
+
+fn main() {
+    let mut calc = Abacus::standard();
+    calc.tokens.function_operators.insert(
+        "double",
+        FunctionOp {
+            name: "double",
+            min_args: 1,
+            max_args: 1,
+            func: FunctionTarget::Scalar(double_val),
+        },
+    );
+
+    println!("{}", calc.eval("double(5 m)").unwrap()); // 10 m
+}
+```
+
+### 2. Defining a Function returning a Hash (`FunctionTarget::EvalResult`)
+
+Functions returning structured key-value maps use `FunctionTarget::EvalResult` returning `EvalResult::Hash`. Callers can inspect fields programmatically or use dot notation (e.g. `my_fn(...).doubled`) directly in natural language expressions.
+
+```rust
+use abacus::{Abacus, AbacusError, EvalResult, FunctionOp, FunctionTarget, Hash, Value};
+
+// Custom function returning a Hash of physical values
+fn custom_summary(args: &[Value]) -> Result<EvalResult, AbacusError> {
+    if args.is_empty() {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+    let val = &args[0];
+
+    let mut hash = Hash::new();
+    hash.insert("original", val.clone());
+    hash.insert("doubled", Value::new(val.canonical * 2.0, val.unit.clone()));
+    hash.insert("squared", Value::new(val.canonical * val.canonical, val.unit.clone()));
+
+    Ok(EvalResult::Hash(hash))
+}
+
+fn main() {
+    let mut calc = Abacus::standard();
+    calc.tokens.function_operators.insert(
+        "summary",
+        FunctionOp {
+            name: "summary",
+            min_args: 1,
+            max_args: 1,
+            func: FunctionTarget::EvalResult(custom_summary),
+        },
+    );
+
+    // Evaluates to a Hash
+    println!("{}", calc.eval("summary(5 m)").unwrap());
+    // Output: { doubled: 10 m, original: 5 m, squared: 25 m }
+
+    // Access property directly with dot notation in natural language expressions
+    println!("{}", calc.eval("summary(5 m).doubled + 2 m").unwrap());
+    // Output: 12 m
 }
 ```
 
@@ -88,67 +162,33 @@ Expression                          Result
 ----------------------------------  ----------------------
 5 m + 3 m                           = 8 m
 (5 m + 20 cm) as m                  = 5.2 m
-sqrt(9 m^2)                         = 3 m
-1m/m                                = 1
-5 km / m                            = 5000
+10 N * 5 m                          = 50 J
+[9.8 m, 10.2 m] / [1.9 s, 2.1 s]    = [4.666 m/s, 5.368 m/s]
 5 km to m                           = 5000 m
 1 m in inches                       = 39.37007874 in
 ```
 
-### 2. Implicit Multiplication & Dimensionless Promotion
+### 2. Linear Regression & Dot Property Access
 
 ```text
-Expression                          Result
-----------------------------------  ----------------------
-5(2 + 3)                            = 25
-(2 + 3)(4 + 5)                      = 45
-2 sqrt(9 m^2)                       = 6 m
-5 m + 5                             = 10 m
-5 cm + 5                            = 10 cm
-10 cm - 3                           = 7 cm
-1 as inches                         = 1 in
+Expression                                                          Result
+------------------------------------------------------------------  ----------------------
+linreg(1 s, 2 s, 3 s, 4 s, 10 m, 20 m, 30 m, 40 m)                   = { intercept: 0 m, mean_x: 2.5 s, mean_y: 25 m, r: 1, r2: 1, se: 0 m, slope: 10 m/s }
+linreg(1 s, 2 s, 3 s, 4 s, 15 m, 25 m, 35 m, 45 m).intercept         = 5 m
+linreg(1 s, 2 s, 3 s, 4 s, 10 m, 20 m, 30 m, 40 m).slope             = 10 m/s
+linreg(1 s, 2 s, 3 s, 4 s, 10 m, 20 m, 30 m, 40 m).slope * 5 s       = 50 m
+predict(10 s, 1 s, 2 s, 3 s, 4 s, 7 m, 12 m, 17 m, 22 m)             = 52 m
 ```
 
-### 3. Statistics & Ranges
+### 3. TI-84 Confidence Intervals
 
 ```text
-Expression                          Result
-----------------------------------  ----------------------
-sum(1 m .. 5 m)                     = 15 m
-mean(10 m .. 30 m)                  = 20 m
-median(1 m, 10 m, 5 m, 20 m)        = 7.5 m
-mode(2 m, 5 m, 2 m, 8 m)            = 2 m
-range(1 m .. 10 m)                  = 9 m
-quantile(1 m .. 5 m, 0.75)          = 4 m
-percentile(1 m .. 5 m, 75)          = 4 m
-iqr(1 m .. 5 m)                     = 2 m
-corr(1..5, 2..6)                    = 1
-var(1 m .. 5 m)                     = 2.5 m^2
-std(1 m .. 5 m)                     = 1.5811388 m
-```
-
-### 4. Distributions & Inverse CDFs
-
-```text
-Expression                          Result
-----------------------------------  ----------------------
-binompdf(10, 0.5, 5)                = 0.24609375
-binomcdf(10, 0.5, 5)                = 0.623046875
-geompdf(0.5, 3)                     = 0.125
-poissoncdf(3, 2)                    = 0.42319008
-normpdf(0)                          = 0.39894228
-normcdf(70 kg, 65 kg, 5 kg)         = 0.8413447
-invnorm(0.975)                      = 1.9590489
-invnorm(0.975, 100 kg, 15 kg)       = 129.385734 kg
-tcdf(10, 2.228)                     = 0.9749941
-invt(0.975, 10)                     = 2.2281388
-chisqcdf(10, 18.307)                = 0.9499994
-invchisq(0.95, 10)                  = 18.307038
-fcdf(5, 10, 3.33)                   = 0.9501687
-expcdf(0.5, 2)                      = 0.63212055
-invexp(0.63212, 0.5)                = 1.99999696
-unifcdf(0, 10, 5)                   = 0.5
-invunif(0.5, 0, 10)                 = 5
+Expression                                                          Result
+------------------------------------------------------------------  ----------------------
+TInterval(10 m, 12 m, 11 m, 14 m)                                   = [9.032 m, 14.468 m]
+ZInterval(100 m, 15 m, 100)                                         = [97.061 m, 102.939 m]
+1-PropZInt(45, 100)                                                 = [0.356, 0.548]
+2-SampTInt(100 m, 15 m, 25, 90 m, 10 m, 30)                         = [2.905 m, 17.095 m]
 ```
 
 ---
@@ -161,7 +201,7 @@ Run the test suite:
 cargo test
 ```
 
-All **87 integration and unit tests** pass, covering Pratt parser precedence, range expansion, unit cancellation, fractional dimension square roots, statistical functions, probability distributions, inverse CDFs, and implicit multiplication.
+All **182 integration and unit tests** pass, covering Pratt parser precedence, interval arithmetic, TI-84 confidence intervals, linear regression, dot property access, range expansion, unit cancellation, fractional dimension square roots, statistical functions, probability distributions, inverse CDFs, and implicit multiplication.
 
 Run the demonstration CLI:
 

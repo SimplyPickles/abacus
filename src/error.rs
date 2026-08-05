@@ -11,6 +11,7 @@ pub enum AbacusError {
     UnclosedParen,
     UnclosedBracket,
     IntervalInFunction,
+    HashAsResult,
 }
 
 impl fmt::Display for AbacusError {
@@ -30,6 +31,9 @@ impl fmt::Display for AbacusError {
             Self::UnclosedBracket => write!(f, "unclosed bracket in interval"),
             Self::IntervalInFunction => {
                 write!(f, "interval values cannot be passed as function arguments")
+            },
+            Self::HashAsResult => {
+                write!(f, "hash cannot be used as a result")
             }
         }
     }

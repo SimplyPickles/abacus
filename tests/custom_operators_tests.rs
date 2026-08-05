@@ -1,4 +1,7 @@
-use abacus::{Abacus, BinaryOp, FunctionOp, FunctionTarget, Token, UnaryOp, Value};
+use abacus::{
+    Abacus, AbacusError, BinaryOp, EvalResult, FunctionOp, FunctionTarget, Hash, Token, UnaryOp,
+    Value,
+};
 
 #[test]
 fn test_tokenize_method() {
@@ -21,7 +24,7 @@ fn test_register_custom_function() {
     // Tests extending an Abacus calculator instance with a user-defined function ('dbl')
     let mut calc = Abacus::standard();
 
-    fn double_val(args: &[Value]) -> Result<Value, abacus::AbacusError> {
+    fn double_val(args: &[Value]) -> Result<Value, AbacusError> {
         let val = &args[0];
         Ok(Value::new(val.canonical * 2.0, val.unit.clone()))
     }
@@ -37,11 +40,36 @@ fn test_register_custom_function() {
 }
 
 #[test]
+fn test_register_custom_hash_function_with_dynamic_dot_property() {
+    // Tests registering a custom function that returns a Hash and accessing arbitrary dynamic keys via dot property
+    let mut calc = Abacus::standard();
+
+    fn custom_stats(args: &[Value]) -> Result<EvalResult, AbacusError> {
+        let val = &args[0];
+        let mut hash = Hash::new();
+        hash.insert("original", val.clone());
+        hash.insert("my_custom_key", Value::new(val.canonical * 10.0, val.unit.clone()));
+        Ok(EvalResult::Hash(hash))
+    }
+
+    calc.register_function_token(FunctionOp {
+        name: "my_stats",
+        min_args: 1,
+        max_args: 1,
+        func: FunctionTarget::EvalResult(custom_stats),
+    });
+
+    // Access arbitrary key .my_custom_key without any hardcoding in the parser
+    assert_eq!(calc.eval("my_stats(5 m).my_custom_key").unwrap().to_display(), "50 m");
+    assert_eq!(calc.eval("my_stats(5 m).original").unwrap().to_display(), "5 m");
+}
+
+#[test]
 fn test_register_custom_binary_operator() {
     // Tests registering a single-character custom binary operator ('@') with custom precedence
     let mut calc = Abacus::standard();
 
-    fn add_ten(lhs: Value, rhs: Value) -> Result<Value, abacus::AbacusError> {
+    fn add_ten(lhs: Value, rhs: Value) -> Result<Value, AbacusError> {
         let sum = (&lhs + &rhs)?;
         Ok(Value::new(sum.canonical + 10.0, sum.unit))
     }
@@ -61,7 +89,7 @@ fn test_register_multi_char_binary_operator_plus_plus() {
     // Tests registering a multi-character custom binary operator ('++') and tokenizing/evaluating it
     let mut calc = Abacus::standard();
 
-    fn add_twenty(lhs: Value, rhs: Value) -> Result<Value, abacus::AbacusError> {
+    fn add_twenty(lhs: Value, rhs: Value) -> Result<Value, AbacusError> {
         let sum = (&lhs + &rhs)?;
         Ok(Value::new(sum.canonical + 20.0, sum.unit))
     }
@@ -87,7 +115,7 @@ fn test_register_custom_unary_operator() {
     // Tests registering a custom unary operator ('~') with prefix evaluation
     let mut calc = Abacus::standard();
 
-    fn triple(val: Value) -> Result<Value, abacus::AbacusError> {
+    fn triple(val: Value) -> Result<Value, AbacusError> {
         Ok(Value::new(val.canonical * 3.0, val.unit))
     }
 

@@ -140,6 +140,48 @@ impl<'a> Parser<'a> {
                 continue;
             }
 
+            // Check for property access operator (`.prop`)
+            if let Some(Token::DotProperty(_)) = self.peek() {
+                let bp = 100; // high precedence for dot member access
+                if bp < min_bp {
+                    break;
+                }
+                let prop = match self.advance() {
+                    Some(Token::DotProperty(p)) => p,
+                    _ => unreachable!(),
+                };
+                lhs = match lhs {
+                    EvalResult::Hash(hash) => {
+                        let val = hash
+                            .get(&prop)
+                            .or_else(|| match prop.as_str() {
+                                "m" => hash.get("slope"),
+                                "b" => hash.get("intercept"),
+                                "R2" | "r_squared" => hash.get("r2"),
+                                "R" => hash.get("r"),
+                                "SE" | "std_err" => hash.get("se"),
+                                "x" | "x_mean" => hash.get("mean_x"),
+                                "y" | "y_mean" => hash.get("mean_y"),
+                                _ => None,
+                            })
+                            .ok_or_else(|| {
+                                AbacusError::UnexpectedToken(format!(
+                                    "unknown property '.{}' on Hash result",
+                                    prop
+                                ))
+                            })?;
+                        EvalResult::Scalar(val.clone())
+                    }
+                    _ => {
+                        return Err(AbacusError::UnexpectedToken(format!(
+                            "cannot access property '.{}' on non-hash result",
+                            prop
+                        )));
+                    }
+                };
+                continue;
+            }
+
             // No more infix/postfix operators at this precedence level
             break;
         }
@@ -451,6 +493,10 @@ pub fn evaluate(
             EvalResult::Interval(mut i) => {
                 i.simplify_unit_display(unit_registry);
                 Ok(EvalResult::Interval(i))
+            }
+            EvalResult::Hash(mut h) => {
+                h.simplify_unit_display(unit_registry);
+                Ok(EvalResult::Hash(h))
             }
         }
     }

@@ -66,7 +66,11 @@ fn t_critical(confidence: f64, df: f64) -> Result<f64, AbacusError> {
 // ── TInterval(data..., [confidence]) or TInterval(mean, std_dev, n, [confidence]) ──
 // TI-84 TInterval: 1-Sample T Confidence Interval
 fn t_interval_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
-    if args.len() >= 3 && args.len() <= 4 && args[2].unit.is_dimensionless() && args[2].canonical > 1.0 {
+    if args.len() >= 3
+        && args.len() <= 4
+        && args[2].unit.is_dimensionless()
+        && args[2].canonical > 1.0
+    {
         // Summary statistics mode: mean, std_dev, n [, confidence]
         let mean_val = &args[0];
         let std_val = &args[1];
@@ -501,7 +505,14 @@ pub fn register_ci() -> Vec<FunctionOp> {
     }
 
     // ── 1-PropZInt aliases (TI-84 Option A) ──
-    for name in &["1-PropZInt", "1_PropZInt", "1PropZInt", "1_prop_z_int", "propzint", "propci"] {
+    for name in &[
+        "1-PropZInt",
+        "1_PropZInt",
+        "1PropZInt",
+        "1_prop_z_int",
+        "propzint",
+        "propci",
+    ] {
         ops.push(FunctionOp {
             name,
             min_args: 2,
@@ -511,7 +522,13 @@ pub fn register_ci() -> Vec<FunctionOp> {
     }
 
     // ── 2-SampTInt aliases (TI-84 Option 0) ──
-    for name in &["2-SampTInt", "2_SampTInt", "2SampTInt", "2_samp_t_int", "samptint2"] {
+    for name in &[
+        "2-SampTInt",
+        "2_SampTInt",
+        "2SampTInt",
+        "2_samp_t_int",
+        "samptint2",
+    ] {
         ops.push(FunctionOp {
             name,
             min_args: 6,
@@ -521,7 +538,13 @@ pub fn register_ci() -> Vec<FunctionOp> {
     }
 
     // ── 2-SampZInt aliases (TI-84 Option 9) ──
-    for name in &["2-SampZInt", "2_SampZInt", "2SampZInt", "2_samp_z_int", "sampzint2"] {
+    for name in &[
+        "2-SampZInt",
+        "2_SampZInt",
+        "2SampZInt",
+        "2_samp_z_int",
+        "sampzint2",
+    ] {
         ops.push(FunctionOp {
             name,
             min_args: 6,
@@ -531,7 +554,13 @@ pub fn register_ci() -> Vec<FunctionOp> {
     }
 
     // ── 2-PropZInt aliases (TI-84 Option B) ──
-    for name in &["2-PropZInt", "2_PropZInt", "2PropZInt", "2_prop_z_int", "propzint2"] {
+    for name in &[
+        "2-PropZInt",
+        "2_PropZInt",
+        "2PropZInt",
+        "2_prop_z_int",
+        "propzint2",
+    ] {
         ops.push(FunctionOp {
             name,
             min_args: 4,
