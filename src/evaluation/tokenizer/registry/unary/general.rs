@@ -72,6 +72,26 @@ fn factorial(a: Value) -> Result<Value, AbacusError> {
     })
 }
 
+fn increment(a: Value) -> Result<Value, AbacusError> {
+    if a.unit.is_affine() {
+        return Err(AbacusError::AffineUnitOperation("increment"));
+    }
+    Ok(Value {
+        canonical: a.canonical + a.unit.scalar,
+        unit: a.unit,
+    })
+}
+
+fn decrement(a: Value) -> Result<Value, AbacusError> {
+    if a.unit.is_affine() {
+        return Err(AbacusError::AffineUnitOperation("decrement"));
+    }
+    Ok(Value {
+        canonical: a.canonical - a.unit.scalar,
+        unit: a.unit,
+    })
+}
+
 pub fn register_general() -> Vec<UnaryOp> {
     vec![
         // Negation shares precedence 2 with sqrt so that `sqrt -9` correctly
@@ -94,6 +114,18 @@ pub fn register_general() -> Vec<UnaryOp> {
             func: factorial,
             precedence: 3,
             prefix: false,
+        },
+        UnaryOp {
+            alias: "++",
+            func: increment,
+            precedence: 2,
+            prefix: true,
+        },
+        UnaryOp {
+            alias: "--",
+            func: decrement,
+            precedence: 2,
+            prefix: true,
         },
     ]
 }

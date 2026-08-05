@@ -38,18 +38,82 @@ pub fn tokenize_string<'a>(
             continue;
         }
 
-        // Single-character operator checks (+, -, *, /, ^)
-        let single_op_str = &input_text[i..i + c.len_utf8()];
-        if token_registry.binary_operators.contains_key(single_op_str) {
-            let op_alias = token_registry.binary_operators[single_op_str].alias;
-            tokens.push(Token::BinaryOp(op_alias));
-            chars.next();
-            continue;
+        // Registered operator checks (prioritizing longer length operators like `++` over `+`)
+        let remaining = &input_text[i..];
+        enum MatchedOp {
+            Binary(&'static str),
+            Unary(&'static str),
         }
-        if token_registry.unary_operators.contains_key(single_op_str) {
-            let op_alias = token_registry.unary_operators[single_op_str].alias;
-            tokens.push(Token::UnaryOp(op_alias));
-            chars.next();
+
+        let mut best_match: Option<(&str, MatchedOp)> = None;
+
+        for (alias, op) in &token_registry.binary_operators {
+            if remaining.starts_with(alias.as_str()) {
+                if let Some(last_char) = alias.chars().last() {
+                    if last_char.is_alphanumeric() || last_char == '_' {
+                        let next_slice = &remaining[alias.len()..];
+                        if let Some(next_char) = next_slice.chars().next() {
+                            if next_char.is_alphanumeric()
+                                || next_char == '_'
+                                || next_char == '°'
+                                || next_char == 'Å'
+                                || next_char == 'Ω'
+                            {
+                                continue;
+                            }
+                        }
+                    }
+                }
+
+                let match_len = alias.len();
+                if let Some((best_alias, _)) = best_match {
+                    if match_len > best_alias.len() {
+                        best_match = Some((alias.as_str(), MatchedOp::Binary(op.alias)));
+                    }
+                } else {
+                    best_match = Some((alias.as_str(), MatchedOp::Binary(op.alias)));
+                }
+            }
+        }
+
+        for (alias, op) in &token_registry.unary_operators {
+            if remaining.starts_with(alias.as_str()) {
+                if let Some(last_char) = alias.chars().last() {
+                    if last_char.is_alphanumeric() || last_char == '_' {
+                        let next_slice = &remaining[alias.len()..];
+                        if let Some(next_char) = next_slice.chars().next() {
+                            if next_char.is_alphanumeric()
+                                || next_char == '_'
+                                || next_char == '°'
+                                || next_char == 'Å'
+                                || next_char == 'Ω'
+                            {
+                                continue;
+                            }
+                        }
+                    }
+                }
+
+                let match_len = alias.len();
+                if let Some((best_alias, _)) = best_match {
+                    if match_len > best_alias.len() {
+                        best_match = Some((alias.as_str(), MatchedOp::Unary(op.alias)));
+                    }
+                } else {
+                    best_match = Some((alias.as_str(), MatchedOp::Unary(op.alias)));
+                }
+            }
+        }
+
+        if let Some((alias, matched_op)) = best_match {
+            let char_count = alias.chars().count();
+            for _ in 0..char_count {
+                chars.next();
+            }
+            match matched_op {
+                MatchedOp::Binary(op_alias) => tokens.push(Token::BinaryOp(op_alias)),
+                MatchedOp::Unary(op_alias) => tokens.push(Token::UnaryOp(op_alias)),
+            }
             continue;
         }
 
@@ -258,7 +322,7 @@ pub fn tokenize_string<'a>(
         | Token::Function(_) => true,
         Token::UnaryOp(name) => {
             if let Some(op) = token_registry.unary_operators.get(*name) {
-                op.prefix
+                op.prefix && op.alias != "++" && op.alias != "--"
             } else {
                 false
             }

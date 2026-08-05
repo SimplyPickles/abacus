@@ -94,7 +94,7 @@ impl<'a> Parser<'a> {
             if let Some(Token::UnaryOp(name)) = self.peek() {
                 let name = *name;
                 if let Some(op) = self.token_registry.unary_operators.get(name) {
-                    if !op.prefix {
+                    if !op.prefix || op.alias == "++" || op.alias == "--" {
                         let bp = self.postfix_bp(name);
                         if bp < min_bp {
                             break;

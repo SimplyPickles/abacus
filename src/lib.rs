@@ -10,13 +10,14 @@ pub use error::AbacusError;
 pub use registry::unit_registry::UnitRegistry;
 pub use units::{dimensions::Dimensions, unit::Unit, value::Value};
 
-use crate::evaluation::{
-    parser::parse::evaluate,
-    tokenizer::registry::{
-        binary::operators::BinaryOp, function::operators::FunctionOp,
-        token_registry::TokenRegistry, unary::operators::UnaryOp,
-    },
+pub use evaluation::tokenizer::registry::{
+    binary::operators::BinaryOp, function::operators::FunctionOp,
+    token_registry::TokenRegistry, unary::operators::UnaryOp,
 };
+
+pub use evaluation::tokenizer::tokens::Token;
+
+use crate::evaluation::{parser::parse::evaluate, tokenizer::tokenize::tokenize_string};
 
 pub struct Abacus {
     pub units: UnitRegistry,
@@ -40,6 +41,10 @@ impl Abacus {
             units: UnitRegistry::standard(),
             tokens: TokenRegistry::standard(),
         }
+    }
+
+    pub fn tokenize<'a>(&self, expr: &'a str) -> Result<Vec<Token<'a>>, AbacusError> {
+        tokenize_string(&self.tokens, &self.units, expr)
     }
 
     pub fn eval(&self, expr: &str) -> Result<Value, AbacusError> {
@@ -67,6 +72,10 @@ impl Default for Abacus {
     fn default() -> Self {
         Abacus::new()
     }
+}
+
+pub fn eval(expr: &str) -> Result<Value, AbacusError> {
+    Abacus::standard().eval(expr)
 }
 
 #[cfg(test)]
