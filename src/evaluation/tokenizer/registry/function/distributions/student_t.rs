@@ -13,7 +13,7 @@ fn compute_tpdf(df: f64, t: f64) -> f64 {
     (num_log - den_log + power).exp()
 }
 
-fn compute_tcdf(df: f64, t: f64) -> f64 {
+pub fn compute_tcdf(df: f64, t: f64) -> f64 {
     let x = df / (df + t * t);
     let ibeta = beta_inc(df / 2.0, 0.5, x);
     if t >= 0.0 {

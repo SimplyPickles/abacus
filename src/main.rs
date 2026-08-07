@@ -61,8 +61,31 @@ fn main() -> Result<(), AbacusError> {
             .to_display()
     );
 
-    // 4. Dimension-Aware Linear Regression & Natural Language Dot Property Access
-    println!("--- 4. Dimension-Aware Linear Regression & Dot Property Access ---");
+    // 4. TI-84 Hypothesis Testing
+    println!("--- 4. TI-84 Hypothesis Testing ---");
+    println!(
+        "  ZTest(100 m, 105 m, 15 m, 50)           = {}",
+        calc.eval("ZTest(100 m, 105 m, 15 m, 50)")?.to_display()
+    );
+    println!(
+        "  ZTest(100 m, 105 m, 15 m, 50).p_value   = {}",
+        calc.eval("ZTest(100 m, 105 m, 15 m, 50).p_value")?.to_display()
+    );
+    println!(
+        "  TTest(100 m, 105 m, 15 m, 25)           = {}",
+        calc.eval("TTest(100 m, 105 m, 15 m, 25)")?.to_display()
+    );
+    println!(
+        "  2-SampTTest(100 m, 15 m, 25, 90 m, 10 m, 30) = {}",
+        calc.eval("2-SampTTest(100 m, 15 m, 25, 90 m, 10 m, 30)")?.to_display()
+    );
+    println!(
+        "  Chi2Test(15, 25, 10, 30).p_value        = {}\n",
+        calc.eval("Chi2Test(15, 25, 10, 30).p_value")?.to_display()
+    );
+
+    // 5. Dimension-Aware Linear Regression & Natural Language Dot Property Access
+    println!("--- 5. Dimension-Aware Linear Regression & Dot Property Access ---");
     println!(
         "  linreg(1 s, 2 s, 3 s, 4 s, 10 m, 20 m, 30 m, 40 m)           = {}",
         calc.eval("linreg(1 s, 2 s, 3 s, 4 s, 10 m, 20 m, 30 m, 40 m)")?
@@ -84,8 +107,8 @@ fn main() -> Result<(), AbacusError> {
             .to_display()
     );
 
-    // 5. Custom Operator Registration
-    println!("--- 5. Custom Operator Registration ---");
+    // 6. Custom Operator Registration
+    println!("--- 6. Custom Operator Registration ---");
     fn custom_add_ten(lhs: Value, rhs: Value) -> Result<Value, AbacusError> {
         let sum = (&lhs + &rhs)?;
         Ok(Value::new(sum.canonical + 10.0, sum.unit))
