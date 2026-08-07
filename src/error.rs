@@ -12,6 +12,7 @@ pub enum AbacusError {
     UnclosedBracket,
     IntervalInFunction,
     HashAsResult,
+    InvalidDate(String),
 }
 
 impl fmt::Display for AbacusError {
@@ -35,6 +36,7 @@ impl fmt::Display for AbacusError {
             Self::HashAsResult => {
                 write!(f, "hash cannot be used as a result")
             }
+            Self::InvalidDate(msg) => write!(f, "invalid date: {msg}"),
         }
     }
 }

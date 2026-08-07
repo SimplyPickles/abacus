@@ -9,6 +9,7 @@ use std::sync::Arc;
 pub use error::AbacusError;
 pub use registry::unit_registry::UnitRegistry;
 pub use units::{
+    date::{Date, DayOfWeek, Time},
     dimensions::Dimensions,
     hash::Hash,
     interval::{EvalResult, Interval},
