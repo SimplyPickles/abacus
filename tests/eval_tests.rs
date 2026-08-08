@@ -21,6 +21,24 @@ fn test_top_level_eval_convenience_function() {
 }
 
 #[test]
+fn test_section1_physical_unit_arithmetic_expanded() {
+    let calc = Abacus::standard();
+
+    // Power & Energy: 500 W * 2 h -> 3600000 J
+    assert_eq!(calc.eval("500 W * 2 h").unwrap().to_display(), "3600000 J");
+
+    // Speed & Acceleration: (100 km / 2 h) / 5 s in m/s^2
+    let acc = calc.eval("(100 km / 2 h) / 5 s in m/s^2").unwrap();
+    assert_eq!(acc.to_display(), "2.7777777777777777 m/s^2");
+
+    // Data Storage: 500 MB + 1.5 GB in GB -> 2 GB
+    assert_eq!(calc.eval("500 MB + 1.5 GB in GB").unwrap().to_display(), "2 GB");
+
+    // Force * Distance -> Energy: 10 N * 5 m -> 50 J
+    assert_eq!(calc.eval("10 N * 5 m").unwrap().to_display(), "50 J");
+}
+
+#[test]
 fn test_unit_arithmetic() {
     // Verifies unit-aware addition, subtraction, multiplication, and division
     assert_eq!(eval("5 m + 3 m").unwrap().to_display(), "8 m");

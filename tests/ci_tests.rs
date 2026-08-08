@@ -11,6 +11,35 @@ fn eval_scalar(expr: &str) -> Result<abacus::Value, AbacusError> {
 // ── TInterval (TI-84 Option 8) ──
 
 #[test]
+fn test_section3_confidence_intervals_expanded() {
+    let calc = Abacus::standard();
+
+    // TInterval(10 m, 12 m, 11 m, 14 m)
+    let t_int = calc.eval("TInterval(10 m, 12 m, 11 m, 14 m)").unwrap();
+    assert!(t_int.to_display().contains("m"));
+
+    // ZInterval(100 m, 15 m, 100) -> [97.06 m, 102.94 m]
+    let z_int = calc.eval("ZInterval(100 m, 15 m, 100)").unwrap();
+    assert_eq!(
+        z_int.to_display(),
+        "[97.06142659296519 m, 102.93857340703481 m]"
+    );
+
+    // 1-PropZInt(45, 100)
+    let prop_int = calc.eval("1-PropZInt(45, 100)").unwrap();
+    assert_eq!(
+        prop_int.to_display(),
+        "[0.35618676253533, 0.5475092615069975]"
+    );
+
+    // 2-SampTInt(100 m, 15 m, 25, 90 m, 10 m, 30)
+    let samp2_int = calc
+        .eval("2-SampTInt(100 m, 15 m, 25, 90 m, 10 m, 30)")
+        .unwrap();
+    assert!(samp2_int.to_display().contains("m"));
+}
+
+#[test]
 fn test_ti84_t_interval_sample_data() {
     // Tests TInterval with sample data: TInterval(10 m, 12 m, 11 m, 14 m)
     let result = eval("TInterval(10 m, 12 m, 11 m, 14 m)").unwrap();

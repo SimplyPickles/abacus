@@ -7,6 +7,33 @@ fn eval(expr: &str) -> Result<EvalResult, AbacusError> {
 // ── Basic interval construction ──
 
 #[test]
+fn test_section2_interval_arithmetic_expanded() {
+    let calc = Abacus::standard();
+
+    // Flagship example: [9.8 m, 10.2 m] / [1.9 s, 2.1 s]
+    let speed = calc.eval("[9.8 m, 10.2 m] / [1.9 s, 2.1 s]").unwrap();
+    assert_eq!(
+        speed.to_display(),
+        "[4.666666666666667 m/s, 5.368421052631579 m/s]"
+    );
+
+    // Scalar + Interval: 5 m + [1 m, 3 m] -> [6 m, 8 m]
+    assert_eq!(calc.eval("5 m + [1 m, 3 m]").unwrap().to_display(), "[6 m, 8 m]");
+
+    // Unit conversion on interval: [1 km, 2 km] to m -> [1000 m, 2000 m]
+    assert_eq!(
+        calc.eval("[1 km, 2 km] to m").unwrap().to_display(),
+        "[1000 m, 2000 m]"
+    );
+
+    // Force * Distance interval: [10 N, 20 N] * [2 m, 5 m] -> [20 J, 100 J]
+    assert_eq!(
+        calc.eval("[10 N, 20 N] * [2 m, 5 m]").unwrap().to_display(),
+        "[20 J, 100 J]"
+    );
+}
+
+#[test]
 fn test_basic_interval_construction() {
     // Verifies [lo, hi] syntax produces an interval with correct endpoints
     let result = eval("[1 m, 5 m]").unwrap();

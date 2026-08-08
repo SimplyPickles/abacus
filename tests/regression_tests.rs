@@ -15,6 +15,29 @@ fn eval_hash(expr: &str) -> Result<Hash, AbacusError> {
 // ── Linear Regression Hash Output (linreg, LinReg) ──
 
 #[test]
+fn test_section5_linear_regression_expanded() {
+    let calc = Abacus::standard();
+
+    // linreg(1 s, 2 s, 3 s, 4 s, 10 m, 20 m, 30 m, 40 m) -> slope = 10 m/s
+    let slope = calc
+        .eval_scalar("linreg(1 s, 2 s, 3 s, 4 s, 10 m, 20 m, 30 m, 40 m).slope")
+        .unwrap();
+    assert_eq!(slope.to_display(), "10 m/s");
+
+    // linreg(1 s, 2 s, 3 s, 4 s, 15 m, 25 m, 35 m, 45 m).intercept -> 5 m
+    let icpt = calc
+        .eval_scalar("linreg(1 s, 2 s, 3 s, 4 s, 15 m, 25 m, 35 m, 45 m).intercept")
+        .unwrap();
+    assert_eq!(icpt.to_display(), "5 m");
+
+    // Prediction arithmetic: linreg(...).slope * 5 s -> 50 m
+    let pred = calc
+        .eval_scalar("linreg(1 s, 2 s, 3 s, 4 s, 10 m, 20 m, 30 m, 40 m).slope * 5 s")
+        .unwrap();
+    assert_eq!(pred.to_display(), "50 m");
+}
+
+#[test]
 fn test_linear_regression_hash_output() {
     // linreg returns a Hash containing slope, intercept, r2, r, se, mean_x, mean_y
     let hash = eval_hash("linreg(1 s, 2 s, 3 s, 4 s, 10 m, 20 m, 30 m, 40 m)").unwrap();

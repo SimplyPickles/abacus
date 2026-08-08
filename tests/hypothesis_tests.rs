@@ -15,6 +15,31 @@ fn eval_hash(expr: &str) -> Result<Hash, AbacusError> {
 // ── 1. ZTest ──
 
 #[test]
+fn test_section4_hypothesis_testing_expanded() {
+    let calc = Abacus::standard();
+
+    // ZTest(100 m, 105 m, 15 m, 50) and dot property access .p_value
+    let p_val = calc
+        .eval_scalar("ZTest(100 m, 105 m, 15 m, 50).p_value")
+        .unwrap();
+    assert!((p_val.canonical - 0.01842).abs() < 0.001);
+
+    // TTest(100 m, 105 m, 15 m, 25)
+    let t_hash = calc.eval_hash("TTest(100 m, 105 m, 15 m, 25)").unwrap();
+    assert_eq!(t_hash.get("df").unwrap().canonical, 24.0);
+
+    // 2-SampTTest(100 m, 15 m, 25, 90 m, 10 m, 30)
+    let samp2 = calc
+        .eval_hash("2-SampTTest(100 m, 15 m, 25, 90 m, 10 m, 30)")
+        .unwrap();
+    assert!(samp2.get("p_value").unwrap().canonical < 0.01);
+
+    // Chi2Test(15, 25, 10, 30).p_value
+    let chi2_p = calc.eval_scalar("Chi2Test(15, 25, 10, 30).p_value").unwrap();
+    assert!((chi2_p.canonical - 0.067889).abs() < 0.001);
+}
+
+#[test]
 fn test_z_test_summary_stats() {
     // ZTest(mu0: 100 m, xbar: 105 m, sigma: 15 m, n: 50)
     let hash = eval_hash("ZTest(100 m, 105 m, 15 m, 50)").unwrap();
