@@ -69,7 +69,8 @@ fn test_dot_property_access_on_hash() {
     let slope = eval_scalar("linreg(1 s, 2 s, 3 s, 4 s, 10 m, 20 m, 30 m, 40 m).slope").unwrap();
     assert_eq!(slope.to_display(), "10 m/s");
 
-    let intercept = eval_scalar("linreg(1 s, 2 s, 3 s, 4 s, 15 m, 25 m, 35 m, 45 m).intercept").unwrap();
+    let intercept =
+        eval_scalar("linreg(1 s, 2 s, 3 s, 4 s, 15 m, 25 m, 35 m, 45 m).intercept").unwrap();
     assert_eq!(intercept.to_display(), "5 m");
 
     let r2 = eval_scalar("linreg(1 s, 2 s, 3 s, 4 s, 10 m, 20 m, 30 m, 40 m).r2").unwrap();
@@ -86,10 +87,12 @@ fn test_dot_property_access_on_hash() {
     assert_eq!(b_alias.to_display(), "5 m");
 
     // Arithmetic chained with property access
-    let intercept_plus = eval_scalar("linreg(1 s, 2 s, 3 s, 4 s, 15 m, 25 m, 35 m, 45 m).intercept + 10 m").unwrap();
+    let intercept_plus =
+        eval_scalar("linreg(1 s, 2 s, 3 s, 4 s, 15 m, 25 m, 35 m, 45 m).intercept + 10 m").unwrap();
     assert_eq!(intercept_plus.to_display(), "15 m");
 
-    let slope_times_time = eval_scalar("linreg(1 s, 2 s, 3 s, 4 s, 10 m, 20 m, 30 m, 40 m).slope * 5 s").unwrap();
+    let slope_times_time =
+        eval_scalar("linreg(1 s, 2 s, 3 s, 4 s, 10 m, 20 m, 30 m, 40 m).slope * 5 s").unwrap();
     assert_eq!(slope_times_time.to_display(), "50 m");
 }
 

@@ -165,7 +165,9 @@ fn try_parse_date_literal(remaining: &str) -> Option<(crate::Date, usize)> {
     }
 
     let mut idx = 0;
-    while idx < chars.len() && (chars[idx].is_ascii_digit() || chars[idx] == '-' || chars[idx] == '/') {
+    while idx < chars.len()
+        && (chars[idx].is_ascii_digit() || chars[idx] == '-' || chars[idx] == '/')
+    {
         idx += 1;
     }
 

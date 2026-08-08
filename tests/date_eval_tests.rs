@@ -1,18 +1,26 @@
-use abacus::{eval, Abacus, Date};
+use abacus::{Abacus, Date, eval};
 
 #[test]
 fn test_section6_date_functionality_expanded() {
     let calc = Abacus::standard();
 
     // 07-08-2026 + 5 days = 12-08-2026
-    assert_eq!(calc.eval("07-08-2026 + 5 days").unwrap().to_display(), "12-08-2026");
+    assert_eq!(
+        calc.eval("07-08-2026 + 5 days").unwrap().to_display(),
+        "12-08-2026"
+    );
 
     // 2026/08/07 - 2 weeks = 24-07-2026
-    assert_eq!(calc.eval("2026/08/07 - 2 weeks").unwrap().to_display(), "24-07-2026");
+    assert_eq!(
+        calc.eval("2026/08/07 - 2 weeks").unwrap().to_display(),
+        "24-07-2026"
+    );
 
     // 2026-08-07 10:30:00 + 3 hours = 07-08-2026 13:30:00
     assert_eq!(
-        calc.eval("2026-08-07 10:30:00 + 3 hours").unwrap().to_display(),
+        calc.eval("2026-08-07 10:30:00 + 3 hours")
+            .unwrap()
+            .to_display(),
         "07-08-2026 13:30:00"
     );
 
@@ -30,7 +38,9 @@ fn test_section6_date_functionality_expanded() {
 
     // date(2026, 8, 7, 10, 54, 49) = 07-08-2026 10:54:49
     assert_eq!(
-        calc.eval("date(2026, 8, 7, 10, 54, 49)").unwrap().to_display(),
+        calc.eval("date(2026, 8, 7, 10, 54, 49)")
+            .unwrap()
+            .to_display(),
         "07-08-2026 10:54:49"
     );
 }
@@ -112,10 +122,7 @@ fn test_date_property_access() {
         abacus.eval_scalar("07-08-2026.month").unwrap().canonical,
         8.0
     );
-    assert_eq!(
-        abacus.eval_scalar("07-08-2026.day").unwrap().canonical,
-        7.0
-    );
+    assert_eq!(abacus.eval_scalar("07-08-2026.day").unwrap().canonical, 7.0);
     assert_eq!(
         abacus
             .eval_scalar("07-08-2026.day_of_week")

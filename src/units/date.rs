@@ -92,10 +92,10 @@ impl TimeZone {
             "CET" | "BST" => Some(60),
             "CEST" | "EET" => Some(120),
             "EEST" | "MSK" => Some(180),
-            "IST" => Some(330),  // +05:30
+            "IST" => Some(330),         // +05:30
             "JST" | "KST" => Some(540), // +09:00
-            "AEST" => Some(600), // +10:00
-            "NZST" => Some(720), // +12:00
+            "AEST" => Some(600),        // +10:00
+            "NZST" => Some(720),        // +12:00
             _ => None,
         };
 
@@ -109,17 +109,17 @@ impl TimeZone {
             let body = &clean[1..];
             let parts: Vec<&str> = body.split(':').collect();
             let (hours, mins) = if parts.len() == 1 {
-                let h = parts[0]
-                    .parse::<i32>()
-                    .map_err(|_| AbacusError::InvalidDate(format!("invalid timezone offset: '{s}'")))?;
+                let h = parts[0].parse::<i32>().map_err(|_| {
+                    AbacusError::InvalidDate(format!("invalid timezone offset: '{s}'"))
+                })?;
                 (h, 0)
             } else if parts.len() == 2 {
-                let h = parts[0]
-                    .parse::<i32>()
-                    .map_err(|_| AbacusError::InvalidDate(format!("invalid timezone offset: '{s}'")))?;
-                let m = parts[1]
-                    .parse::<i32>()
-                    .map_err(|_| AbacusError::InvalidDate(format!("invalid timezone offset: '{s}'")))?;
+                let h = parts[0].parse::<i32>().map_err(|_| {
+                    AbacusError::InvalidDate(format!("invalid timezone offset: '{s}'"))
+                })?;
+                let m = parts[1].parse::<i32>().map_err(|_| {
+                    AbacusError::InvalidDate(format!("invalid timezone offset: '{s}'"))
+                })?;
                 (h, m)
             } else {
                 return Err(AbacusError::InvalidDate(format!(
@@ -301,8 +301,16 @@ pub fn is_valid_date(year: i32, month: u32, day: u32) -> bool {
 
 /// Convert (year, month, day) to days since Unix epoch 1970-01-01 (Proleptic Gregorian algorithm).
 pub fn date_to_epoch_days(year: i32, month: u32, day: u32) -> i64 {
-    let y = if month <= 2 { year as i64 - 1 } else { year as i64 };
-    let m = if month <= 2 { month as i64 + 12 } else { month as i64 };
+    let y = if month <= 2 {
+        year as i64 - 1
+    } else {
+        year as i64
+    };
+    let m = if month <= 2 {
+        month as i64 + 12
+    } else {
+        month as i64
+    };
     let era = if y >= 0 { y / 400 } else { (y - 399) / 400 };
     let yoe = y - era * 400;
     let doy = (153 * (m - 3) + 2) / 5 + day as i64 - 1;
@@ -313,7 +321,11 @@ pub fn date_to_epoch_days(year: i32, month: u32, day: u32) -> i64 {
 /// Convert days since Unix epoch 1970-01-01 to (year, month, day).
 pub fn epoch_days_to_date(epoch_days: i64) -> (i32, u32, u32) {
     let z = epoch_days + 719468;
-    let era = if z >= 0 { z / 146097 } else { (z - 146096) / 146097 };
+    let era = if z >= 0 {
+        z / 146097
+    } else {
+        (z - 146096) / 146097
+    };
     let doe = z - era * 146097;
     let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
     let y = yoe + era * 400;
@@ -692,7 +704,9 @@ impl FromStr for Date {
         };
 
         if tokens.is_empty() {
-            return Err(AbacusError::InvalidDate(format!("invalid date string '{s}'")));
+            return Err(AbacusError::InvalidDate(format!(
+                "invalid date string '{s}'"
+            )));
         }
 
         let date_str = &tokens[0];

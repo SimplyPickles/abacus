@@ -48,7 +48,10 @@ fn test_register_custom_hash_function_with_dynamic_dot_property() {
         let val = &args[0];
         let mut hash = Hash::new();
         hash.insert("original", val.clone());
-        hash.insert("my_custom_key", Value::new(val.canonical * 10.0, val.unit.clone()));
+        hash.insert(
+            "my_custom_key",
+            Value::new(val.canonical * 10.0, val.unit.clone()),
+        );
         Ok(EvalResult::Hash(hash))
     }
 
@@ -60,8 +63,16 @@ fn test_register_custom_hash_function_with_dynamic_dot_property() {
     });
 
     // Access arbitrary key .my_custom_key without any hardcoding in the parser
-    assert_eq!(calc.eval("my_stats(5 m).my_custom_key").unwrap().to_display(), "50 m");
-    assert_eq!(calc.eval("my_stats(5 m).original").unwrap().to_display(), "5 m");
+    assert_eq!(
+        calc.eval("my_stats(5 m).my_custom_key")
+            .unwrap()
+            .to_display(),
+        "50 m"
+    );
+    assert_eq!(
+        calc.eval("my_stats(5 m).original").unwrap().to_display(),
+        "5 m"
+    );
 }
 
 #[test]

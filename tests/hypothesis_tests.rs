@@ -35,7 +35,9 @@ fn test_section4_hypothesis_testing_expanded() {
     assert!(samp2.get("p_value").unwrap().canonical < 0.01);
 
     // Chi2Test(15, 25, 10, 30).p_value
-    let chi2_p = calc.eval_scalar("Chi2Test(15, 25, 10, 30).p_value").unwrap();
+    let chi2_p = calc
+        .eval_scalar("Chi2Test(15, 25, 10, 30).p_value")
+        .unwrap();
     assert!((chi2_p.canonical - 0.067889).abs() < 0.001);
 }
 
@@ -133,7 +135,11 @@ fn test_2_samp_t_test() {
 
     // t ≈ 2.846, Welch df ≈ 40.475
     assert!((t - 2.846).abs() < 0.02, "Expected t ≈ 2.846, got {}", t);
-    assert!((df - 40.475).abs() < 0.05, "Expected df ≈ 40.475, got {}", df);
+    assert!(
+        (df - 40.475).abs() < 0.05,
+        "Expected df ≈ 40.475, got {}",
+        df
+    );
 }
 
 // ── 6. 2-PropZTest ──

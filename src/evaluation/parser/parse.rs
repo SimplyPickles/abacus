@@ -241,7 +241,10 @@ impl<'a> Parser<'a> {
                         EvalResult::Scalar(val.clone())
                     }
                     EvalResult::Date(d) => {
-                        use crate::units::{dimensions::Dimensions, unit::{Unit, UnitExpr}};
+                        use crate::units::{
+                            dimensions::Dimensions,
+                            unit::{Unit, UnitExpr},
+                        };
                         let num = match prop.as_str() {
                             "year" => d.year as f64,
                             "month" => d.month as f64,
@@ -252,9 +255,10 @@ impl<'a> Parser<'a> {
                             "millisecond" | "ms" => d.time.millisecond as f64,
                             "day_of_week" | "weekday" => d.day_of_week() as u32 as f64,
                             "day_of_year" => d.day_of_year() as f64,
-                            "offset" | "offset_minutes" => {
-                                d.timezone.as_ref().map_or(0.0, |tz| tz.offset_minutes as f64)
-                            }
+                            "offset" | "offset_minutes" => d
+                                .timezone
+                                .as_ref()
+                                .map_or(0.0, |tz| tz.offset_minutes as f64),
                             _ => {
                                 return Err(AbacusError::UnexpectedToken(format!(
                                     "unknown property '.{}' on Date",
@@ -436,7 +440,10 @@ impl<'a> Parser<'a> {
                 // Check for Date property function call
                 if raw_args.len() == 1 {
                     if let EvalResult::Date(ref d) = raw_args[0] {
-                        use crate::units::{dimensions::Dimensions, unit::{Unit, UnitExpr}};
+                        use crate::units::{
+                            dimensions::Dimensions,
+                            unit::{Unit, UnitExpr},
+                        };
                         let num = match name {
                             "year" => Some(d.year as f64),
                             "month" => Some(d.month as f64),
@@ -448,7 +455,9 @@ impl<'a> Parser<'a> {
                             "day_of_week" | "weekday" => Some(d.day_of_week() as u32 as f64),
                             "day_of_year" => Some(d.day_of_year() as f64),
                             "is_weekend" => Some(if d.is_weekend() { 1.0 } else { 0.0 }),
-                            "is_workday" | "is_business_day" => Some(if d.is_business_day() { 1.0 } else { 0.0 }),
+                            "is_workday" | "is_business_day" => {
+                                Some(if d.is_business_day() { 1.0 } else { 0.0 })
+                            }
                             _ => None,
                         };
                         if let Some(n) = num {
@@ -464,8 +473,13 @@ impl<'a> Parser<'a> {
                 }
 
                 if raw_args.len() == 2 && (name == "workdays" || name == "business_days") {
-                    if let (EvalResult::Date(d1), EvalResult::Date(d2)) = (&raw_args[0], &raw_args[1]) {
-                        use crate::units::{dimensions::Dimensions, unit::{Unit, UnitExpr}};
+                    if let (EvalResult::Date(d1), EvalResult::Date(d2)) =
+                        (&raw_args[0], &raw_args[1])
+                    {
+                        use crate::units::{
+                            dimensions::Dimensions,
+                            unit::{Unit, UnitExpr},
+                        };
                         let bdays = d1.business_days_between(d2) as f64;
                         let unit = std::sync::Arc::new(Unit {
                             scalar: 86400.0,

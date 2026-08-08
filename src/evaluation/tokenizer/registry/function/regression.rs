@@ -127,11 +127,23 @@ fn linreg_hash_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
     // slope
     let m = stats.slope();
     let slope_unit = stats.slope_unit();
-    hash.insert("slope", AbacusValue { canonical: m, unit: slope_unit });
+    hash.insert(
+        "slope",
+        AbacusValue {
+            canonical: m,
+            unit: slope_unit,
+        },
+    );
 
     // intercept
     let b = stats.intercept();
-    hash.insert("intercept", AbacusValue { canonical: b, unit: Arc::clone(&stats.y_unit) });
+    hash.insert(
+        "intercept",
+        AbacusValue {
+            canonical: b,
+            unit: Arc::clone(&stats.y_unit),
+        },
+    );
 
     // r2
     hash.insert("r2", make_dimensionless(stats.r2()));
@@ -141,13 +153,33 @@ fn linreg_hash_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
 
     // se (if n > 2)
     if stats.n > 2.0 {
-        let s_e = ((stats.syy - m * stats.sxy) / (stats.n - 2.0)).max(0.0).sqrt();
-        hash.insert("se", AbacusValue { canonical: s_e, unit: Arc::clone(&stats.y_unit) });
+        let s_e = ((stats.syy - m * stats.sxy) / (stats.n - 2.0))
+            .max(0.0)
+            .sqrt();
+        hash.insert(
+            "se",
+            AbacusValue {
+                canonical: s_e,
+                unit: Arc::clone(&stats.y_unit),
+            },
+        );
     }
 
     // mean_x & mean_y
-    hash.insert("mean_x", AbacusValue { canonical: stats.mean_x, unit: Arc::clone(&stats.x_unit) });
-    hash.insert("mean_y", AbacusValue { canonical: stats.mean_y, unit: Arc::clone(&stats.y_unit) });
+    hash.insert(
+        "mean_x",
+        AbacusValue {
+            canonical: stats.mean_x,
+            unit: Arc::clone(&stats.x_unit),
+        },
+    );
+    hash.insert(
+        "mean_y",
+        AbacusValue {
+            canonical: stats.mean_y,
+            unit: Arc::clone(&stats.y_unit),
+        },
+    );
 
     Ok(EvalResult::Hash(hash))
 }

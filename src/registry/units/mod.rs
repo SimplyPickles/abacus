@@ -8,7 +8,7 @@ pub mod imperial_units;
 pub mod metric_units;
 pub mod nautical_units;
 pub mod storage_units;
+pub mod temporal_units;
 pub mod trade_historical_units;
 pub mod typography_units;
 pub mod volume_units;
-pub mod temporal_units;

@@ -18,7 +18,10 @@ fn test_section2_interval_arithmetic_expanded() {
     );
 
     // Scalar + Interval: 5 m + [1 m, 3 m] -> [6 m, 8 m]
-    assert_eq!(calc.eval("5 m + [1 m, 3 m]").unwrap().to_display(), "[6 m, 8 m]");
+    assert_eq!(
+        calc.eval("5 m + [1 m, 3 m]").unwrap().to_display(),
+        "[6 m, 8 m]"
+    );
 
     // Unit conversion on interval: [1 km, 2 km] to m -> [1000 m, 2000 m]
     assert_eq!(

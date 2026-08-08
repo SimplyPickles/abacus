@@ -287,9 +287,7 @@ impl EvalResult {
     pub fn into_hash(self) -> Result<Hash, AbacusError> {
         match self {
             EvalResult::Hash(h) => Ok(h),
-            _ => Err(AbacusError::UnexpectedToken(
-                "hash expected".to_string(),
-            )),
+            _ => Err(AbacusError::UnexpectedToken("hash expected".to_string())),
         }
     }
 
@@ -297,9 +295,7 @@ impl EvalResult {
     pub fn into_date(self) -> Result<Date, AbacusError> {
         match self {
             EvalResult::Date(d) => Ok(d),
-            _ => Err(AbacusError::UnexpectedToken(
-                "date expected".to_string(),
-            )),
+            _ => Err(AbacusError::UnexpectedToken("date expected".to_string())),
         }
     }
 

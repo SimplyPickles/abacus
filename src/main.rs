@@ -4,10 +4,7 @@ fn main() -> Result<(), AbacusError> {
     let calc = Abacus::standard();
 
     println!("1. Physical Unit Arithmetic");
-    println!(
-        "10 N * 5 m = {}",
-        calc.eval("10 N * 5 m")?.to_display()
-    );
+    println!("10 N * 5 m = {}", calc.eval("10 N * 5 m")?.to_display());
     println!(
         "100 km / 2 h to m/s = {}",
         calc.eval("100 km / 2 h to m/s")?.to_display()
@@ -61,7 +58,8 @@ fn main() -> Result<(), AbacusError> {
     );
     println!(
         "ZTest(100 m, 105 m, 15 m, 50).p_value = {}",
-        calc.eval("ZTest(100 m, 105 m, 15 m, 50).p_value")?.to_display()
+        calc.eval("ZTest(100 m, 105 m, 15 m, 50).p_value")?
+            .to_display()
     );
     println!(
         "TTest(100 m, 105 m, 15 m, 25) = {}",
@@ -69,7 +67,8 @@ fn main() -> Result<(), AbacusError> {
     );
     println!(
         "2-SampTTest(100 m, 15 m, 25, 90 m, 10 m, 30) = {}",
-        calc.eval("2-SampTTest(100 m, 15 m, 25, 90 m, 10 m, 30)")?.to_display()
+        calc.eval("2-SampTTest(100 m, 15 m, 25, 90 m, 10 m, 30)")?
+            .to_display()
     );
     println!(
         "Chi2Test(15, 25, 10, 30).p_value = {}\n",
@@ -125,7 +124,8 @@ fn main() -> Result<(), AbacusError> {
     );
     println!(
         "2026-08-07 10:00:00 -04:00 to +02:00 = {}",
-        calc.eval("2026-08-07 10:00:00 -04:00 to +02:00")?.to_display()
+        calc.eval("2026-08-07 10:00:00 -04:00 to +02:00")?
+            .to_display()
     );
     println!(
         "today at 12:00 to 3:00 = {}",

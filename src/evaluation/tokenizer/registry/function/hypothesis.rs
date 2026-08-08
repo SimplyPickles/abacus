@@ -106,7 +106,11 @@ fn t_test_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
             return Err(AbacusError::IncompatibleFunctionArguments);
         }
         let mean = data.iter().map(|v| v.canonical).sum::<f64>() / n;
-        let var = data.iter().map(|v| (v.canonical - mean).powi(2)).sum::<f64>() / (n - 1.0);
+        let var = data
+            .iter()
+            .map(|v| (v.canonical - mean).powi(2))
+            .sum::<f64>()
+            / (n - 1.0);
         let s = var.sqrt();
         (mean, s, n)
     };

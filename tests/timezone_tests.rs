@@ -1,4 +1,4 @@
-use abacus::{eval, Abacus, Date, Time, TimeZone};
+use abacus::{Abacus, Date, Time, TimeZone, eval};
 use std::str::FromStr;
 
 #[test]
@@ -39,8 +39,14 @@ fn test_timezone_parsing() {
     assert_eq!(TimeZone::parse("PST").unwrap(), TimeZone::new("PST", -480));
     assert_eq!(TimeZone::parse("UTC").unwrap(), TimeZone::utc());
     assert_eq!(TimeZone::parse("JST").unwrap(), TimeZone::new("JST", 540));
-    assert_eq!(TimeZone::parse("+05:30").unwrap(), TimeZone::new("+05:30", 330));
-    assert_eq!(TimeZone::parse("-04:00").unwrap(), TimeZone::new("-04:00", -240));
+    assert_eq!(
+        TimeZone::parse("+05:30").unwrap(),
+        TimeZone::new("+05:30", 330)
+    );
+    assert_eq!(
+        TimeZone::parse("-04:00").unwrap(),
+        TimeZone::new("-04:00", -240)
+    );
 }
 
 #[test]
@@ -55,7 +61,9 @@ fn test_timezone_conversions_expression() {
     assert_eq!(d_jst.time.hour, 23);
     assert_eq!(d_jst.timezone.unwrap().name, "JST");
 
-    let d_offset = abacus.eval_date("07-08-2026 10:00:00 -04:00 to +02:00").unwrap();
+    let d_offset = abacus
+        .eval_date("07-08-2026 10:00:00 -04:00 to +02:00")
+        .unwrap();
     assert_eq!(d_offset.time.hour, 16);
     assert_eq!(d_offset.timezone.unwrap().name, "+02:00");
 }

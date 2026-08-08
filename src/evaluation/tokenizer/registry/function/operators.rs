@@ -1,4 +1,7 @@
-use crate::{AbacusError, Value, units::{hash::Hash, interval::EvalResult}};
+use crate::{
+    AbacusError, Value,
+    units::{hash::Hash, interval::EvalResult},
+};
 
 #[derive(Debug, Clone)]
 pub enum FunctionTarget {

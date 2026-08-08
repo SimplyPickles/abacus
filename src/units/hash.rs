@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use crate::units::value::Value;
+use std::collections::HashMap;
 
 /// A map of named key-value pairs representing structured calculation outputs (e.g. regression model parameters).
 #[derive(Debug, Clone, PartialEq)]
@@ -26,7 +26,10 @@ impl Hash {
         self.values.get(key)
     }
 
-    pub fn simplify_unit_display(&mut self, registry: &crate::registry::unit_registry::UnitRegistry) {
+    pub fn simplify_unit_display(
+        &mut self,
+        registry: &crate::registry::unit_registry::UnitRegistry,
+    ) {
         for v in self.values.values_mut() {
             v.simplify_unit_display(registry);
         }

@@ -1,9 +1,12 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{registry::helpers::storage_prefixes::{BINARY_STORAGE_PREFIXES, DECIMAL_STORAGE_PREFIXES}, units::{
-    dimensions::Dimensions,
-    unit::{Unit, UnitExpr},
-}};
+use crate::{
+    registry::helpers::storage_prefixes::{BINARY_STORAGE_PREFIXES, DECIMAL_STORAGE_PREFIXES},
+    units::{
+        dimensions::Dimensions,
+        unit::{Unit, UnitExpr},
+    },
+};
 
 const STORAGE_BASE_UNITS: &[(&str, &str, f64)] = &[("bit", "b", 1.0), ("byte", "B", 8.0)];
 
@@ -23,7 +26,10 @@ pub fn register_storage_units(map: &mut HashMap<String, Arc<Unit>>) {
     for &(name, alias, base_scalar) in STORAGE_BASE_UNITS {
         insert_unit(map, name.to_string(), alias.to_string(), base_scalar);
 
-        for prefix in DECIMAL_STORAGE_PREFIXES.iter().chain(BINARY_STORAGE_PREFIXES) {
+        for prefix in DECIMAL_STORAGE_PREFIXES
+            .iter()
+            .chain(BINARY_STORAGE_PREFIXES)
+        {
             insert_unit(
                 map,
                 format!("{}{}", prefix.name, name),
