@@ -1,111 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::units::{
+use crate::{registry::helpers::storage_prefixes::{BINARY_STORAGE_PREFIXES, DECIMAL_STORAGE_PREFIXES}, units::{
     dimensions::Dimensions,
     unit::{Unit, UnitExpr},
-};
-
-struct StoragePrefix {
-    name: &'static str,
-    alias: &'static str,
-    scalar: f64,
-}
-
-const DECIMAL_PREFIXES: &[StoragePrefix] = &[
-    StoragePrefix {
-        name: "kilo",
-        alias: "k",
-        scalar: 1e3,
-    },
-    StoragePrefix {
-        name: "mega",
-        alias: "M",
-        scalar: 1e6,
-    },
-    StoragePrefix {
-        name: "giga",
-        alias: "G",
-        scalar: 1e9,
-    },
-    StoragePrefix {
-        name: "tera",
-        alias: "T",
-        scalar: 1e12,
-    },
-    StoragePrefix {
-        name: "peta",
-        alias: "P",
-        scalar: 1e15,
-    },
-    StoragePrefix {
-        name: "exa",
-        alias: "E",
-        scalar: 1e18,
-    },
-    StoragePrefix {
-        name: "zetta",
-        alias: "Z",
-        scalar: 1e21,
-    },
-    StoragePrefix {
-        name: "yotta",
-        alias: "Y",
-        scalar: 1e24,
-    },
-    StoragePrefix {
-        name: "ronna",
-        alias: "R",
-        scalar: 1e27,
-    },
-    StoragePrefix {
-        name: "quetta",
-        alias: "Q",
-        scalar: 1e30,
-    },
-];
-
-const BINARY_PREFIXES: &[StoragePrefix] = &[
-    StoragePrefix {
-        name: "kibi",
-        alias: "Ki",
-        scalar: 1_024.0,
-    },
-    StoragePrefix {
-        name: "mebi",
-        alias: "Mi",
-        scalar: 1_048_576.0,
-    },
-    StoragePrefix {
-        name: "gibi",
-        alias: "Gi",
-        scalar: 1_073_741_824.0,
-    },
-    StoragePrefix {
-        name: "tebi",
-        alias: "Ti",
-        scalar: 1_099_511_627_776.0,
-    },
-    StoragePrefix {
-        name: "pebi",
-        alias: "Pi",
-        scalar: 1_125_899_906_842_624.0,
-    },
-    StoragePrefix {
-        name: "exbi",
-        alias: "Ei",
-        scalar: 1_152_921_504_606_846_976.0,
-    },
-    StoragePrefix {
-        name: "zebi",
-        alias: "Zi",
-        scalar: 1_180_591_620_717_411_303_424.0,
-    },
-    StoragePrefix {
-        name: "yobi",
-        alias: "Yi",
-        scalar: 1_208_925_819_614_629_174_706_176.0,
-    },
-];
+}};
 
 const STORAGE_BASE_UNITS: &[(&str, &str, f64)] = &[("bit", "b", 1.0), ("byte", "B", 8.0)];
 
@@ -125,7 +23,7 @@ pub fn register_storage_units(map: &mut HashMap<String, Arc<Unit>>) {
     for &(name, alias, base_scalar) in STORAGE_BASE_UNITS {
         insert_unit(map, name.to_string(), alias.to_string(), base_scalar);
 
-        for prefix in DECIMAL_PREFIXES.iter().chain(BINARY_PREFIXES) {
+        for prefix in DECIMAL_STORAGE_PREFIXES.iter().chain(BINARY_STORAGE_PREFIXES) {
             insert_unit(
                 map,
                 format!("{}{}", prefix.name, name),
