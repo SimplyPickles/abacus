@@ -1,4 +1,4 @@
-use crate::Value;
+use crate::{Date, Value};
 
 // Represents a token parsed from the input string
 #[derive(Debug, Clone, PartialEq)]
@@ -24,4 +24,5 @@ pub enum Token<'a> {
     DotProperty(String), // `.intercept`, `.slope`, `.r2` etc.
 
     Val(Value), // final value
+    Date(Date), // parsed date
 }

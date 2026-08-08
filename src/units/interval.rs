@@ -130,14 +130,16 @@ impl PartialEq for Interval {
     }
 }
 
+use crate::units::date::Date;
 use crate::units::hash::Hash;
 
-/// The result of evaluating an expression — a scalar `Value`, an `Interval`, or a `Hash` map of values.
+/// The result of evaluating an expression — a scalar `Value`, an `Interval`, a `Hash` map, or a `Date`.
 #[derive(Debug, Clone, PartialEq)]
 pub enum EvalResult {
     Scalar(Value),
     Interval(Interval),
     Hash(Hash),
+    Date(Date),
 }
 
 impl EvalResult {
@@ -159,8 +161,40 @@ impl EvalResult {
                 let r = Interval::from_value(r);
                 Ok(EvalResult::Interval(l.apply_binary(op, &r)?))
             }
+            (EvalResult::Date(l), EvalResult::Date(r)) => {
+                if op.alias == "-" {
+                    Ok(EvalResult::Scalar(&l - &r))
+                } else {
+                    Err(AbacusError::UnexpectedToken(format!(
+                        "cannot perform operator '{}' on dates",
+                        op.alias
+                    )))
+                }
+            }
+            (EvalResult::Date(l), EvalResult::Scalar(r)) => {
+                if op.alias == "+" {
+                    Ok(EvalResult::Date((&l + &r)?))
+                } else if op.alias == "-" {
+                    Ok(EvalResult::Date((&l - &r)?))
+                } else {
+                    Err(AbacusError::UnexpectedToken(format!(
+                        "cannot perform operator '{}' on date and scalar",
+                        op.alias
+                    )))
+                }
+            }
+            (EvalResult::Scalar(l), EvalResult::Date(r)) => {
+                if op.alias == "+" {
+                    Ok(EvalResult::Date((&r + &l)?))
+                } else {
+                    Err(AbacusError::UnexpectedToken(format!(
+                        "cannot perform operator '{}' on scalar and date",
+                        op.alias
+                    )))
+                }
+            }
             _ => Err(AbacusError::UnexpectedToken(
-                "cannot perform arithmetic on hash result".to_string(),
+                "cannot perform arithmetic on hash or mismatched result types".to_string(),
             )),
         }
     }
@@ -173,6 +207,9 @@ impl EvalResult {
             EvalResult::Hash(_) => Err(AbacusError::UnexpectedToken(
                 "cannot perform unary operation on hash result".to_string(),
             )),
+            EvalResult::Date(_) => Err(AbacusError::UnexpectedToken(
+                "cannot perform unary operation on date result".to_string(),
+            )),
         }
     }
 
@@ -184,6 +221,9 @@ impl EvalResult {
             EvalResult::Hash(_) => Err(AbacusError::UnexpectedToken(
                 "cannot convert unit on hash result".to_string(),
             )),
+            EvalResult::Date(_) => Err(AbacusError::UnexpectedToken(
+                "cannot convert unit on date result".to_string(),
+            )),
         }
     }
 
@@ -192,6 +232,7 @@ impl EvalResult {
         match self {
             EvalResult::Scalar(v) => Ok(EvalResult::Scalar(v.to_derived(registry)?)),
             EvalResult::Interval(i) => Ok(EvalResult::Interval(i.to_derived(registry)?)),
+            EvalResult::Date(d) => Ok(EvalResult::Date(d)),
             EvalResult::Hash(h) => {
                 let mut new_hash = Hash::new();
                 for (k, v) in h.values {
@@ -207,6 +248,7 @@ impl EvalResult {
         match self {
             EvalResult::Scalar(v) => v.simplify_unit_display(registry),
             EvalResult::Interval(i) => i.simplify_unit_display(registry),
+            EvalResult::Date(_) => {}
             EvalResult::Hash(h) => {
                 for v in h.values.values_mut() {
                     v.simplify_unit_display(registry);
@@ -221,10 +263,11 @@ impl EvalResult {
             EvalResult::Scalar(v) => v.to_display(),
             EvalResult::Interval(i) => i.to_display(),
             EvalResult::Hash(h) => h.to_display(),
+            EvalResult::Date(d) => d.to_string(),
         }
     }
 
-    /// Extract the scalar Value, or error if this is an Interval or Hash.
+    /// Extract the scalar Value, or error if this is an Interval, Hash, or Date.
     pub fn into_scalar(self) -> Result<Value, AbacusError> {
         match self {
             EvalResult::Scalar(v) => Ok(v),
@@ -233,6 +276,9 @@ impl EvalResult {
             )),
             EvalResult::Hash(_) => Err(AbacusError::UnexpectedToken(
                 "hash result where scalar expected".to_string(),
+            )),
+            EvalResult::Date(_) => Err(AbacusError::UnexpectedToken(
+                "date result where scalar expected".to_string(),
             )),
         }
     }
@@ -247,26 +293,32 @@ impl EvalResult {
         }
     }
 
+    /// Extract the Date, or error if this is not a Date.
+    pub fn into_date(self) -> Result<Date, AbacusError> {
+        match self {
+            EvalResult::Date(d) => Ok(d),
+            _ => Err(AbacusError::UnexpectedToken(
+                "date expected".to_string(),
+            )),
+        }
+    }
+
     /// Get the unit from the result (for intervals, uses the lo endpoint's unit).
     pub fn unit(&self) -> &Arc<Unit> {
         match self {
             EvalResult::Scalar(v) => &v.unit,
             EvalResult::Interval(i) => &i.lo.unit,
-            EvalResult::Hash(h) => {
-                if let Some(first_val) = h.values.values().next() {
-                    &first_val.unit
-                } else {
-                    static DIMENSIONLESS: std::sync::OnceLock<Arc<Unit>> = std::sync::OnceLock::new();
-                    DIMENSIONLESS.get_or_init(|| {
-                        use crate::units::{dimensions::Dimensions, unit::UnitExpr};
-                        Arc::new(Unit {
-                            scalar: 1.0,
-                            offset: 0.0,
-                            dimensions: Dimensions::DIMENSIONLESS,
-                            display: UnitExpr::dimensionless(),
-                        })
+            EvalResult::Date(_) | EvalResult::Hash(_) => {
+                static DIMENSIONLESS: std::sync::OnceLock<Arc<Unit>> = std::sync::OnceLock::new();
+                DIMENSIONLESS.get_or_init(|| {
+                    use crate::units::{dimensions::Dimensions, unit::UnitExpr};
+                    Arc::new(Unit {
+                        scalar: 1.0,
+                        offset: 0.0,
+                        dimensions: Dimensions::DIMENSIONLESS,
+                        display: UnitExpr::dimensionless(),
                     })
-                }
+                })
             }
         }
     }

@@ -1,22 +1,11 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    gen_prefixes,
-    registry::{
-        helpers::scalar_prefixes::ScalarPrefix,
-        units::{
-            angle_units::register_angle_units, astronomical_units::register_astronomical_units,
-            cgs_physics_units::register_cgs_physics_units,
-            computing_niche_units::register_computing_niche_units,
-            derived_units::register_derived_units, humorous_units::register_humorous_units,
-            imperial_units::register_imperial_units, nautical_units::register_nautical_units,
-            storage_units::register_storage_units,
-            trade_historical_units::register_trade_historical_units,
-            typography_units::register_typography_units,
-            volume_units::register_volume_and_area_units,
+    gen_prefixes, registry::{
+        helpers::scalar_prefixes::ScalarPrefix, units::{
+            angle_units::register_angle_units, astronomical_units::register_astronomical_units, cgs_physics_units::register_cgs_physics_units, computing_niche_units::register_computing_niche_units, derived_units::register_derived_units, humorous_units::register_humorous_units, imperial_units::register_imperial_units, nautical_units::register_nautical_units, storage_units::register_storage_units, temporal_units::register_temporal_units, trade_historical_units::register_trade_historical_units, typography_units::register_typography_units, volume_units::register_volume_and_area_units,
         },
-    },
-    units::{
+    }, units::{
         dimensions::Dimensions,
         unit::{Unit, UnitExpr},
     },
@@ -84,14 +73,13 @@ pub static BASE_METRIC_UNITS: &[MetricBaseUnit] = generate_base_units! {
     "candela", "cd",   Dimensions::LUMINOUS_INTENSITY,   1f64;
 };
 
-const TEMPORAL_UNITS: &[(&str, &str, f64)] = &[
-    ("minute", "min", 60.0),
-    ("hour", "h", 60.0 * 60.0),
-    ("day", "d", 24.0 * 60.0 * 60.0),
-    ("week", "wk", 7.0 * 24.0 * 60.0 * 60.0),
-];
-
 const CELSIUS_ALIASES: &[&str] = &["celsius", "degC", "°C"];
+
+const TIMEZONE_NAMES: &[&str] = &[
+    "UTC", "GMT", "Z", "EST", "EDT", "CST", "CDT", "MST", "MDT", "PST", "PDT",
+    "AKST", "AKDT", "HST", "CET", "CEST", "BST", "EET", "EEST", "MSK", "IST",
+    "JST", "KST", "AEST", "NZST",
+];
 
 // Declares a public function that returns a map of base and prefixed metric units.
 pub fn register_metric_units() -> HashMap<String, Arc<Unit>> {
@@ -108,18 +96,22 @@ pub fn register_metric_units() -> HashMap<String, Arc<Unit>> {
         map.insert(alias.to_string(), Arc::clone(&celsius));
     }
 
-    for &(name, alias, scalar) in TEMPORAL_UNITS {
-        let unit = Arc::new(Unit {
-            scalar,
-            offset: 0.0,
-            dimensions: Dimensions::TIME,
-            display: UnitExpr::single(alias),
-        });
-
-        map.insert(name.to_string(), Arc::clone(&unit));
-        map.insert(alias.to_string(), unit);
+    if let Some(sec_unit) = map.get("s").cloned() {
+        map.insert("seconds".to_string(), sec_unit.clone());
+        map.insert("second".to_string(), sec_unit);
     }
 
+    for &tz_name in TIMEZONE_NAMES {
+        let tz_unit = Arc::new(Unit {
+            scalar: 1.0,
+            offset: 0.0,
+            dimensions: Dimensions::TIME,
+            display: UnitExpr::single(tz_name),
+        });
+        map.insert(tz_name.to_string(), tz_unit);
+    }
+
+    register_temporal_units(&mut map);
     register_storage_units(&mut map);
     register_imperial_units(&mut map);
     register_derived_units(&mut map);

@@ -1,5 +1,6 @@
 pub mod ci;
 pub mod combinatorics;
+pub mod date;
 pub mod distributions;
 pub mod financial;
 pub mod hypothesis;

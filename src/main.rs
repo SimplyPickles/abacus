@@ -1,4 +1,4 @@
-use abacus::{Abacus, AbacusError, BinaryOp, Value};
+use abacus::{Abacus, AbacusError};
 
 fn main() -> Result<(), AbacusError> {
     let calc = Abacus::standard();
@@ -96,6 +96,87 @@ fn main() -> Result<(), AbacusError> {
         "linreg(1 s, 2 s, 3 s, 4 s, 10 m, 20 m, 30 m, 40 m).slope * 5 s = {}\n",
         calc.eval("linreg(1 s, 2 s, 3 s, 4 s, 10 m, 20 m, 30 m, 40 m).slope * 5 s")?
             .to_display()
+    );
+
+    println!("6. Date Functionality, Literals, AM/PM, and TimeZone Conversions");
+    println!(
+        "07-08-2026 + 5 days = {}",
+        calc.eval("07-08-2026 + 5 days")?.to_display()
+    );
+    println!(
+        "2026/08/07 - 2 weeks = {}",
+        calc.eval("2026/08/07 - 2 weeks")?.to_display()
+    );
+    println!(
+        "2026-08-07 10:30:00 + 3 hours = {}",
+        calc.eval("2026-08-07 10:30:00 + 3 hours")?.to_display()
+    );
+    println!(
+        "07-08-2026 02:30 PM = {}",
+        calc.eval("07-08-2026 02:30 PM")?.to_display()
+    );
+    println!(
+        "07-08-2026 10:00 AM EST to PST = {}",
+        calc.eval("07-08-2026 10:00 AM EST to PST")?.to_display()
+    );
+    println!(
+        "07-08-2026 14:00 UTC to JST = {}",
+        calc.eval("07-08-2026 14:00 UTC to JST")?.to_display()
+    );
+    println!(
+        "2026-08-07 10:00:00 -04:00 to +02:00 = {}",
+        calc.eval("2026-08-07 10:00:00 -04:00 to +02:00")?.to_display()
+    );
+    println!(
+        "today at 12:00 to 3:00 = {}",
+        calc.eval("today at 12:00 to 3:00")?.to_display()
+    );
+    println!(
+        "07-08-2026 to 17-08-2026 in days = {}",
+        calc.eval("07-08-2026 to 17-08-2026 in days")?.to_display()
+    );
+    println!(
+        "(17-08-2026 - 07-08-2026) in days = {}",
+        calc.eval("(17-08-2026 - 07-08-2026) in days")?.to_display()
+    );
+    println!(
+        "07-08-2026 10:00 AM EST - 07-08-2026 07:00 AM PST = {}",
+        calc.eval("07-08-2026 10:00 AM EST - 07-08-2026 07:00 AM PST")?
+            .to_display()
+    );
+    println!(
+        "year(17-08-2026) = {}",
+        calc.eval("year(17-08-2026)")?.to_display()
+    );
+    println!(
+        "month(17-08-2026) = {}",
+        calc.eval("month(17-08-2026)")?.to_display()
+    );
+    println!(
+        "07-08-2026.day_of_week = {}",
+        calc.eval("07-08-2026.day_of_week")?.to_display()
+    );
+    println!(
+        "date(2026, 8, 7, 10, 54, 49) = {}\n",
+        calc.eval("date(2026, 8, 7, 10, 54, 49)")?.to_display()
+    );
+
+    println!("7. Business Days & Workdays Arithmetic");
+    println!(
+        "07-08-2026 + 5 business days = {}",
+        calc.eval("07-08-2026 + 5 business days")?.to_display()
+    );
+    println!(
+        "07-08-2026 + 3 work days = {}",
+        calc.eval("07-08-2026 + 3 work days")?.to_display()
+    );
+    println!(
+        "workdays(07-08-2026, 14-08-2026) = {}",
+        calc.eval("workdays(07-08-2026, 14-08-2026)")?.to_display()
+    );
+    println!(
+        "is_weekend(07-08-2026) = {}\n",
+        calc.eval("is_weekend(07-08-2026)")?.to_display()
     );
 
     Ok(())

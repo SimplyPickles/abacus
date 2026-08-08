@@ -9,7 +9,7 @@ use std::sync::Arc;
 pub use error::AbacusError;
 pub use registry::unit_registry::UnitRegistry;
 pub use units::{
-    date::{Date, DayOfWeek, Time},
+    date::{Date, DateFormat, DayOfWeek, Time, TimeZone},
     dimensions::Dimensions,
     hash::Hash,
     interval::{EvalResult, Interval},
@@ -29,6 +29,7 @@ use crate::evaluation::{parser::parse::evaluate, tokenizer::tokenize::tokenize_s
 pub struct Abacus {
     pub units: UnitRegistry,
     pub tokens: TokenRegistry,
+    pub date_format: DateFormat,
 }
 
 impl Abacus {
@@ -36,18 +37,29 @@ impl Abacus {
         Self {
             units: UnitRegistry::new(),
             tokens: TokenRegistry::new(),
+            date_format: DateFormat::default(),
         }
     }
 
     pub fn from_registry(units: UnitRegistry, tokens: TokenRegistry) -> Self {
-        Self { units, tokens }
+        Self {
+            units,
+            tokens,
+            date_format: DateFormat::default(),
+        }
     }
 
     pub fn standard() -> Self {
         Self {
             units: UnitRegistry::standard(),
             tokens: TokenRegistry::standard(),
+            date_format: DateFormat::default(),
         }
+    }
+
+    pub fn with_date_format(mut self, format: DateFormat) -> Self {
+        self.date_format = format;
+        self
     }
 
     pub fn tokenize<'a>(&self, expr: &'a str) -> Result<Vec<Token<'a>>, AbacusError> {
@@ -68,6 +80,12 @@ impl Abacus {
     /// Returns an error if the result is not a Hash.
     pub fn eval_hash(&self, expr: &str) -> Result<Hash, AbacusError> {
         self.eval(expr)?.into_hash()
+    }
+
+    /// Evaluate an expression, returning only Date results.
+    /// Returns an error if the result is not a Date.
+    pub fn eval_date(&self, expr: &str) -> Result<Date, AbacusError> {
+        self.eval(expr)?.into_date()
     }
 
     pub fn register_unit(&mut self, alias: &str, unit: Unit) {

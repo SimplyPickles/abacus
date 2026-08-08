@@ -45,11 +45,13 @@ impl TokenRegistry {
         functions.append(&mut register_stats());
         functions.append(&mut register_distributions());
         use crate::evaluation::tokenizer::registry::function::{
-            ci::register_ci, hypothesis::register_hypothesis, regression::register_regression,
+            ci::register_ci, date::register_date_functions, hypothesis::register_hypothesis,
+            regression::register_regression,
         };
         functions.append(&mut register_ci());
         functions.append(&mut register_regression());
         functions.append(&mut register_hypothesis());
+        functions.append(&mut register_date_functions());
 
         Self {
             binary_operators: binary
