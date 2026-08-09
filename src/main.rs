@@ -157,6 +157,14 @@ fn main() -> Result<(), AbacusError> {
         calc.eval("07-08-2026.day_of_week")?.to_display()
     );
     println!(
+        "last thursday at 3pm = {}",
+        calc.eval("last thursday at 3pm")?.to_display()
+    );
+    println!(
+        "last thursday at 3pm + 2 days = {}",
+        calc.eval("last thursday at 3pm + 2 days")?.to_display()
+    );
+    println!(
         "date(2026, 8, 7, 10, 54, 49) = {}\n",
         calc.eval("date(2026, 8, 7, 10, 54, 49)")?.to_display()
     );

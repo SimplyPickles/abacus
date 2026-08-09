@@ -7,8 +7,8 @@ use rustyline::validate::Validator;
 use rustyline::{Config, Editor, Helper};
 use std::borrow::Cow;
 use std::env;
+use std::io::Write;
 use std::path::PathBuf;
-use terminal_size::{Width, terminal_size};
 
 struct AbacusHelper;
 
@@ -67,7 +67,7 @@ fn highlight_syntax(line: &str) -> String {
             let word = &line[start..end];
 
             if word.starts_with('.') {
-                // Command like .help
+                // Command like .help or .clear
                 result.push_str("\x1b[38;2;189;147;249m");
                 result.push_str(word);
                 result.push_str("\x1b[0m");
@@ -124,6 +124,20 @@ fn get_history_path() -> Option<PathBuf> {
         .map(|h| PathBuf::from(h).join(".abacus_history"))
 }
 
+fn print_welcome_banner() {
+    println!("\x1b[1;36m=============================================================\x1b[0m");
+    println!("               \x1b[1;33mABACUS INTERACTIVE SHELL (1.0)\x1b[0m               ");
+    println!(" \x1b[1;34mType physical math expressions, date calculations, etc.\x1b[0m   ");
+    println!(" \x1b[90mUse ↑/↓ Arrow Keys to navigate command history.\x1b[0m            ");
+    println!(" \x1b[1;33mExamples:\x1b[0m                                                 ");
+    println!("    • \x1b[38;2;241;196;15m14 meters to inches\x1b[0m                               ");
+    println!("    • \x1b[38;2;139;233;253msin(1..3)\x1b[0m                                          ");
+    println!("    • \x1b[38;2;80;250;123mlast thursday at 3pm\x1b[0m                                 ");
+    println!("    • \x1b[38;2;139;233;253msqrt(14 m^3)\x1b[0m                                       ");
+    println!(" \x1b[90mType '.help' for help, '.clear' to clear, 'exit' to leave.\x1b[0m");
+    println!("\x1b[1;36m=============================================================\x1b[0m\n");
+}
+
 use rustyline::ColorMode;
 
 fn main() {
@@ -139,8 +153,9 @@ fn main() {
         let _ = rl.load_history(path);
     }
 
+    print_welcome_banner();
+
     let prompt = "\x1b[36m›\x1b[0m ";
-    let prompt_len = 2; // "› "
 
     loop {
         let readline = rl.readline(prompt);
@@ -165,10 +180,20 @@ fn main() {
                     break;
                 }
 
+                if trimmed == ".clear" || trimmed == "clear" {
+                    print!("\x1b[2J\x1b[1;1H");
+                    let _ = std::io::stdout().flush();
+                    print_welcome_banner();
+                    continue;
+                }
+
                 if trimmed == ".help" || trimmed == "help" {
                     println!("\x1b[38;2;189;147;249m  Abacus REPL Commands & Syntax:\x1b[0m");
+                    println!("    .help       Show this help summary");
+                    println!("    .clear      Clear the terminal screen");
+                    println!("    exit / :q   Exit the REPL");
                     println!("    • \x1b[38;2;241;196;15m14 meters to inches\x1b[0m");
-                    println!("    • \x1b[38;2;139;233;253msin(1..3)\x1b[0m");
+                    println!("    • \x1b[38;2;139;233;253msin(13)\x1b[0m");
                     println!("    • \x1b[38;2;80;250;123mlast thursday at 3pm\x1b[0m");
                     println!("    • \x1b[38;2;139;233;253me^3 - 3!\x1b[0m");
                     println!("    • \x1b[38;2;139;233;253msqrt(14 m^3)\x1b[0m");
@@ -177,56 +202,10 @@ fn main() {
 
                 match calc.eval(trimmed) {
                     Ok(result) => {
-                        let res_str = result.to_display();
-                        let input_len = line.chars().count();
-                        let res_len = res_str.chars().count();
-                        let term_width = terminal_size()
-                            .map(|(Width(w), _)| w as usize)
-                            .unwrap_or(80);
-
-                        let max_width = term_width.saturating_sub(2);
-                        let occupied = prompt_len + input_len + res_len;
-
-                        if max_width > occupied {
-                            let padding_len = max_width - occupied;
-                            let padding = " ".repeat(padding_len);
-                            println!(
-                                "\x1b[1A\r\x1b[K\x1b[36m›\x1b[0m {} {}\x1b[38;2;139;233;253m{}\x1b[0m",
-                                highlight_syntax(&line),
-                                padding,
-                                res_str
-                            );
-                        } else {
-                            let pad_left = max_width.saturating_sub(res_len);
-                            let padding = " ".repeat(pad_left);
-                            println!("{}\x1b[38;2;139;233;253m{}\x1b[0m", padding, res_str);
-                        }
+                        println!("\x1b[38;2;139;233;253m{}\x1b[0m", result.to_display());
                     }
                     Err(err) => {
-                        let err_str = format!("Error: {}", err);
-                        let input_len = line.chars().count();
-                        let err_len = err_str.chars().count();
-                        let term_width = terminal_size()
-                            .map(|(Width(w), _)| w as usize)
-                            .unwrap_or(80);
-
-                        let max_width = term_width.saturating_sub(2);
-                        let occupied = prompt_len + input_len + err_len;
-
-                        if max_width > occupied {
-                            let padding_len = max_width - occupied;
-                            let padding = " ".repeat(padding_len);
-                            println!(
-                                "\x1b[1A\r\x1b[K\x1b[36m›\x1b[0m {} {}\x1b[31m{}\x1b[0m",
-                                highlight_syntax(&line),
-                                padding,
-                                err_str
-                            );
-                        } else {
-                            let pad_left = max_width.saturating_sub(err_len);
-                            let padding = " ".repeat(pad_left);
-                            println!("{}\x1b[31m{}\x1b[0m", padding, err_str);
-                        }
+                        println!("\x1b[31mError: {}\x1b[0m", err);
                     }
                 }
             }

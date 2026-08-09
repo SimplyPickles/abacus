@@ -18,7 +18,7 @@ pub struct VolumeOrAreaUnit {
 pub const VOLUME_AND_AREA_UNITS: &[VolumeOrAreaUnit] = &[
     // Metric Liter (1 L = 0.001 m^3)
     VolumeOrAreaUnit {
-        keys: &["liter", "litre", "L"],
+        keys: &["liter", "liters", "litre", "litres", "L"],
         display: "L",
         scalar: 1e-3,
         dimensions: Dimensions::VOLUME,
@@ -106,7 +106,9 @@ pub fn register_volume_and_area_units(map: &mut HashMap<String, Arc<Unit>>) {
         });
 
         map.insert(format!("{}liter", pref.name), Arc::clone(&pref_unit));
+        map.insert(format!("{}liters", pref.name), Arc::clone(&pref_unit));
         map.insert(format!("{}litre", pref.name), Arc::clone(&pref_unit));
+        map.insert(format!("{}litres", pref.name), Arc::clone(&pref_unit));
         map.insert(format!("{}L", pref.alias), pref_unit);
     }
 }

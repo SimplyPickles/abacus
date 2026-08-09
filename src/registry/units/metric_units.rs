@@ -136,26 +136,51 @@ pub fn register_metric_units() -> HashMap<String, Arc<Unit>> {
     register_humorous_units(&mut map);
 
     for base in BASE_METRIC_UNITS {
-        map.insert(
-            base.alias.to_string(),
-            Arc::new(Unit {
-                scalar: 1.0f64,
-                offset: 0.0,
-                dimensions: base.dim,
-                display: UnitExpr::single(base.alias),
-            }),
-        );
+        let base_unit = Arc::new(Unit {
+            scalar: 1.0f64,
+            offset: 0.0,
+            dimensions: base.dim,
+            display: UnitExpr::single(base.alias),
+        });
+
+        map.insert(base.alias.to_string(), Arc::clone(&base_unit));
+        map.insert(base.name.to_string(), Arc::clone(&base_unit));
+        map.insert(format!("{}s", base.name), Arc::clone(&base_unit));
+        if base.name == "meter" {
+            map.insert("metre".to_string(), Arc::clone(&base_unit));
+            map.insert("metres".to_string(), Arc::clone(&base_unit));
+        }
 
         for pref in METRIC_PREFIXES {
+            let pref_unit = Arc::new(Unit {
+                scalar: pref.scalar,
+                offset: 0.0,
+                dimensions: base.dim,
+                display: UnitExpr::single(format!("{}{}", pref.alias, base.alias)),
+            });
+
             map.insert(
                 format!("{}{}", pref.alias, base.alias),
-                Arc::new(Unit {
-                    scalar: pref.scalar,
-                    offset: 0.0,
-                    dimensions: base.dim,
-                    display: UnitExpr::single(format!("{}{}", pref.alias, base.alias)),
-                }),
+                Arc::clone(&pref_unit),
             );
+            map.insert(
+                format!("{}{}", pref.name, base.name),
+                Arc::clone(&pref_unit),
+            );
+            map.insert(
+                format!("{}{}s", pref.name, base.name),
+                Arc::clone(&pref_unit),
+            );
+            if base.name == "meter" {
+                map.insert(
+                    format!("{}metre", pref.name),
+                    Arc::clone(&pref_unit),
+                );
+                map.insert(
+                    format!("{}metres", pref.name),
+                    Arc::clone(&pref_unit),
+                );
+            }
         }
     }
 
@@ -202,6 +227,28 @@ mod tests {
         assert_eq!(units.get("B").unwrap().scalar, 8.0);
         assert_eq!(units.get("GB").unwrap().scalar, 8e9);
         assert_eq!(units.get("GiB").unwrap().scalar, 8_589_934_592.0);
+    }
+
+    #[test]
+    fn registers_metric_full_name_and_plural_aliases() {
+        let units = register_metric_units();
+
+        assert_eq!(units.get("meter").unwrap().scalar, 1.0);
+        assert_eq!(units.get("meters").unwrap().scalar, 1.0);
+        assert_eq!(units.get("kilometer").unwrap().scalar, 1000.0);
+        assert_eq!(units.get("kilometers").unwrap().scalar, 1000.0);
+        assert_eq!(units.get("centimeter").unwrap().scalar, 0.01);
+        assert_eq!(units.get("centimeters").unwrap().scalar, 0.01);
+        assert_eq!(units.get("millimeter").unwrap().scalar, 0.001);
+        assert_eq!(units.get("millimeters").unwrap().scalar, 0.001);
+        assert_eq!(units.get("gram").unwrap().scalar, 1.0);
+        assert_eq!(units.get("grams").unwrap().scalar, 1.0);
+        assert_eq!(units.get("kilogram").unwrap().scalar, 1000.0);
+        assert_eq!(units.get("kilograms").unwrap().scalar, 1000.0);
+        assert_eq!(units.get("liter").unwrap().scalar, 0.001);
+        assert_eq!(units.get("liters").unwrap().scalar, 0.001);
+        assert_eq!(units.get("milliliter").unwrap().scalar, 1e-6);
+        assert_eq!(units.get("milliliters").unwrap().scalar, 1e-6);
     }
 
     #[test]

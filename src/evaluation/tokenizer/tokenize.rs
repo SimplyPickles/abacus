@@ -5,39 +5,306 @@ use crate::{
 
 const CONVERSION_KEYWORDS: [&str; 3] = ["as", "to", "in"];
 
-fn try_parse_time_from_str(s: &str) -> Option<(crate::Time, usize)> {
-    let word = s.split_whitespace().next()?;
-    let clean_word = word.trim_end_matches(|c: char| !c.is_ascii_digit());
-    let consumed_len = clean_word.len();
+fn parse_weekday(s: &str) -> Option<(crate::units::date::DayOfWeek, usize)> {
+    let lower = s.to_ascii_lowercase();
+    let matches = [
+        ("wednesday", crate::units::date::DayOfWeek::Wednesday),
+        ("thursday", crate::units::date::DayOfWeek::Thursday),
+        ("saturday", crate::units::date::DayOfWeek::Saturday),
+        ("tuesday", crate::units::date::DayOfWeek::Tuesday),
+        ("monday", crate::units::date::DayOfWeek::Monday),
+        ("friday", crate::units::date::DayOfWeek::Friday),
+        ("sunday", crate::units::date::DayOfWeek::Sunday),
+        ("thurs", crate::units::date::DayOfWeek::Thursday),
+        ("tues", crate::units::date::DayOfWeek::Tuesday),
+        ("tue", crate::units::date::DayOfWeek::Tuesday),
+        ("wed", crate::units::date::DayOfWeek::Wednesday),
+        ("thu", crate::units::date::DayOfWeek::Thursday),
+        ("fri", crate::units::date::DayOfWeek::Friday),
+        ("sat", crate::units::date::DayOfWeek::Saturday),
+        ("sun", crate::units::date::DayOfWeek::Sunday),
+        ("mon", crate::units::date::DayOfWeek::Monday),
+    ];
 
-    let hms_parts: Vec<&str> = clean_word.split(':').collect();
-    if hms_parts.len() >= 2 && hms_parts.len() <= 3 {
-        let hour = hms_parts[0].parse::<u32>().ok()?;
-        let minute = hms_parts[1].parse::<u32>().ok()?;
-        let (second, millisecond) = if hms_parts.len() == 3 {
-            if hms_parts[2].contains('.') {
-                let sec_ms: Vec<&str> = hms_parts[2].split('.').collect();
-                let sec = sec_ms[0].parse::<u32>().ok()?;
-                let ms_str = sec_ms[1];
-                let ms = match ms_str.len() {
-                    1 => ms_str.parse::<u32>().unwrap_or(0) * 100,
-                    2 => ms_str.parse::<u32>().unwrap_or(0) * 10,
-                    3 => ms_str.parse::<u32>().unwrap_or(0),
-                    _ => ms_str[..3].parse::<u32>().unwrap_or(0),
-                };
-                (sec, ms)
-            } else {
-                (hms_parts[2].parse::<u32>().ok()?, 0)
+    for (name, dow) in matches {
+        if lower.starts_with(name) {
+            let len = name.len();
+            if s.len() == len || !s.as_bytes()[len].is_ascii_alphanumeric() {
+                return Some((dow, len));
             }
-        } else {
-            (0, 0)
-        };
-        let time = crate::Time::new(hour, minute, second, millisecond);
-        if time.is_valid() {
-            return Some((time, consumed_len));
         }
     }
     None
+}
+
+enum RelUnit {
+    Week,
+    Month,
+    Year,
+}
+
+fn parse_rel_unit(s: &str) -> Option<(RelUnit, usize)> {
+    let lower = s.to_ascii_lowercase();
+    let matches = [
+        ("months", RelUnit::Month),
+        ("month", RelUnit::Month),
+        ("weeks", RelUnit::Week),
+        ("week", RelUnit::Week),
+        ("years", RelUnit::Year),
+        ("year", RelUnit::Year),
+    ];
+
+    for (name, u) in matches {
+        if lower.starts_with(name) {
+            let len = name.len();
+            if s.len() == len || !s.as_bytes()[len].is_ascii_alphanumeric() {
+                return Some((u, len));
+            }
+        }
+    }
+    None
+}
+
+#[derive(Clone, Copy)]
+enum RelModifier {
+    Last,
+    Next,
+    This,
+}
+
+fn parse_rel_modifier(s: &str) -> Option<(RelModifier, usize)> {
+    let lower = s.to_ascii_lowercase();
+    let matches = [
+        ("previous", RelModifier::Last),
+        ("last", RelModifier::Last),
+        ("past", RelModifier::Last),
+        ("next", RelModifier::Next),
+        ("this", RelModifier::This),
+    ];
+
+    for (name, m) in matches {
+        if lower.starts_with(name) {
+            let len = name.len();
+            if s.len() == len || !s.as_bytes()[len].is_ascii_alphanumeric() {
+                return Some((m, len));
+            }
+        }
+    }
+    None
+}
+
+fn try_parse_relative_date_keyword(s: &str) -> Option<(crate::Date, usize)> {
+    let ref_date = crate::Date::today();
+    let today_dow = ref_date.day_of_week() as u32;
+
+    // 1. Check modifier + space + subject
+    if let Some((modifier, mod_len)) = parse_rel_modifier(s) {
+        let rest = s[mod_len..].trim_start();
+        let ws_len = s[mod_len..].len() - rest.len();
+        if ws_len > 0 {
+            if let Some((target_dow, sub_len)) = parse_weekday(rest) {
+                let target_dow_num = target_dow as u32;
+                let days_offset: i64 = match modifier {
+                    RelModifier::Last => {
+                        -(((today_dow as i32 - target_dow_num as i32 + 6).rem_euclid(7) + 1) as i64)
+                    }
+                    RelModifier::Next => {
+                        ((target_dow_num as i32 - today_dow as i32 + 6).rem_euclid(7) + 1) as i64
+                    }
+                    RelModifier::This => (target_dow_num as i32 - today_dow as i32) as i64,
+                };
+                let date = ref_date.add_days(days_offset);
+                return Some((date, mod_len + ws_len + sub_len));
+            }
+
+            if let Some((unit, sub_len)) = parse_rel_unit(rest) {
+                let date = match (modifier, unit) {
+                    (RelModifier::Last, RelUnit::Week) => ref_date.add_days(-7),
+                    (RelModifier::Last, RelUnit::Month) => ref_date.add_months(-1),
+                    (RelModifier::Last, RelUnit::Year) => ref_date.add_years(-1),
+                    (RelModifier::Next, RelUnit::Week) => ref_date.add_days(7),
+                    (RelModifier::Next, RelUnit::Month) => ref_date.add_months(1),
+                    (RelModifier::Next, RelUnit::Year) => ref_date.add_years(1),
+                    (RelModifier::This, _) => ref_date,
+                };
+                return Some((date, mod_len + ws_len + sub_len));
+            }
+        }
+    }
+
+    // 2. Standalone relative keywords
+    let lower = s.to_ascii_lowercase();
+    if lower.starts_with("today") && (s.len() == 5 || !s.as_bytes()[5].is_ascii_alphanumeric()) {
+        return Some((crate::Date::today(), 5));
+    }
+    if lower.starts_with("tomorrow") && (s.len() == 8 || !s.as_bytes()[8].is_ascii_alphanumeric()) {
+        return Some((crate::Date::tomorrow(), 8));
+    }
+    if lower.starts_with("yesterday") && (s.len() == 9 || !s.as_bytes()[9].is_ascii_alphanumeric()) {
+        return Some((crate::Date::yesterday(), 9));
+    }
+    if lower.starts_with("now") && (s.len() == 3 || !s.as_bytes()[3].is_ascii_alphanumeric()) {
+        return Some((crate::Date::now(), 3));
+    }
+
+    // 3. Bare weekday
+    if let Some((target_dow, sub_len)) = parse_weekday(s) {
+        let target_dow_num = target_dow as u32;
+        let days_offset = if target_dow_num == today_dow {
+            0
+        } else {
+            let add = (target_dow_num as i32 - today_dow as i32).rem_euclid(7);
+            (if add == 0 { 7 } else { add }) as i64
+        };
+        let date = ref_date.add_days(days_offset);
+        return Some((date, sub_len));
+    }
+
+    None
+}
+
+fn try_parse_time_spec(s: &str, has_at: bool) -> Option<(crate::Time, usize)> {
+    if s.is_empty() {
+        return None;
+    }
+
+    let mut char_indices = s.char_indices().peekable();
+    let &(start_idx, first_c) = char_indices.peek()?;
+    if !first_c.is_ascii_digit() {
+        return None;
+    }
+
+    let mut end_num1 = start_idx;
+    while let Some(&(idx, c)) = char_indices.peek() {
+        if c.is_ascii_digit() {
+            end_num1 = idx + 1;
+            char_indices.next();
+        } else {
+            break;
+        }
+    }
+
+    let hour_str = &s[start_idx..end_num1];
+    let mut hour = hour_str.parse::<u32>().ok()?;
+
+    let mut minute = 0u32;
+    let mut second = 0u32;
+    let mut millisecond = 0u32;
+    let mut current_end = end_num1;
+
+    let has_colon = char_indices.peek().map_or(false, |&(_, c)| c == ':');
+
+    if has_colon {
+        char_indices.next(); // consume ':'
+        let start_num2 = current_end + 1;
+        let mut end_num2 = start_num2;
+
+        while let Some(&(idx, c)) = char_indices.peek() {
+            if c.is_ascii_digit() {
+                end_num2 = idx + 1;
+                char_indices.next();
+            } else {
+                break;
+            }
+        }
+
+        if end_num2 == start_num2 {
+            return None;
+        }
+
+        minute = s[start_num2..end_num2].parse::<u32>().ok()?;
+        current_end = end_num2;
+
+        if char_indices.peek().map_or(false, |&(_, c)| c == ':') {
+            char_indices.next(); // consume ':'
+            let start_num3 = current_end + 1;
+            let mut end_num3 = start_num3;
+
+            while let Some(&(idx, c)) = char_indices.peek() {
+                if c.is_ascii_digit() {
+                    end_num3 = idx + 1;
+                    char_indices.next();
+                } else {
+                    break;
+                }
+            }
+
+            if end_num3 > start_num3 {
+                second = s[start_num3..end_num3].parse::<u32>().ok()?;
+                current_end = end_num3;
+
+                if char_indices.peek().map_or(false, |&(_, c)| c == '.') {
+                    let mut dot_lookahead = char_indices.clone();
+                    dot_lookahead.next();
+                    if dot_lookahead.peek().map_or(false, |&(_, c)| c.is_ascii_digit()) {
+                        char_indices.next(); // consume '.'
+                        let start_ms = current_end + 1;
+                        let mut end_ms = start_ms;
+                        while let Some(&(idx, c)) = char_indices.peek() {
+                            if c.is_ascii_digit() {
+                                end_ms = idx + 1;
+                                char_indices.next();
+                            } else {
+                                break;
+                            }
+                        }
+                        let ms_str = &s[start_ms..end_ms];
+                        millisecond = match ms_str.len() {
+                            1 => ms_str.parse::<u32>().unwrap_or(0) * 100,
+                            2 => ms_str.parse::<u32>().unwrap_or(0) * 10,
+                            3 => ms_str.parse::<u32>().unwrap_or(0),
+                            _ => ms_str[..3].parse::<u32>().unwrap_or(0),
+                        };
+                        current_end = end_ms;
+                    }
+                }
+            }
+        }
+    }
+
+    let after_time = &s[current_end..];
+    let trimmed = after_time.trim_start();
+    let ws_len = after_time.len() - trimmed.len();
+    let upper_trimmed = trimmed.to_ascii_uppercase();
+
+    let mut is_am_pm = false;
+    let mut is_pm = false;
+
+    if upper_trimmed.starts_with("AM") {
+        if trimmed.len() == 2 || !trimmed.as_bytes()[2].is_ascii_alphanumeric() {
+            is_am_pm = true;
+            is_pm = false;
+            current_end += ws_len + 2;
+        }
+    } else if upper_trimmed.starts_with("PM") {
+        if trimmed.len() == 2 || !trimmed.as_bytes()[2].is_ascii_alphanumeric() {
+            is_am_pm = true;
+            is_pm = true;
+            current_end += ws_len + 2;
+        }
+    }
+
+    if is_am_pm {
+        if hour == 0 || hour > 12 {
+            return None;
+        }
+        if is_pm && hour < 12 {
+            hour += 12;
+        } else if !is_pm && hour == 12 {
+            hour = 0;
+        }
+    } else {
+        if !has_colon && !has_at {
+            return None;
+        }
+    }
+
+    let time = crate::Time::new(hour, minute, second, millisecond);
+    if time.is_valid() {
+        Some((time, current_end))
+    } else {
+        None
+    }
 }
 
 fn try_parse_date_literal(remaining: &str) -> Option<(crate::Date, usize)> {
@@ -51,59 +318,26 @@ fn try_parse_date_literal(remaining: &str) -> Option<(crate::Date, usize)> {
         return None;
     }
 
-    let lower = remaining.to_ascii_lowercase();
-    let (rel_date, kw_len) = if lower.starts_with("today")
-        && (remaining.len() == 5 || !remaining.as_bytes()[5].is_ascii_alphanumeric())
-    {
-        (Some(crate::Date::today()), 5)
-    } else if lower.starts_with("tomorrow")
-        && (remaining.len() == 8 || !remaining.as_bytes()[8].is_ascii_alphanumeric())
-    {
-        (Some(crate::Date::tomorrow()), 8)
-    } else if lower.starts_with("yesterday")
-        && (remaining.len() == 9 || !remaining.as_bytes()[9].is_ascii_alphanumeric())
-    {
-        (Some(crate::Date::yesterday()), 9)
-    } else if lower.starts_with("now")
-        && (remaining.len() == 3 || !remaining.as_bytes()[3].is_ascii_alphanumeric())
-    {
-        (Some(crate::Date::now()), 3)
-    } else {
-        (None, 0)
-    };
-
-    if let Some(mut date) = rel_date {
+    if let Some((mut date, kw_len)) = try_parse_relative_date_keyword(remaining) {
         let mut end_idx = kw_len;
         let rest = remaining[end_idx..].trim_start();
-        let skipped_ws = (remaining[end_idx..].len()) - rest.len();
+        let skipped_ws = remaining[end_idx..].len() - rest.len();
 
         let rest_lower = rest.to_ascii_lowercase();
-        let time_rest = if rest_lower.starts_with("at ") || rest_lower.starts_with("at\t") {
-            rest[3..].trim_start()
+        let (has_at, time_rest) = if rest_lower.starts_with("at ")
+            || rest_lower.starts_with("at\t")
+            || rest_lower.starts_with("at\n")
+        {
+            (true, rest[2..].trim_start())
         } else {
-            rest
+            (false, rest)
         };
 
         let time_skipped = rest.len() - time_rest.len();
-        if let Some((time, time_len)) = try_parse_time_from_str(time_rest) {
+
+        if let Some((time, time_len)) = try_parse_time_spec(time_rest, has_at) {
             date.time = time;
             end_idx += skipped_ws + time_skipped + time_len;
-
-            // Check optional AM/PM
-            let after_time = remaining[end_idx..].trim_start();
-            let after_time_skipped = remaining[end_idx..].len() - after_time.len();
-            let upper_after = after_time.to_ascii_uppercase();
-            if upper_after.starts_with("AM") || upper_after.starts_with("PM") {
-                if let Some(next_word) = after_time.split_whitespace().next() {
-                    let is_pm = upper_after.starts_with("PM");
-                    if is_pm && date.time.hour < 12 {
-                        date.time.hour += 12;
-                    } else if !is_pm && date.time.hour == 12 {
-                        date.time.hour = 0;
-                    }
-                    end_idx += after_time_skipped + next_word.len();
-                }
-            }
 
             // Check optional timezone
             let after_tz = remaining[end_idx..].trim_start();
@@ -119,47 +353,26 @@ fn try_parse_date_literal(remaining: &str) -> Option<(crate::Date, usize)> {
         return Some((date, end_idx));
     }
 
-    // Check standalone time string like "12:00", "1:00 PM", "14:30:00"
-    let chars: Vec<char> = remaining.chars().collect();
-    if !chars.is_empty() && chars[0].is_ascii_digit() {
-        let mut has_colon = false;
-        let mut has_date_sep = false;
-        let mut i = 0;
-        while i < chars.len() && !chars[i].is_whitespace() {
-            if chars[i] == ':' {
-                has_colon = true;
-            }
-            if chars[i] == '-' || chars[i] == '/' {
-                has_date_sep = true;
-            }
-            i += 1;
-        }
-        if has_colon && !has_date_sep {
-            let mut date = crate::Date::today();
-            if let Some((time, time_len)) = try_parse_time_from_str(&remaining[..i]) {
-                date.time = time;
-                let mut end_idx = time_len;
+    // Standalone time literal: e.g. "3pm", "3 PM", "15:00"
+    if let Some((time, time_len)) = try_parse_time_spec(remaining, false) {
+        let mut date = crate::Date::today();
+        date.time = time;
+        let mut end_idx = time_len;
 
-                // Check optional AM/PM
-                let rest = remaining[end_idx..].trim_start();
-                let skipped_ws = remaining[end_idx..].len() - rest.len();
-                let upper_rest = rest.to_ascii_uppercase();
-                if upper_rest.starts_with("AM") || upper_rest.starts_with("PM") {
-                    if let Some(next_word) = rest.split_whitespace().next() {
-                        let is_pm = upper_rest.starts_with("PM");
-                        if is_pm && date.time.hour < 12 {
-                            date.time.hour += 12;
-                        } else if !is_pm && date.time.hour == 12 {
-                            date.time.hour = 0;
-                        }
-                        end_idx += skipped_ws + next_word.len();
-                    }
-                }
-                return Some((date, end_idx));
+        let after_tz = remaining[end_idx..].trim_start();
+        let after_tz_skipped = remaining[end_idx..].len() - after_tz.len();
+        if let Some(next_word) = after_tz.split_whitespace().next() {
+            if crate::units::date::TimeZone::parse(next_word).is_ok() {
+                let tz = crate::units::date::TimeZone::parse(next_word).unwrap();
+                date.timezone = Some(tz);
+                end_idx += after_tz_skipped + next_word.len();
             }
         }
+        return Some((date, end_idx));
     }
 
+    // Check numeric date literals (e.g. YYYY-MM-DD, DD-MM-YYYY)
+    let chars: Vec<char> = remaining.chars().collect();
     if chars.is_empty() || !chars[0].is_ascii_digit() {
         return None;
     }
@@ -204,41 +417,16 @@ fn try_parse_date_literal(remaining: &str) -> Option<(crate::Date, usize)> {
 
     let mut end_idx = idx;
     if end_idx < chars.len() && (chars[end_idx] == ' ' || chars[end_idx] == 'T') {
-        let mut time_idx = end_idx + 1;
-        let mut has_colon = false;
-        while time_idx < chars.len() {
-            let tc = chars[time_idx];
-            if tc.is_ascii_digit() || tc == ':' || tc == '.' {
-                if tc == ':' {
-                    has_colon = true;
+        let rest = remaining[end_idx + 1..].trim_start();
+        let skipped = remaining[end_idx..].len() - rest.len();
+        if let Some((_time, time_len)) = try_parse_time_spec(rest, false) {
+            end_idx += skipped + time_len;
+            let after_tz = remaining[end_idx..].trim_start();
+            let after_tz_skipped = remaining[end_idx..].len() - after_tz.len();
+            if let Some(next_word) = after_tz.split_whitespace().next() {
+                if crate::units::date::TimeZone::parse(next_word).is_ok() {
+                    end_idx += after_tz_skipped + next_word.len();
                 }
-                time_idx += 1;
-            } else {
-                break;
-            }
-        }
-        if has_colon {
-            end_idx = time_idx;
-        }
-    }
-
-    // Check optional AM/PM designator
-    if end_idx < chars.len() && chars[end_idx] == ' ' {
-        let rest = remaining[end_idx..].trim_start();
-        let upper_rest = rest.to_ascii_uppercase();
-        if upper_rest.starts_with("AM") || upper_rest.starts_with("PM") {
-            if let Some(next_word) = rest.split_whitespace().next() {
-                end_idx += (remaining[end_idx..].len() - rest.len()) + next_word.len();
-            }
-        }
-    }
-
-    // Check optional timezone token (e.g. EST, PST, UTC, +05:30)
-    if end_idx < chars.len() && chars[end_idx] == ' ' {
-        let rest = remaining[end_idx..].trim_start();
-        if let Some(next_word) = rest.split_whitespace().next() {
-            if crate::units::date::TimeZone::parse(next_word).is_ok() {
-                end_idx += (remaining[end_idx..].len() - rest.len()) + next_word.len();
             }
         }
     }

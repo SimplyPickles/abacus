@@ -202,7 +202,10 @@ pub fn register_derived_units(map: &mut HashMap<String, Arc<Unit>>) {
         });
 
         map.insert(def.name.to_string(), Arc::clone(&base_unit));
-        map.insert(def.alias.to_string(), base_unit);
+        map.insert(def.alias.to_string(), Arc::clone(&base_unit));
+        if !def.name.ends_with('s') {
+            map.insert(format!("{}s", def.name), Arc::clone(&base_unit));
+        }
 
         if def.prefixable {
             for pref in METRIC_PREFIXES {
@@ -214,7 +217,10 @@ pub fn register_derived_units(map: &mut HashMap<String, Arc<Unit>>) {
                 });
 
                 map.insert(format!("{}{}", pref.name, def.name), Arc::clone(&pref_unit));
-                map.insert(format!("{}{}", pref.alias, def.alias), pref_unit);
+                map.insert(format!("{}{}", pref.alias, def.alias), Arc::clone(&pref_unit));
+                if !def.name.ends_with('s') {
+                    map.insert(format!("{}{}s", pref.name, def.name), Arc::clone(&pref_unit));
+                }
             }
         }
     }
