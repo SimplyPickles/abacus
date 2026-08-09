@@ -338,13 +338,54 @@ pub fn epoch_days_to_date(epoch_days: i64) -> (i32, u32, u32) {
 }
 
 /// Structure representing a calendar Date with Time and optional TimeZone.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone)]
 pub struct Date {
     pub year: i32,
     pub month: u32,
     pub day: u32,
     pub time: Time,
     pub timezone: Option<TimeZone>,
+    pub format: DateFormat,
+}
+
+impl PartialEq for Date {
+    fn eq(&self, other: &Self) -> bool {
+        self.year == other.year
+            && self.month == other.month
+            && self.day == other.day
+            && self.time == other.time
+            && self.timezone == other.timezone
+    }
+}
+
+impl Eq for Date {}
+
+impl PartialOrd for Date {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Date {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        (self.year, self.month, self.day, &self.time, &self.timezone).cmp(&(
+            other.year,
+            other.month,
+            other.day,
+            &other.time,
+            &other.timezone,
+        ))
+    }
+}
+
+impl std::hash::Hash for Date {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.year.hash(state);
+        self.month.hash(state);
+        self.day.hash(state);
+        self.time.hash(state);
+        self.timezone.hash(state);
+    }
 }
 
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -377,6 +418,7 @@ impl Date {
             day,
             time: Time::default(),
             timezone: None,
+            format: DateFormat::default(),
         }
     }
 
@@ -387,11 +429,17 @@ impl Date {
             day,
             time,
             timezone: None,
+            format: DateFormat::default(),
         }
     }
 
     pub fn with_timezone(mut self, tz: TimeZone) -> Self {
         self.timezone = Some(tz);
+        self
+    }
+
+    pub fn with_format(mut self, format: DateFormat) -> Self {
+        self.format = format;
         self
     }
 
@@ -409,6 +457,7 @@ impl Date {
             day,
             time: Time::from_hms(hour, minute, second),
             timezone: None,
+            format: DateFormat::default(),
         }
     }
 
@@ -427,6 +476,7 @@ impl Date {
             day,
             time: Time::new(hour, minute, second, millisecond),
             timezone: None,
+            format: DateFormat::default(),
         }
     }
 
@@ -480,6 +530,7 @@ impl Date {
             day,
             time,
             timezone: None,
+            format: DateFormat::default(),
         }
     }
 
@@ -492,6 +543,7 @@ impl Date {
             let utc_ms = self.to_epoch_milliseconds();
             let mut d = Self::from_epoch_milliseconds(utc_ms);
             d.timezone = Some(TimeZone::utc());
+            d.format = self.format;
             d
         } else {
             self.clone()
@@ -503,6 +555,7 @@ impl Date {
         let target_ms = utc_ms + (target_tz.offset_minutes as i64 * 60_000);
         let mut d = Self::from_epoch_milliseconds(target_ms);
         d.timezone = Some(target_tz.clone());
+        d.format = self.format;
         d
     }
 
@@ -513,9 +566,12 @@ impl Date {
             let target_ms = utc_ms + (tz.offset_minutes as i64 * 60_000);
             let mut d = Self::from_epoch_milliseconds(target_ms);
             d.timezone = Some(tz.clone());
+            d.format = self.format;
             d
         } else {
-            Self::from_epoch_milliseconds(self.to_epoch_milliseconds() + ms)
+            let mut d = Self::from_epoch_milliseconds(self.to_epoch_milliseconds() + ms);
+            d.format = self.format;
+            d
         }
     }
 
@@ -553,6 +609,7 @@ impl Date {
             day: new_day,
             time: self.time,
             timezone: self.timezone.clone(),
+            format: self.format,
         }
     }
 
@@ -597,11 +654,11 @@ impl Date {
     }
 
     pub fn format(&self) -> String {
-        self.format_with_style(DateFormat::DDMMYYYY)
+        self.format_with_style(self.format)
     }
 
     pub fn format_iso(&self) -> String {
-        self.format_with_style(DateFormat::DDMMYYYY)
+        self.format_with_style(DateFormat::YYYYMMDD)
     }
     pub fn is_weekend(&self) -> bool {
         matches!(self.day_of_week(), DayOfWeek::Saturday | DayOfWeek::Sunday)
@@ -676,7 +733,7 @@ impl Default for Date {
 
 impl fmt::Display for Date {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.format_with_style(DateFormat::DDMMYYYY))
+        write!(f, "{}", self.format())
     }
 }
 

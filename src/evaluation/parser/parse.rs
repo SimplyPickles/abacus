@@ -584,6 +584,29 @@ impl<'a> Parser<'a> {
                     }
                 }
 
+                if name == "format_date" {
+                    if let Some(EvalResult::Date(d)) = raw_args.first() {
+                        let style = if raw_args.len() == 2 {
+                            let fmt_str = match &raw_args[1] {
+                                EvalResult::Scalar(v) => v.to_units_display().to_ascii_uppercase(),
+                                other => other.to_display().to_ascii_uppercase(),
+                            };
+                            if fmt_str.contains("YYYY") && fmt_str.starts_with("Y") {
+                                crate::units::date::DateFormat::YYYYMMDD
+                            } else if fmt_str.starts_with("M") {
+                                crate::units::date::DateFormat::MMDDYYYY
+                            } else {
+                                crate::units::date::DateFormat::DDMMYYYY
+                            }
+                        } else {
+                            crate::units::date::DateFormat::DDMMYYYY
+                        };
+                        let mut formatted_d = d.clone();
+                        formatted_d.format = style;
+                        return Ok(EvalResult::Date(formatted_d));
+                    }
+                }
+
                 if raw_args.len() == 2 && (name == "workdays" || name == "business_days") {
                     if let (EvalResult::Date(d1), EvalResult::Date(d2)) =
                         (&raw_args[0], &raw_args[1])
@@ -1236,5 +1259,21 @@ mod tests {
         assert_eq!(eval("10 % 3").unwrap(), "1");
         assert_eq!(eval("10 m % 3 m").unwrap(), "1 m");
         assert_eq!(eval("10 cm % 3").unwrap(), "1 cm");
+    }
+
+    #[test]
+    fn tests_human_duration_formatting_and_format_date() {
+        use crate::units::value::format_human_duration;
+        assert_eq!(format_human_duration(9000.0), "2 hours, 30 minutes");
+        assert_eq!(format_human_duration(27900.0), "7 hours, 45 minutes");
+        assert_eq!(format_human_duration(3600.0), "1 hour");
+        assert_eq!(format_human_duration(60.0), "1 minute");
+
+        let abacus = crate::Abacus::standard();
+        let date_val = abacus.eval_date("07-08-2026").unwrap();
+        assert_eq!(abacus.format_date(&date_val), "07-08-2026");
+
+        let iso_abacus = abacus.with_date_format(crate::units::date::DateFormat::YYYYMMDD);
+        assert_eq!(iso_abacus.format_date(&date_val), "2026-08-07");
     }
 }

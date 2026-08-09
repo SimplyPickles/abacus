@@ -56,5 +56,6 @@ pub fn register_date_functions() -> Vec<FunctionOp> {
         FunctionOp::eval_result("is_business_day", 1, 1, date_property_dummy),
         FunctionOp::eval_result("workdays", 2, 2, date_property_dummy),
         FunctionOp::eval_result("business_days", 2, 2, date_property_dummy),
+        FunctionOp::eval_result("format_date", 1, 2, date_property_dummy),
     ]
 }

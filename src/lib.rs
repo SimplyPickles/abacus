@@ -67,7 +67,11 @@ impl Abacus {
     }
 
     pub fn eval(&self, expr: &str) -> Result<EvalResult, AbacusError> {
-        evaluate(&self.tokens, &self.units, expr)
+        let mut res = evaluate(&self.tokens, &self.units, expr)?;
+        if let EvalResult::Date(ref mut d) = res {
+            d.format = self.date_format;
+        }
+        Ok(res)
     }
 
     /// Evaluate an expression, returning only scalar results.
@@ -86,6 +90,14 @@ impl Abacus {
     /// Returns an error if the result is not a Date.
     pub fn eval_date(&self, expr: &str) -> Result<Date, AbacusError> {
         self.eval(expr)?.into_date()
+    }
+
+    pub fn format_date(&self, date: &Date) -> String {
+        date.format_with_style(self.date_format)
+    }
+
+    pub fn format_date_with_style(&self, date: &Date, style: DateFormat) -> String {
+        date.format_with_style(style)
     }
 
     pub fn register_unit(&mut self, alias: &str, unit: Unit) {

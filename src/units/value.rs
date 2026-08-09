@@ -87,6 +87,58 @@ impl Value {
             .simplify_display_with(|sym| unit_registry.get(sym));
         self.unit = Arc::new(unit);
     }
+
+    pub fn to_human_display(&self) -> String {
+        if self.unit.dimensions == crate::units::dimensions::Dimensions::TIME {
+            format_human_duration(self.canonical)
+        } else {
+            self.to_display()
+        }
+    }
+}
+
+pub fn format_human_duration(seconds_f64: f64) -> String {
+    let is_negative = seconds_f64 < 0.0;
+    let mut total = seconds_f64.abs().round() as i64;
+    if total == 0 {
+        return "0 seconds".to_string();
+    }
+
+    let years = total / 31_536_000;
+    total %= 31_536_000;
+
+    let days = total / 86_400;
+    total %= 86_400;
+
+    let hours = total / 3_600;
+    total %= 3_600;
+
+    let minutes = total / 60;
+    let seconds = total % 60;
+
+    let mut parts = Vec::new();
+    if years > 0 {
+        parts.push(format!("{} year{}", years, if years == 1 { "" } else { "s" }));
+    }
+    if days > 0 {
+        parts.push(format!("{} day{}", days, if days == 1 { "" } else { "s" }));
+    }
+    if hours > 0 {
+        parts.push(format!("{} hour{}", hours, if hours == 1 { "" } else { "s" }));
+    }
+    if minutes > 0 {
+        parts.push(format!("{} minute{}", minutes, if minutes == 1 { "" } else { "s" }));
+    }
+    if seconds > 0 {
+        parts.push(format!("{} second{}", seconds, if seconds == 1 { "" } else { "s" }));
+    }
+
+    let result = parts.join(", ");
+    if is_negative {
+        format!("-{result}")
+    } else {
+        result
+    }
 }
 
 impl fmt::Display for Value {

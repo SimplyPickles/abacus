@@ -210,7 +210,10 @@ fn main() {
 
                 match calc.eval(trimmed) {
                     Ok(result) => {
-                        println!("\x1b[38;2;139;233;253m{}\x1b[0m", result.to_display());
+                        println!(
+                            "\x1b[38;2;139;233;253m{}\x1b[0m",
+                            format_repl_result(&result)
+                        );
                     }
                     Err(err) => {
                         println!("\x1b[31mError: {}\x1b[0m", err);
@@ -230,5 +233,28 @@ fn main() {
                 break;
             }
         }
+    }
+}
+
+fn format_repl_result(result: &abacus::units::interval::EvalResult) -> String {
+    match result {
+        abacus::units::interval::EvalResult::Scalar(v) => {
+            if v.unit.dimensions == abacus::units::dimensions::Dimensions::TIME
+                && (v.unit.display.render() == "s"
+                    || v.unit.display.render() == "h"
+                    || v.unit.display.render() == "min"
+                    || v.unit.display.render() == "d"
+                    || v.unit.display.render() == "minute"
+                    || v.unit.display.render() == "hour"
+                    || v.unit.display.render() == "second"
+                    || v.unit.display.render() == "day"
+                    || v.unit.display.render().is_empty())
+            {
+                abacus::units::value::format_human_duration(v.canonical)
+            } else {
+                v.to_display()
+            }
+        }
+        other => other.to_display(),
     }
 }
