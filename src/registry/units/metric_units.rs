@@ -106,6 +106,17 @@ pub fn register_metric_units() -> HashMap<String, Arc<Unit>> {
         map.insert(alias.to_string(), Arc::clone(&celsius));
     }
 
+    let percent = Arc::new(Unit {
+        scalar: 0.01,
+        offset: 0.0,
+        dimensions: Dimensions::DIMENSIONLESS,
+        display: UnitExpr::single("%"),
+    });
+
+    map.insert("%".to_string(), Arc::clone(&percent));
+    map.insert("percent".to_string(), Arc::clone(&percent));
+    map.insert("pct".to_string(), Arc::clone(&percent));
+
     if let Some(sec_unit) = map.get("s").cloned() {
         map.insert("seconds".to_string(), sec_unit.clone());
         map.insert("second".to_string(), sec_unit);
@@ -172,14 +183,8 @@ pub fn register_metric_units() -> HashMap<String, Arc<Unit>> {
                 Arc::clone(&pref_unit),
             );
             if base.name == "meter" {
-                map.insert(
-                    format!("{}metre", pref.name),
-                    Arc::clone(&pref_unit),
-                );
-                map.insert(
-                    format!("{}metres", pref.name),
-                    Arc::clone(&pref_unit),
-                );
+                map.insert(format!("{}metre", pref.name), Arc::clone(&pref_unit));
+                map.insert(format!("{}metres", pref.name), Arc::clone(&pref_unit));
             }
         }
     }

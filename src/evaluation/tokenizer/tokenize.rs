@@ -146,7 +146,8 @@ fn try_parse_relative_date_keyword(s: &str) -> Option<(crate::Date, usize)> {
     if lower.starts_with("tmr") && (s.len() == 3 || !s.as_bytes()[3].is_ascii_alphanumeric()) {
         return Some((crate::Date::tomorrow(), 3));
     }
-    if lower.starts_with("yesterday") && (s.len() == 9 || !s.as_bytes()[9].is_ascii_alphanumeric()) {
+    if lower.starts_with("yesterday") && (s.len() == 9 || !s.as_bytes()[9].is_ascii_alphanumeric())
+    {
         return Some((crate::Date::yesterday(), 9));
     }
     if lower.starts_with("now") && (s.len() == 3 || !s.as_bytes()[3].is_ascii_alphanumeric()) {
@@ -242,7 +243,10 @@ fn try_parse_time_spec(s: &str, has_at: bool) -> Option<(crate::Time, usize)> {
                 if char_indices.peek().map_or(false, |&(_, c)| c == '.') {
                     let mut dot_lookahead = char_indices.clone();
                     dot_lookahead.next();
-                    if dot_lookahead.peek().map_or(false, |&(_, c)| c.is_ascii_digit()) {
+                    if dot_lookahead
+                        .peek()
+                        .map_or(false, |&(_, c)| c.is_ascii_digit())
+                    {
                         char_indices.next(); // consume '.'
                         let start_ms = current_end + 1;
                         let mut end_ms = start_ms;
@@ -641,6 +645,18 @@ pub fn tokenize_string<'a>(
 
         for (alias, op) in &token_registry.binary_operators {
             if remaining.starts_with(alias.as_str()) {
+                if alias.as_str() == "%" {
+                    let after = remaining[1..].trim_start();
+                    let is_of = after.to_ascii_lowercase().starts_with("of")
+                        && (after.len() == 2 || !after.as_bytes()[2].is_ascii_alphanumeric());
+                    if is_of {
+                        continue;
+                    }
+                    let starts_expr = after.starts_with(|c: char| c.is_ascii_digit() || c == '(');
+                    if !starts_expr {
+                        continue;
+                    }
+                }
                 if let Some(last_char) = alias.chars().last() {
                     if last_char.is_alphanumeric() || last_char == '_' {
                         let next_slice = &remaining[alias.len()..];
@@ -818,7 +834,12 @@ pub fn tokenize_string<'a>(
 
             // Check if immediately followed by an unspaced unit identifier (e.g. 5km, 10m, 1s^-1)
             if let Some(&(unit_start, unit_c)) = chars.peek() {
-                if unit_c.is_alphabetic() || unit_c == '°' || unit_c == 'Å' || unit_c == 'Ω' {
+                if unit_c.is_alphabetic()
+                    || unit_c == '°'
+                    || unit_c == 'Å'
+                    || unit_c == 'Ω'
+                    || unit_c == '%'
+                {
                     let mut unit_end = unit_start;
                     let mut unit_chars = chars.clone();
                     while let Some((idx, sym_c)) = unit_chars.peek().cloned() {
@@ -827,6 +848,7 @@ pub fn tokenize_string<'a>(
                             || sym_c == '°'
                             || sym_c == 'Å'
                             || sym_c == 'Ω'
+                            || sym_c == '%'
                         {
                             unit_end = idx + sym_c.len_utf8();
                             unit_chars.next();
@@ -865,7 +887,7 @@ pub fn tokenize_string<'a>(
         }
 
         // Identifiers (units, conversion operators, named unary ops like sqrt)
-        if c.is_alphabetic() || c == '_' || c == '°' || c == 'Å' || c == 'Ω' {
+        if c.is_alphabetic() || c == '_' || c == '°' || c == 'Å' || c == 'Ω' || c == '%' {
             let start = i;
             let mut end = i;
             while let Some(&(idx, sym_c)) = chars.peek() {
@@ -874,6 +896,7 @@ pub fn tokenize_string<'a>(
                     || sym_c == '°'
                     || sym_c == 'Å'
                     || sym_c == 'Ω'
+                    || sym_c == '%'
                 {
                     end = idx + sym_c.len_utf8();
                     chars.next();
@@ -910,7 +933,21 @@ pub fn tokenize_string<'a>(
                     tokens.push(Token::Unit(sym));
                 }
             } else if let Some(op) = token_registry.binary_operators.get(sym) {
-                tokens.push(Token::BinaryOp(op.alias));
+                if sym == "%" {
+                    let after = input_text[end..].trim_start();
+                    let is_of = after.to_ascii_lowercase().starts_with("of")
+                        && (after.len() == 2 || !after.as_bytes()[2].is_ascii_alphanumeric());
+                    let starts_expr = after.starts_with(|c: char| c.is_ascii_digit() || c == '(');
+                    if !is_of && starts_expr {
+                        tokens.push(Token::BinaryOp(op.alias));
+                    } else if unit_registry.contains(sym) {
+                        tokens.push(Token::Unit(sym));
+                    } else {
+                        tokens.push(Token::BinaryOp(op.alias));
+                    }
+                } else {
+                    tokens.push(Token::BinaryOp(op.alias));
+                }
             } else if let Some(op) = token_registry.unary_operators.get(sym) {
                 tokens.push(Token::UnaryOp(op.alias));
             } else if unit_registry.contains(sym) {

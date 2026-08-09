@@ -181,6 +181,12 @@ impl Unit {
     pub fn is_dimensionless(&self) -> bool {
         self.dimensions == Dimensions::DIMENSIONLESS
     }
+
+    pub fn is_percent(&self) -> bool {
+        self.is_dimensionless()
+            && (self.display.render() == "%"
+                || (self.display.numerator.len() == 1 && self.display.numerator[0] == "%"))
+    }
 }
 
 #[cfg(test)]

@@ -104,6 +104,19 @@ impl Add<&Value> for &Value {
             return Err(AbacusError::AffineUnitOperation("add"));
         }
 
+        if rhs.unit.is_percent() && !self.unit.is_percent() {
+            return Ok(Value {
+                canonical: self.canonical * (1.0 + rhs.canonical),
+                unit: Arc::clone(&self.unit),
+            });
+        }
+        if self.unit.is_percent() && !rhs.unit.is_percent() {
+            return Ok(Value {
+                canonical: rhs.canonical * (1.0 + self.canonical),
+                unit: Arc::clone(&rhs.unit),
+            });
+        }
+
         if !self.unit.is_compatible_with(&rhs.unit) {
             if rhs.unit.is_dimensionless() && !self.unit.is_dimensionless() {
                 let rhs_amount = (rhs.canonical - rhs.unit.offset) / rhs.unit.scalar;
@@ -158,6 +171,13 @@ impl Sub<&Value> for &Value {
     fn sub(self, rhs: &Value) -> Self::Output {
         if self.unit.is_affine() || rhs.unit.is_affine() {
             return Err(AbacusError::AffineUnitOperation("subtract"));
+        }
+
+        if rhs.unit.is_percent() && !self.unit.is_percent() {
+            return Ok(Value {
+                canonical: self.canonical * (1.0 - rhs.canonical),
+                unit: Arc::clone(&self.unit),
+            });
         }
 
         if !self.unit.is_compatible_with(&rhs.unit) {
@@ -216,6 +236,19 @@ impl Mul<&Value> for &Value {
             return Err(AbacusError::AffineUnitOperation("multiply"));
         }
 
+        if self.unit.is_percent() && !rhs.unit.is_percent() {
+            return Ok(Value {
+                canonical: self.canonical * rhs.canonical,
+                unit: Arc::clone(&rhs.unit),
+            });
+        }
+        if rhs.unit.is_percent() && !self.unit.is_percent() {
+            return Ok(Value {
+                canonical: self.canonical * rhs.canonical,
+                unit: Arc::clone(&self.unit),
+            });
+        }
+
         let unit = Unit {
             scalar: self.unit.scalar * rhs.unit.scalar,
             offset: 0.0,
@@ -258,6 +291,19 @@ impl Div<&Value> for &Value {
     fn div(self, rhs: &Value) -> Self::Output {
         if self.unit.is_affine() || rhs.unit.is_affine() {
             return Err(AbacusError::AffineUnitOperation("divide"));
+        }
+
+        if rhs.unit.is_percent() && !self.unit.is_percent() {
+            return Ok(Value {
+                canonical: self.canonical / rhs.canonical,
+                unit: Arc::clone(&self.unit),
+            });
+        }
+        if self.unit.is_percent() && !rhs.unit.is_percent() {
+            return Ok(Value {
+                canonical: self.canonical / rhs.canonical,
+                unit: Arc::clone(&self.unit),
+            });
         }
 
         let unit = Unit {

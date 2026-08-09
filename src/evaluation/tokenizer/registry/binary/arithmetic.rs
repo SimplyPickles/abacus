@@ -52,6 +52,10 @@ fn rem(a: Value, b: Value) -> Result<Value, AbacusError> {
     crate::evaluation::tokenizer::registry::function::math_helpers::compute_modulo(&a, &b)
 }
 
+fn percent_of(a: Value, b: Value) -> Result<Value, AbacusError> {
+    a * b
+}
+
 pub fn register_arithmetic() -> Vec<BinaryOp> {
     vec![
         BinaryOp {
@@ -81,6 +85,12 @@ pub fn register_arithmetic() -> Vec<BinaryOp> {
         BinaryOp {
             alias: "%",
             func: rem,
+            precedence: 1,
+            right_associative: false,
+        },
+        BinaryOp {
+            alias: "of",
+            func: percent_of,
             precedence: 1,
             right_associative: false,
         },

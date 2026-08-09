@@ -101,7 +101,9 @@ fn test_relative_date_arithmetic_with_last_thursday() {
     let hour = abacus.eval_scalar("last thursday at 3pm.hour").unwrap();
     assert_eq!(hour.canonical, 15.0);
 
-    let dow = abacus.eval_scalar("last thursday at 3pm.day_of_week").unwrap();
+    let dow = abacus
+        .eval_scalar("last thursday at 3pm.day_of_week")
+        .unwrap();
     assert_eq!(dow.canonical, 4.0); // Thursday = 4
 }
 

@@ -217,9 +217,15 @@ pub fn register_derived_units(map: &mut HashMap<String, Arc<Unit>>) {
                 });
 
                 map.insert(format!("{}{}", pref.name, def.name), Arc::clone(&pref_unit));
-                map.insert(format!("{}{}", pref.alias, def.alias), Arc::clone(&pref_unit));
+                map.insert(
+                    format!("{}{}", pref.alias, def.alias),
+                    Arc::clone(&pref_unit),
+                );
                 if !def.name.ends_with('s') {
-                    map.insert(format!("{}{}s", pref.name, def.name), Arc::clone(&pref_unit));
+                    map.insert(
+                        format!("{}{}s", pref.name, def.name),
+                        Arc::clone(&pref_unit),
+                    );
                 }
             }
         }

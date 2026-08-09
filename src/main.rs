@@ -165,14 +165,8 @@ fn main() -> Result<(), AbacusError> {
         calc.eval("3 hours before last thursday at 3pm")?
             .to_display()
     );
-    println!(
-        "3 hours ago = {}",
-        calc.eval("3 hours ago")?.to_display()
-    );
-    println!(
-        "in 3 hours = {}",
-        calc.eval("in 3 hours")?.to_display()
-    );
+    println!("3 hours ago = {}", calc.eval("3 hours ago")?.to_display());
+    println!("in 3 hours = {}", calc.eval("in 3 hours")?.to_display());
     println!(
         "date(2026, 8, 7, 10, 54, 49) = {}\n",
         calc.eval("date(2026, 8, 7, 10, 54, 49)")?.to_display()

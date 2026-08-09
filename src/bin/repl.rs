@@ -29,7 +29,12 @@ impl Highlighter for AbacusHelper {
         highlight_syntax(line).into()
     }
 
-    fn highlight_char(&self, _line: &str, _pos: usize, _kind: rustyline::highlight::CmdKind) -> bool {
+    fn highlight_char(
+        &self,
+        _line: &str,
+        _pos: usize,
+        _kind: rustyline::highlight::CmdKind,
+    ) -> bool {
         true
     }
 }
@@ -75,8 +80,8 @@ fn highlight_syntax(line: &str) -> String {
                 match word.to_lowercase().as_str() {
                     // Functions & constants
                     "sin" | "cos" | "tan" | "asin" | "acos" | "atan" | "sqrt" | "log" | "ln"
-                    | "exp" | "abs" | "ceil" | "floor" | "round" | "min" | "max" | "sum" | "avg"
-                    | "mean" | "std" | "e" | "pi" => {
+                    | "exp" | "abs" | "ceil" | "floor" | "round" | "min" | "max" | "sum"
+                    | "avg" | "mean" | "std" | "e" | "pi" => {
                         result.push_str("\x1b[38;2;139;233;253m"); // Lime Green Function
                         result.push_str(word);
                         result.push_str("\x1b[0m");
@@ -85,7 +90,8 @@ fn highlight_syntax(line: &str) -> String {
                     "last" | "next" | "this" | "today" | "tomorrow" | "yesterday" | "monday"
                     | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday"
                     | "january" | "february" | "march" | "april" | "may" | "june" | "july"
-                    | "august" | "september" | "october" | "november" | "december" | "pm" | "am" => {
+                    | "august" | "september" | "october" | "november" | "december" | "pm"
+                    | "am" => {
                         result.push_str("\x1b[38;2;80;250;123m"); // Teal Date Keyword
                         result.push_str(word);
                         result.push_str("\x1b[0m");
@@ -130,10 +136,18 @@ fn print_welcome_banner() {
     println!(" \x1b[1;34mType physical math expressions, date calculations, etc.\x1b[0m   ");
     println!(" \x1b[90mUse ↑/↓ Arrow Keys to navigate command history.\x1b[0m            ");
     println!(" \x1b[1;33mExamples:\x1b[0m                                                 ");
-    println!("    • \x1b[38;2;241;196;15m14 meters to inches\x1b[0m                               ");
-    println!("    • \x1b[38;2;139;233;253msin(30deg)\x1b[0m                                          ");
-    println!("    • \x1b[38;2;80;250;123mlast thursday at 3pm\x1b[0m                                 ");
-    println!("    • \x1b[38;2;139;233;253msqrt(14 m^3)\x1b[0m                                       ");
+    println!(
+        "    • \x1b[38;2;241;196;15m14 meters to inches\x1b[0m                               "
+    );
+    println!(
+        "    • \x1b[38;2;139;233;253msin(30deg)\x1b[0m                                          "
+    );
+    println!(
+        "    • \x1b[38;2;80;250;123mlast thursday at 3pm\x1b[0m                                 "
+    );
+    println!(
+        "    • \x1b[38;2;139;233;253msqrt(14 m^3)\x1b[0m                                       "
+    );
     println!(" \x1b[90mType '.help' for help, '.clear' to clear, 'exit' to leave.\x1b[0m");
     println!("\x1b[1;36m=============================================================\x1b[0m\n");
 }
@@ -142,9 +156,7 @@ use rustyline::ColorMode;
 
 fn main() {
     let calc = Abacus::standard();
-    let config = Config::builder()
-        .color_mode(ColorMode::Forced)
-        .build();
+    let config = Config::builder().color_mode(ColorMode::Forced).build();
     let mut rl = Editor::with_config(config).unwrap();
     rl.set_helper(Some(AbacusHelper));
 

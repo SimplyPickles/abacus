@@ -134,6 +134,26 @@ impl<'a> Parser<'a> {
                 self.advance();
                 self.has_explicit_conversion = true;
 
+                if let Some(Token::Unit(u)) = self.peek() {
+                    let sym = *u;
+                    if (sym == "%" || sym == "percent" || sym == "pct")
+                        && self.tokens.get(self.pos + 1) == Some(&Token::BinaryOp("of"))
+                    {
+                        self.advance();
+                        self.advance();
+                        let base_result = self.parse_expr(1)?;
+                        let base_val = base_result.into_scalar()?;
+                        let lhs_val = lhs.into_scalar()?;
+                        let pct_unit = self.unit_registry.unit("%")?;
+                        let ratio = lhs_val.canonical / base_val.canonical;
+                        lhs = EvalResult::Scalar(Value {
+                            canonical: ratio,
+                            unit: pct_unit,
+                        });
+                        continue;
+                    }
+                }
+
                 if let EvalResult::Date(ref d1) = lhs {
                     match self.peek() {
                         Some(Token::Date(d2)) => {
@@ -1202,5 +1222,19 @@ mod tests {
         assert!(eval("200!").is_err());
         let val_25 = eval_val("25!").unwrap().canonical;
         assert!((val_25 - 1.5511210043330986e25).abs() < 1e15);
+    }
+
+    #[test]
+    fn evaluates_intuitive_percentage_operations() {
+        assert_eq!(eval("100 m + 15%").unwrap(), "115 m");
+        assert_eq!(eval("80 kg - 20%").unwrap(), "64 kg");
+        assert_eq!(eval("150 in % of 600").unwrap(), "25 %");
+        assert_eq!(eval("15% of 600").unwrap(), "90");
+        assert_eq!(eval("15% of 600 m").unwrap(), "90 m");
+        assert_eq!(eval("100 + 15%").unwrap(), "115");
+        assert_eq!(eval("100 - 20%").unwrap(), "80");
+        assert_eq!(eval("10 % 3").unwrap(), "1");
+        assert_eq!(eval("10 m % 3 m").unwrap(), "1 m");
+        assert_eq!(eval("10 cm % 3").unwrap(), "1 cm");
     }
 }
