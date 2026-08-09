@@ -23,3 +23,5 @@ codegen-units = 256
 lto = false
 
 [dependencies]
+rustyline = "15.0"
+terminal_size = "0.4"

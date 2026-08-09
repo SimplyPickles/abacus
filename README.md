@@ -203,10 +203,17 @@ cargo test
 
 All **182 integration and unit tests** pass, covering Pratt parser precedence, interval arithmetic, TI-84 confidence intervals, linear regression, dot property access, range expansion, unit cancellation, fractional dimension square roots, statistical functions, probability distributions, inverse CDFs, and implicit multiplication.
 
-Run the demonstration CLI:
+Run the interactive REPL:
 
 ```sh
 cargo run
+# or: cargo run --bin repl
+```
+
+Run the examples:
+
+```sh
+cargo run --bin abacus
 ```
 
 ---
