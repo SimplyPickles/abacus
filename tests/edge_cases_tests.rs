@@ -237,3 +237,65 @@ fn test_niche_error_handling_and_boundary_conditions() {
         Err(AbacusError::IncompatibleFunctionArguments)
     ));
 }
+
+#[test]
+fn test_niche_relative_date_and_time_edge_cases() {
+    let abacus = Abacus::standard();
+    let today = abacus::Date::today();
+    let tomorrow = abacus::Date::tomorrow();
+
+    // Crossing midnight backwards: 3 hours before tmr at 1am -> today at 22:00
+    let d_cross_back = abacus.eval_date("3 hours before tmr at 1am").unwrap();
+    assert_eq!(d_cross_back.day, today.day);
+    assert_eq!(d_cross_back.time.hour, 22);
+
+    // Crossing midnight forwards: 25 hours after tdy at 11pm -> day after tomorrow at 00:00
+    let d_cross_fw = abacus.eval_date("25 hours after tdy at 11pm").unwrap();
+    let day_after_tomorrow = tomorrow.add_days(1);
+    assert_eq!(d_cross_fw.day, day_after_tomorrow.day);
+    assert_eq!(d_cross_fw.time.hour, 0);
+
+    // Exact difference between tmr and tdy in hours
+    let diff_hrs = abacus.eval("tdy at 3pm to tmr at 3pm in hours").unwrap();
+    assert_eq!(diff_hrs.to_display(), "24 h");
+
+    // Exact difference in days
+    let diff_days = abacus.eval("tdy to tmr in days").unwrap();
+    assert_eq!(diff_days.to_display(), "1 d");
+
+    // Interval from 3 hours ago to in 3 hours -> 6 hours
+    let interval_diff = abacus
+        .eval("((3 hours ago) to (in 3 hours)) in hours")
+        .unwrap();
+    assert_eq!(interval_diff.to_display(), "6 h");
+
+    // Property access on tdy and tmr
+    let dow_tdy = abacus.eval_scalar("tdy.day_of_week").unwrap().canonical;
+    assert_eq!(dow_tdy, today.day_of_week() as u32 as f64);
+
+    let dow_tmr = abacus.eval_scalar("tmr.day_of_week").unwrap().canonical;
+    assert_eq!(dow_tmr, tomorrow.day_of_week() as u32 as f64);
+}
+
+#[test]
+fn test_niche_unparenthesized_function_chaining() {
+    let abacus = Abacus::standard();
+
+    // Nested unparenthesized calls: ln exp 5 -> 5
+    let ln_exp = abacus.eval_scalar("ln exp 5").unwrap().canonical;
+    assert!((ln_exp - 5.0).abs() < 1e-5);
+
+    // Double unparenthesized sqrt: sqrt sqrt 81 -> 3
+    assert_eq!(abacus.eval("sqrt sqrt 81").unwrap().to_display(), "3");
+
+    // Trigonometric unparenthesized with unit conversion: acos -1 in deg -> 180 deg
+    let acos_deg = abacus.eval("acos -1 in deg").unwrap();
+    assert_eq!(acos_deg.to_display(), "180 deg");
+
+    // Floor and ceil unparenthesized with physical units
+    assert_eq!(abacus.eval("floor 5.9 m").unwrap().to_display(), "5 m");
+    assert_eq!(abacus.eval("ceil 3.1 s").unwrap().to_display(), "4 s");
+
+    // Unparenthesized abs with energy reduction: abs -10 N * 2 m -> 20 J
+    assert_eq!(abacus.eval("abs -10 N * 2 m").unwrap().to_display(), "20 J");
+}

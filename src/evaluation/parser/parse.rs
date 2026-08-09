@@ -208,6 +208,60 @@ impl<'a> Parser<'a> {
                 continue;
             }
 
+            // Check for relative time operators (`ago`, `from_now`, `before`, `after`)
+            if let Some(Token::RelTimeOp(op_name)) = self.peek() {
+                let op_name = *op_name;
+                let l_bp = 5;
+                if l_bp < min_bp {
+                    break;
+                }
+                self.advance();
+
+                let val = lhs.clone().into_scalar()?;
+                if val.unit.dimensions != crate::units::dimensions::Dimensions::TIME {
+                    return Err(AbacusError::IncompatibleDimensions);
+                }
+                let ms = (val.canonical * 1000.0).round() as i64;
+
+                match op_name {
+                    "ago" => {
+                        lhs = EvalResult::Date(crate::Date::now().add_milliseconds(-ms));
+                        continue;
+                    }
+                    "from_now" => {
+                        lhs = EvalResult::Date(crate::Date::now().add_milliseconds(ms));
+                        continue;
+                    }
+                    "before" => {
+                        let ref_date = if self.can_start_date_expr() {
+                            let rhs = self.parse_expr(5)?;
+                            match rhs {
+                                EvalResult::Date(d) => d,
+                                _ => crate::Date::now(),
+                            }
+                        } else {
+                            crate::Date::now()
+                        };
+                        lhs = EvalResult::Date(ref_date.add_milliseconds(-ms));
+                        continue;
+                    }
+                    "after" => {
+                        let ref_date = if self.can_start_date_expr() {
+                            let rhs = self.parse_expr(5)?;
+                            match rhs {
+                                EvalResult::Date(d) => d,
+                                _ => crate::Date::now(),
+                            }
+                        } else {
+                            crate::Date::now()
+                        };
+                        lhs = EvalResult::Date(ref_date.add_milliseconds(ms));
+                        continue;
+                    }
+                    _ => {}
+                }
+            }
+
             // Check for property access operator (`.prop`)
             if let Some(Token::DotProperty(_)) = self.peek() {
                 let bp = 100; // high precedence for dot member access
@@ -297,6 +351,39 @@ impl<'a> Parser<'a> {
             Some(Token::Val(val)) => Ok(EvalResult::Scalar(val)),
             Some(Token::Date(d)) => Ok(EvalResult::Date(d)),
 
+            // Relative time / conversion in prefix position (e.g. `in 3 hours`, `before 07-08-2026`)
+            Some(Token::ConversionOp) => {
+                let rhs = self.parse_expr(4)?;
+                match rhs {
+                    EvalResult::Scalar(v)
+                        if v.unit.dimensions == crate::units::dimensions::Dimensions::TIME =>
+                    {
+                        let ms = (v.canonical * 1000.0).round() as i64;
+                        Ok(EvalResult::Date(crate::Date::now().add_milliseconds(ms)))
+                    }
+                    EvalResult::Date(d) => Ok(EvalResult::Date(d)),
+                    other => Ok(other),
+                }
+            }
+
+            Some(Token::RelTimeOp(name)) => {
+                let rhs = self.parse_expr(4)?;
+                match rhs {
+                    EvalResult::Scalar(v)
+                        if v.unit.dimensions == crate::units::dimensions::Dimensions::TIME =>
+                    {
+                        let ms = (v.canonical * 1000.0).round() as i64;
+                        if name == "before" || name == "ago" {
+                            Ok(EvalResult::Date(crate::Date::now().add_milliseconds(-ms)))
+                        } else {
+                            Ok(EvalResult::Date(crate::Date::now().add_milliseconds(ms)))
+                        }
+                    }
+                    EvalResult::Date(d) => Ok(EvalResult::Date(d)),
+                    other => Ok(other),
+                }
+            }
+
             Some(Token::Unit(unit_sym)) => {
                 let unit = self.unit_registry.unit(&unit_sym)?;
                 Ok(EvalResult::Scalar(Value::new(1.0, unit)))
@@ -380,7 +467,7 @@ impl<'a> Parser<'a> {
                 operand.apply_unary(&op)
             }
 
-            // Function call: name(arg1, arg2, ...)
+            // Function call: name(arg1, arg2, ...) or unparenthesized single argument: name arg
             Some(Token::Function(name)) => {
                 let func = self
                     .token_registry
@@ -389,53 +476,58 @@ impl<'a> Parser<'a> {
                     .ok_or_else(|| AbacusError::UnexpectedToken(name.to_string()))?
                     .clone();
 
-                self.expect(&Token::OpenParen).map_err(|_| {
-                    AbacusError::UnexpectedToken("expected '(' after function name".to_string())
-                })?;
-
                 let mut raw_args = Vec::new();
 
-                // Handle empty argument list: func()
-                if self.peek() != Some(&Token::CloseParen) {
-                    loop {
-                        let arg_result = self.parse_expr(0)?;
+                if self.peek() == Some(&Token::OpenParen) {
+                    self.advance(); // consume '('
 
-                        if self.peek() == Some(&Token::Range) {
-                            let arg = arg_result
-                                .into_scalar()
-                                .map_err(|_| AbacusError::IntervalInFunction)?;
-                            self.advance(); // consume `..`
-                            let end_result = self.parse_expr(0)?;
-                            let end = end_result
-                                .into_scalar()
-                                .map_err(|_| AbacusError::IntervalInFunction)?;
-                            let custom_step = if self.peek() == Some(&Token::Range) {
-                                self.advance(); // consume second `..`
-                                let step_result = self.parse_expr(0)?;
-                                Some(
-                                    step_result
-                                        .into_scalar()
-                                        .map_err(|_| AbacusError::IntervalInFunction)?,
-                                )
+                    // Handle empty argument list: func()
+                    if self.peek() != Some(&Token::CloseParen) {
+                        loop {
+                            let arg_result = self.parse_expr(0)?;
+
+                            if self.peek() == Some(&Token::Range) {
+                                let arg = arg_result
+                                    .into_scalar()
+                                    .map_err(|_| AbacusError::IntervalInFunction)?;
+                                self.advance(); // consume `..`
+                                let end_result = self.parse_expr(0)?;
+                                let end = end_result
+                                    .into_scalar()
+                                    .map_err(|_| AbacusError::IntervalInFunction)?;
+                                let custom_step = if self.peek() == Some(&Token::Range) {
+                                    self.advance(); // consume second `..`
+                                    let step_result = self.parse_expr(0)?;
+                                    Some(
+                                        step_result
+                                            .into_scalar()
+                                            .map_err(|_| AbacusError::IntervalInFunction)?,
+                                    )
+                                } else {
+                                    None
+                                };
+                                let seq = RangeSeq::new(arg, end, custom_step)?;
+                                raw_args.extend(seq.iter().map(EvalResult::Scalar));
                             } else {
-                                None
-                            };
-                            let seq = RangeSeq::new(arg, end, custom_step)?;
-                            raw_args.extend(seq.iter().map(EvalResult::Scalar));
-                        } else {
-                            raw_args.push(arg_result);
-                        }
+                                raw_args.push(arg_result);
+                            }
 
-                        if self.peek() == Some(&Token::Comma) {
-                            self.advance(); // consume ','
-                        } else {
-                            break;
+                            if self.peek() == Some(&Token::Comma) {
+                                self.advance(); // consume ','
+                            } else {
+                                break;
+                            }
                         }
                     }
-                }
 
-                self.expect(&Token::CloseParen)
-                    .map_err(|_| AbacusError::UnclosedParen)?;
+                    self.expect(&Token::CloseParen)
+                        .map_err(|_| AbacusError::UnclosedParen)?;
+                } else {
+                    // Single-parameter unparenthesized function call (e.g. `sin 13deg`, `cos 45 deg`)
+                    let bp = 8;
+                    let arg_result = self.parse_expr(bp)?;
+                    raw_args.push(arg_result);
+                }
 
                 // Check for Date property function call
                 if raw_args.len() == 1 {
@@ -504,6 +596,17 @@ impl<'a> Parser<'a> {
 
             Some(tok) => Err(AbacusError::UnexpectedToken(format!("{:?}", tok))),
             None => Err(AbacusError::UnexpectedEnd),
+        }
+    }
+
+    fn can_start_date_expr(&self) -> bool {
+        match self.peek() {
+            Some(Token::Date(_)) => true,
+            Some(Token::OpenParen) => true,
+            Some(Token::Function(name)) => {
+                matches!(*name, "date" | "today" | "tomorrow" | "yesterday" | "now")
+            }
+            _ => false,
         }
     }
 

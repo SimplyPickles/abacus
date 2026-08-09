@@ -10,9 +10,17 @@ fn test_relative_date_keywords() {
     assert_eq!(d_today.month, expected_today.month);
     assert_eq!(d_today.day, expected_today.day);
 
+    let d_tdy = abacus.eval_date("tdy").unwrap();
+    assert_eq!(d_tdy.year, expected_today.year);
+    assert_eq!(d_tdy.month, expected_today.month);
+    assert_eq!(d_tdy.day, expected_today.day);
+
     let d_tomorrow = abacus.eval_date("tomorrow").unwrap();
     let expected_tomorrow = Date::tomorrow();
     assert_eq!(d_tomorrow.day, expected_tomorrow.day);
+
+    let d_tmr = abacus.eval_date("tmr").unwrap();
+    assert_eq!(d_tmr.day, expected_tomorrow.day);
 
     let d_yesterday = abacus.eval_date("yesterday").unwrap();
     let expected_yesterday = Date::yesterday();
@@ -131,4 +139,117 @@ fn test_standalone_time_literals() {
     let d2 = abacus.eval_date("9:15 AM").unwrap();
     assert_eq!(d2.time.hour, 9);
     assert_eq!(d2.time.minute, 15);
+}
+
+#[test]
+fn test_relative_time_ago_before_after_in() {
+    let abacus = Abacus::standard();
+    let now = Date::now();
+
+    // 3 hours ago
+    let d_ago = abacus.eval_date("3 hours ago").unwrap();
+    let diff_ms = (now.to_epoch_milliseconds() - d_ago.to_epoch_milliseconds()).abs();
+    assert!((diff_ms - 3 * 3_600_000).abs() < 5000);
+
+    // 3 hours before last thursday at 3pm
+    let d_before = abacus
+        .eval_date("3 hours before last thursday at 3pm")
+        .unwrap();
+    let d_thu = abacus.eval_date("last thursday at 3pm").unwrap();
+    assert_eq!(d_before, d_thu.add_hours(-3));
+    assert_eq!(d_before.time.hour, 12);
+
+    // 3 hours after last thursday at 3pm
+    let d_after = abacus
+        .eval_date("3 hours after last thursday at 3pm")
+        .unwrap();
+    assert_eq!(d_after, d_thu.add_hours(3));
+    assert_eq!(d_after.time.hour, 18);
+
+    // in 3 hours
+    let d_in = abacus.eval_date("in 3 hours").unwrap();
+    let diff_in_ms = (d_in.to_epoch_milliseconds() - now.to_epoch_milliseconds()).abs();
+    assert!((diff_in_ms - 3 * 3_600_000).abs() < 5000);
+
+    // 3 hours from now
+    let d_from_now = abacus.eval_date("3 hours from now").unwrap();
+    let diff_fn_ms = (d_from_now.to_epoch_milliseconds() - now.to_epoch_milliseconds()).abs();
+    assert!((diff_fn_ms - 3 * 3_600_000).abs() < 5000);
+
+    // 3 hours before
+    let d_before_standalone = abacus.eval_date("3 hours before").unwrap();
+    let diff_bs_ms =
+        (now.to_epoch_milliseconds() - d_before_standalone.to_epoch_milliseconds()).abs();
+    assert!((diff_bs_ms - 3 * 3_600_000).abs() < 5000);
+}
+
+#[test]
+fn test_more_relative_time_expressions() {
+    let abacus = Abacus::standard();
+    let now = Date::now();
+
+    // 5 minutes ago
+    let d_5min = abacus.eval_date("5 minutes ago").unwrap();
+    let diff_5min = (now.to_epoch_milliseconds() - d_5min.to_epoch_milliseconds()).abs();
+    assert!((diff_5min - 5 * 60_000).abs() < 5000);
+
+    // 2 days ago
+    let d_2days = abacus.eval_date("2 days ago").unwrap();
+    let diff_2days = (now.to_epoch_milliseconds() - d_2days.to_epoch_milliseconds()).abs();
+    assert!((diff_2days - 2 * 86_400_000).abs() < 5000);
+
+    // 1 week ago
+    let d_1wk = abacus.eval_date("1 week ago").unwrap();
+    let diff_1wk = (now.to_epoch_milliseconds() - d_1wk.to_epoch_milliseconds()).abs();
+    assert!((diff_1wk - 7 * 86_400_000).abs() < 5000);
+
+    // 30 seconds ago
+    let d_30sec = abacus.eval_date("30 seconds ago").unwrap();
+    let diff_30sec = (now.to_epoch_milliseconds() - d_30sec.to_epoch_milliseconds()).abs();
+    assert!((diff_30sec - 30_000).abs() < 5000);
+
+    // 10 minutes before 2026-08-07 15:30:00
+    let d_exact = abacus
+        .eval_date("10 minutes before 2026-08-07 15:30:00")
+        .unwrap();
+    assert_eq!(d_exact, Date::new_with_hms(2026, 8, 7, 15, 20, 0));
+
+    // 45 minutes after today at 12:00
+    let d_after_45 = abacus.eval_date("45 minutes after today at 12:00").unwrap();
+    assert_eq!(d_after_45.time.hour, 12);
+    assert_eq!(d_after_45.time.minute, 45);
+
+    // in 45 minutes
+    let d_in_45 = abacus.eval_date("in 45 minutes").unwrap();
+    let diff_in_45 = (d_in_45.to_epoch_milliseconds() - now.to_epoch_milliseconds()).abs();
+    assert!((diff_in_45 - 45 * 60_000).abs() < 5000);
+
+    // 10 days from now
+    let d_10d_fn = abacus.eval_date("10 days from now").unwrap();
+    let diff_10d = (d_10d_fn.to_epoch_milliseconds() - now.to_epoch_milliseconds()).abs();
+    assert!((diff_10d - 10 * 86_400_000).abs() < 5000);
+}
+
+#[test]
+fn test_relative_time_chained_arithmetic() {
+    let abacus = Abacus::standard();
+
+    // (3 hours before today at 5pm) + 30 min -> today at 14:30
+    let d1 = abacus
+        .eval_date("3 hours before today at 5pm + 30 min")
+        .unwrap();
+    assert_eq!(d1.time.hour, 14);
+    assert_eq!(d1.time.minute, 30);
+
+    // Property access on "(3 hours before today at 5pm)"
+    let hr = abacus
+        .eval_scalar("(3 hours before today at 5pm).hour")
+        .unwrap();
+    assert_eq!(hr.canonical, 14.0);
+
+    // Date difference interval conversion
+    let res = abacus
+        .eval("3 hours before today at 5pm to today at 5pm in hours")
+        .unwrap();
+    assert_eq!(res.to_display(), "3 h");
 }

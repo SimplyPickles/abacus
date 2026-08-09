@@ -131,7 +131,7 @@ fn print_welcome_banner() {
     println!(" \x1b[90mUse ↑/↓ Arrow Keys to navigate command history.\x1b[0m            ");
     println!(" \x1b[1;33mExamples:\x1b[0m                                                 ");
     println!("    • \x1b[38;2;241;196;15m14 meters to inches\x1b[0m                               ");
-    println!("    • \x1b[38;2;139;233;253msin(1..3)\x1b[0m                                          ");
+    println!("    • \x1b[38;2;139;233;253msin(30deg)\x1b[0m                                          ");
     println!("    • \x1b[38;2;80;250;123mlast thursday at 3pm\x1b[0m                                 ");
     println!("    • \x1b[38;2;139;233;253msqrt(14 m^3)\x1b[0m                                       ");
     println!(" \x1b[90mType '.help' for help, '.clear' to clear, 'exit' to leave.\x1b[0m");
@@ -191,12 +191,8 @@ fn main() {
                     println!("\x1b[38;2;189;147;249m  Abacus REPL Commands & Syntax:\x1b[0m");
                     println!("    .help       Show this help summary");
                     println!("    .clear      Clear the terminal screen");
-                    println!("    exit / :q   Exit the REPL");
-                    println!("    • \x1b[38;2;241;196;15m14 meters to inches\x1b[0m");
-                    println!("    • \x1b[38;2;139;233;253msin(13)\x1b[0m");
-                    println!("    • \x1b[38;2;80;250;123mlast thursday at 3pm\x1b[0m");
-                    println!("    • \x1b[38;2;139;233;253me^3 - 3!\x1b[0m");
-                    println!("    • \x1b[38;2;139;233;253msqrt(14 m^3)\x1b[0m");
+                    println!("    :q / exit   Exit the REPL");
+                    println!("");
                     continue;
                 }
 

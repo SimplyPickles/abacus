@@ -137,8 +137,14 @@ fn try_parse_relative_date_keyword(s: &str) -> Option<(crate::Date, usize)> {
     if lower.starts_with("today") && (s.len() == 5 || !s.as_bytes()[5].is_ascii_alphanumeric()) {
         return Some((crate::Date::today(), 5));
     }
+    if lower.starts_with("tdy") && (s.len() == 3 || !s.as_bytes()[3].is_ascii_alphanumeric()) {
+        return Some((crate::Date::today(), 3));
+    }
     if lower.starts_with("tomorrow") && (s.len() == 8 || !s.as_bytes()[8].is_ascii_alphanumeric()) {
         return Some((crate::Date::tomorrow(), 8));
+    }
+    if lower.starts_with("tmr") && (s.len() == 3 || !s.as_bytes()[3].is_ascii_alphanumeric()) {
+        return Some((crate::Date::tomorrow(), 3));
     }
     if lower.starts_with("yesterday") && (s.len() == 9 || !s.as_bytes()[9].is_ascii_alphanumeric()) {
         return Some((crate::Date::yesterday(), 9));
@@ -485,6 +491,56 @@ pub fn tokenize_string<'a>(
                     }
                     continue;
                 }
+            }
+        }
+
+        // Relative time operators (e.g. "ago", "from now", "before", "after")
+        if c.is_ascii_alphabetic() {
+            let remaining = &input_text[i..];
+            let lower_rem = remaining.to_ascii_lowercase();
+
+            let (rel_op, len) = if lower_rem.starts_with("from now")
+                && (remaining.len() == 8 || !remaining.as_bytes()[8].is_ascii_alphanumeric())
+            {
+                (Some("from_now"), 8)
+            } else if lower_rem.starts_with("from") {
+                let rest = remaining[4..].trim_start();
+                let ws_len = remaining[4..].len() - rest.len();
+                if ws_len > 0
+                    && rest.to_ascii_lowercase().starts_with("now")
+                    && (rest.len() == 3 || !rest.as_bytes()[3].is_ascii_alphanumeric())
+                {
+                    (Some("from_now"), 4 + ws_len + 3)
+                } else {
+                    (None, 0)
+                }
+            } else if lower_rem.starts_with("ago")
+                && (remaining.len() == 3 || !remaining.as_bytes()[3].is_ascii_alphanumeric())
+            {
+                (Some("ago"), 3)
+            } else if lower_rem.starts_with("before")
+                && (remaining.len() == 6 || !remaining.as_bytes()[6].is_ascii_alphanumeric())
+            {
+                (Some("before"), 6)
+            } else if lower_rem.starts_with("after")
+                && (remaining.len() == 5 || !remaining.as_bytes()[5].is_ascii_alphanumeric())
+            {
+                (Some("after"), 5)
+            } else {
+                (None, 0)
+            };
+
+            if let Some(op_name) = rel_op {
+                tokens.push(Token::RelTimeOp(op_name));
+                let target_idx = i + len;
+                while let Some(&(idx, _)) = chars.peek() {
+                    if idx < target_idx {
+                        chars.next();
+                    } else {
+                        break;
+                    }
+                }
+                continue;
             }
         }
 

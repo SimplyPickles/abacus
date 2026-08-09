@@ -9,6 +9,7 @@ pub enum Token<'a> {
     Function(&'static str), // e.g., 'sin', 'binompdf', 'mean'
 
     ConversionOp,
+    RelTimeOp(&'static str), // "ago", "from_now", "before", "after"
 
     // Values
     Float(f64),    // parsed number

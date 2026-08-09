@@ -123,6 +123,42 @@ fn test_trigonometric_functions() {
 }
 
 #[test]
+fn test_unparenthesized_single_parameter_functions() {
+    let calc = Abacus::standard();
+
+    // sin 13deg
+    let sin_val = calc.eval_scalar("sin 13deg").unwrap().canonical;
+    assert!((sin_val - 0.224951).abs() < 1e-5);
+
+    // sin 13 deg
+    let sin_val2 = calc.eval_scalar("sin 13 deg").unwrap().canonical;
+    assert!((sin_val2 - 0.224951).abs() < 1e-5);
+
+    // cos 0 rad
+    assert_eq!(calc.eval("cos 0 rad").unwrap().to_display(), "1");
+
+    // tan 0 rad
+    assert_eq!(calc.eval("tan 0 rad").unwrap().to_display(), "0");
+
+    // sqrt 16 m^2 -> 4 m
+    assert_eq!(calc.eval("sqrt 16 m^2").unwrap().to_display(), "4 m");
+
+    // ln 10
+    let ln_val = calc.eval_scalar("ln 10").unwrap().canonical;
+    assert!((ln_val - 2.302585).abs() < 1e-5);
+
+    // log10 100
+    assert_eq!(calc.eval("log10 100").unwrap().to_display(), "2");
+
+    // abs -5 m
+    assert_eq!(calc.eval("abs -5 m").unwrap().to_display(), "5 m");
+
+    // unparenthesized function in arithmetic: sin 13deg + 5
+    let sin_plus = calc.eval_scalar("sin 13deg + 5").unwrap().canonical;
+    assert!((sin_plus - 5.224951).abs() < 1e-5);
+}
+
+#[test]
 fn test_logarithmic_and_exponential_functions() {
     // Tests natural log, log10, log2, base-N log, and exp
     assert_eq!(eval("ln(exp(1))").unwrap().to_display(), "1");

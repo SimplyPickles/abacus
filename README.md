@@ -206,7 +206,8 @@ All **182 integration and unit tests** pass, covering Pratt parser precedence, i
 Run the interactive REPL:
 
 ```sh
-cargo run --bin repl
+cargo run
+# or: cargo run --bin repl
 ```
 
 Run the examples:
