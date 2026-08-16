@@ -11,8 +11,9 @@ pub use registry::unit_registry::UnitRegistry;
 pub use units::{
     date::{Date, DateFormat, DayOfWeek, Time, TimeZone},
     dimensions::Dimensions,
+    eval_result::EvalResult,
     hash::Hash,
-    interval::{EvalResult, Interval},
+    interval::Interval,
     unit::Unit,
     value::Value,
 };
@@ -33,6 +34,7 @@ pub struct Abacus {
 }
 
 impl Abacus {
+    // Initialize a new `Abacus` instance with default units and tokens
     pub fn new() -> Self {
         Self {
             units: UnitRegistry::new(),
@@ -41,6 +43,7 @@ impl Abacus {
         }
     }
 
+    // Initialize a new `Abacus` instance with custom units and tokens
     pub fn from_registry(units: UnitRegistry, tokens: TokenRegistry) -> Self {
         Self {
             units,
@@ -49,6 +52,7 @@ impl Abacus {
         }
     }
 
+    // Initialize a new `Abacus` instance with standard units and tokens
     pub fn standard() -> Self {
         Self {
             units: UnitRegistry::standard(),
@@ -57,15 +61,20 @@ impl Abacus {
         }
     }
 
-    pub fn with_date_format(mut self, format: DateFormat) -> Self {
+    // Set the date format for this `Abacus` instance
+    pub fn set_date_format(mut self, format: DateFormat) -> Self {
         self.date_format = format;
         self
     }
 
+    // Tokenize an expression into a vector of `Token`s
     pub fn tokenize<'a>(&self, expr: &'a str) -> Result<Vec<Token<'a>>, AbacusError> {
         tokenize_string(&self.tokens, &self.units, expr)
     }
 
+    // Evaluate expressions, returning the result as an `EvalResult`
+    // Evaluated dates are automatically formatted
+    // Returns an error if the expression is invalid or cannot be evaluated.
     pub fn eval(&self, expr: &str) -> Result<EvalResult, AbacusError> {
         let mut res = evaluate(&self.tokens, &self.units, expr)?;
         if let EvalResult::Date(ref mut d) = res {
@@ -92,6 +101,7 @@ impl Abacus {
         self.eval(expr)?.into_date()
     }
 
+    // Format dates using configured styles
     pub fn format_date(&self, date: &Date) -> String {
         date.format_with_style(self.date_format)
     }
@@ -100,6 +110,7 @@ impl Abacus {
         date.format_with_style(style)
     }
 
+    // Registry functions for units & tokens
     pub fn register_unit(&mut self, alias: &str, unit: Unit) {
         self.units.insert_unit(alias, Arc::from(unit));
     }
@@ -123,6 +134,7 @@ impl Default for Abacus {
     }
 }
 
+// Convenience function for standard expression evaluation
 pub fn eval(expr: &str) -> Result<EvalResult, AbacusError> {
     Abacus::standard().eval(expr)
 }

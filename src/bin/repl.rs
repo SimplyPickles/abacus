@@ -236,9 +236,9 @@ fn main() {
     }
 }
 
-fn format_repl_result(result: &abacus::units::interval::EvalResult) -> String {
+fn format_repl_result(result: &abacus::units::eval_result::EvalResult) -> String {
     match result {
-        abacus::units::interval::EvalResult::Scalar(v) => {
+        abacus::units::eval_result::EvalResult::Scalar(v) => {
             if v.unit.dimensions == abacus::units::dimensions::Dimensions::TIME
                 && (v.unit.display.render() == "s"
                     || v.unit.display.render() == "h"

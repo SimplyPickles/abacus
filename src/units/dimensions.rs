@@ -5,6 +5,7 @@ pub const DIMENSION_COUNT: usize = 8;
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Dimensions(pub [f64; DIMENSION_COUNT]);
 
+// PartialEq implementation for `Dimensions`
 impl PartialEq for Dimensions {
     fn eq(&self, other: &Self) -> bool {
         self.0
@@ -17,7 +18,12 @@ impl PartialEq for Dimensions {
 // Since we implement PartialEq with epsilon, we can safely implement Eq for use in existing structs (like Unit).
 impl Eq for Dimensions {}
 
+/// Dimension constants for common unit systems & dimensionless units.
+/// Each dimension is represented by a power of the base units in the `Dimensions` vector
+/// For example, `LENGTH` has a power of 1 in the length dimension and 0 in the other dimensions, being [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+/// The order of the dimensions is [length, mass, time, current, temperature, amount, luminous intensity, information]
 impl Dimensions {
+    /// Dimensionless unit (all dimensions are 0)
     pub const DIMENSIONLESS: Self = Self([0.0; DIMENSION_COUNT]);
 
     pub const LENGTH: Self = Self([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);

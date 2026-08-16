@@ -1,7 +1,8 @@
 use crate::{
     AbacusError, UnitRegistry, Value,
     evaluation::tokenizer::{registry::token_registry::TokenRegistry, tokens::Token},
-    units::interval::{EvalResult, Interval},
+    units::eval_result::EvalResult,
+    units::interval::Interval,
 };
 
 /// A Pratt parser that consumes a `Vec<Token>` produced by the tokenizer
@@ -1273,7 +1274,7 @@ mod tests {
         let date_val = abacus.eval_date("07-08-2026").unwrap();
         assert_eq!(abacus.format_date(&date_val), "07-08-2026");
 
-        let iso_abacus = abacus.with_date_format(crate::units::date::DateFormat::YYYYMMDD);
+        let iso_abacus = abacus.set_date_format(crate::units::date::DateFormat::YYYYMMDD);
         assert_eq!(iso_abacus.format_date(&date_val), "2026-08-07");
     }
 }

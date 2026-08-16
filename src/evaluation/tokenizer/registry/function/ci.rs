@@ -5,7 +5,8 @@ use crate::{
         distributions::student_t::compute_invt,
         operators::{FunctionOp, FunctionTarget},
     },
-    units::interval::{EvalResult, Interval},
+    units::eval_result::EvalResult,
+    units::interval::Interval,
 };
 use std::sync::Arc;
 

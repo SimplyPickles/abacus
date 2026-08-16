@@ -1,5 +1,6 @@
 use std::fmt;
 
+// Error enum for evaluation/tokenization errors
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AbacusError {
     UnknownUnit(String),
@@ -13,8 +14,11 @@ pub enum AbacusError {
     IntervalInFunction,
     HashAsResult,
     InvalidDate(String),
+    IncompatibleOperatorType(String),
+    IncompatibleWithConversion(String),
 }
 
+// Display implementation for `AbacusError`
 impl fmt::Display for AbacusError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -37,6 +41,10 @@ impl fmt::Display for AbacusError {
                 write!(f, "hash cannot be used as a result")
             }
             Self::InvalidDate(msg) => write!(f, "invalid date: {msg}"),
+            Self::IncompatibleOperatorType(msg) => write!(f, "{msg}"),
+            Self::IncompatibleWithConversion(ty) => {
+                write!(f, "values of type {ty} cannot be converted")
+            }
         }
     }
 }

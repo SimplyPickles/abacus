@@ -118,19 +118,35 @@ pub fn format_human_duration(seconds_f64: f64) -> String {
 
     let mut parts = Vec::new();
     if years > 0 {
-        parts.push(format!("{} year{}", years, if years == 1 { "" } else { "s" }));
+        parts.push(format!(
+            "{} year{}",
+            years,
+            if years == 1 { "" } else { "s" }
+        ));
     }
     if days > 0 {
         parts.push(format!("{} day{}", days, if days == 1 { "" } else { "s" }));
     }
     if hours > 0 {
-        parts.push(format!("{} hour{}", hours, if hours == 1 { "" } else { "s" }));
+        parts.push(format!(
+            "{} hour{}",
+            hours,
+            if hours == 1 { "" } else { "s" }
+        ));
     }
     if minutes > 0 {
-        parts.push(format!("{} minute{}", minutes, if minutes == 1 { "" } else { "s" }));
+        parts.push(format!(
+            "{} minute{}",
+            minutes,
+            if minutes == 1 { "" } else { "s" }
+        ));
     }
     if seconds > 0 {
-        parts.push(format!("{} second{}", seconds, if seconds == 1 { "" } else { "s" }));
+        parts.push(format!(
+            "{} second{}",
+            seconds,
+            if seconds == 1 { "" } else { "s" }
+        ));
     }
 
     let result = parts.join(", ");

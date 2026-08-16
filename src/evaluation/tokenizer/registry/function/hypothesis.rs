@@ -7,7 +7,7 @@ use crate::{
         },
         operators::{FunctionOp, FunctionTarget},
     },
-    units::{hash::Hash, interval::EvalResult, value::Value as AbacusValue},
+    units::{eval_result::EvalResult, hash::Hash, value::Value as AbacusValue},
 };
 use std::sync::Arc;
 

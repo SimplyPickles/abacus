@@ -1,13 +1,15 @@
 use crate::units::value::Value;
 use std::collections::HashMap;
 
-/// A map of named key-value pairs representing structured calculation outputs (e.g. regression model parameters).
+/// A map of named key-value pairs representing structured calculation outputs (e.g. regression model results, inference test results).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Hash {
     pub values: HashMap<String, Value>,
 }
 
+// Implementation functions for Hash
 impl Hash {
+    // Default constructor for the Hash
     pub fn new() -> Self {
         Self {
             values: HashMap::new(),
@@ -52,6 +54,8 @@ impl Default for Hash {
     }
 }
 
+/// Display implementation for `Hash`
+/// Formats the `Hash` as a human-readable string
 impl std::fmt::Display for Hash {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.to_display())

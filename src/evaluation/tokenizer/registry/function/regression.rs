@@ -4,7 +4,7 @@ use crate::{
         distributions::special::make_dimensionless,
         operators::{FunctionOp, FunctionTarget},
     },
-    units::{hash::Hash, interval::EvalResult, unit::Unit, value::Value as AbacusValue},
+    units::{eval_result::EvalResult, hash::Hash, unit::Unit, value::Value as AbacusValue},
 };
 use std::sync::Arc;
 
