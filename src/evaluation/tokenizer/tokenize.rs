@@ -166,7 +166,7 @@ fn try_parse_relative_date_keyword(s: &str) -> Option<(crate::Date, usize)> {
             0
         } else {
             let add = (target_dow_num as i32 - today_dow as i32).rem_euclid(7);
-            i64::from((if add == 0 { 7 } else { add }))
+            i64::from(if add == 0 { 7 } else { add } )
         };
         let date = ref_date.add_days(days_offset);
         return Some((date, sub_len));
