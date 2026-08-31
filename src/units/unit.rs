@@ -93,18 +93,28 @@ impl UnitExpr {
 }
 
 fn render_units(units: &[String]) -> String {
-    let mut parts = Vec::new();
-    let mut visited = Vec::new();
+    if units.is_empty() {
+        return String::new();
+    }
+
+    let mut counts = std::collections::HashMap::with_capacity(units.len());
+    let mut order = Vec::with_capacity(units.len());
 
     for unit in units {
-        if !visited.contains(&unit) {
-            visited.push(unit);
-            let count = units.iter().filter(|u| u == &unit).count();
-            if count == 1 {
-                parts.push(unit.clone());
-            } else {
-                parts.push(format!("{unit}^{count}"));
-            }
+        let entry = counts.entry(unit.as_str()).or_insert(0usize);
+        if *entry == 0 {
+            order.push(unit.as_str());
+        }
+        *entry += 1;
+    }
+
+    let mut parts = Vec::with_capacity(order.len());
+    for unit in order {
+        let count = counts[unit];
+        if count == 1 {
+            parts.push(unit.to_string());
+        } else {
+            parts.push(format!("{unit}^{count}"));
         }
     }
 
