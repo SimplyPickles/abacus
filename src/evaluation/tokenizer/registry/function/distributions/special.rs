@@ -1,19 +1,12 @@
-use crate::{
-    Value,
-    units::{dimensions::Dimensions, unit::Unit, unit::UnitExpr},
-};
-use std::sync::Arc;
+use crate::Value;
 
 pub fn make_dimensionless(val: f64) -> Value {
-    Value {
-        canonical: val,
-        unit: Arc::new(Unit {
-            scalar: 1.0,
-            offset: 0.0,
-            dimensions: Dimensions::DIMENSIONLESS,
-            display: UnitExpr::dimensionless(),
-        }),
-    }
+    Value::dimensionless(val)
+}
+
+/// Computes n! as f64. Returns 1.0 for n=0.
+pub fn factorial(n: u64) -> f64 {
+    (1..=n).fold(1.0, |acc, x| acc * (x as f64))
 }
 
 pub fn erfinv(x: f64) -> f64 {

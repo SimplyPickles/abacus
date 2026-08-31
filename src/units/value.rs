@@ -1,5 +1,6 @@
 use crate::registry::UnitRegistry;
 use crate::{error::AbacusError, units::unit::Unit};
+use crate::units::{dimensions::Dimensions, unit::UnitExpr};
 
 use std::{
     fmt,
@@ -29,10 +30,35 @@ impl Value {
         }
     }
 
+    /// Creates a dimensionless `Value` with the given scalar.
+    pub fn dimensionless(val: f64) -> Self {
+        Self {
+            canonical: val,
+            unit: Arc::new(Unit {
+                scalar: 1.0,
+                offset: 0.0,
+                dimensions: Dimensions::DIMENSIONLESS,
+                display: UnitExpr::dimensionless(),
+            }),
+        }
+    }
+
+    /// Returns the display-unit amount: `(canonical − offset) / scalar`.
+    #[inline]
+    pub fn amount(&self) -> f64 {
+        (self.canonical - self.unit.offset) / self.unit.scalar
+    }
+
+    /// Constructs a `Value` directly from a pre-computed canonical value.
+    #[inline]
+    pub fn from_canonical(canonical: f64, unit: Arc<Unit>) -> Self {
+        Self { canonical, unit }
+    }
+
     pub fn convert_to(&self, unit: Arc<Unit>) -> Result<Self, AbacusError> {
         if !self.unit.is_compatible_with(&unit) {
             if self.unit.is_dimensionless() {
-                let amount = (self.canonical - self.unit.offset) / self.unit.scalar;
+                let amount = self.amount();
                 return Ok(Self::new(amount, unit));
             }
             return Err(AbacusError::IncompatibleDimensions);
@@ -61,7 +87,7 @@ impl Value {
     }
 
     pub fn to_display(&self) -> String {
-        let value = (self.canonical - self.unit.offset) / self.unit.scalar;
+        let value = self.amount();
         let nearest_integer = value.round();
         let display_value = if (value - nearest_integer).abs() <= 1e-12 * value.abs().max(1.0) {
             nearest_integer
@@ -187,14 +213,14 @@ impl Add<&Value> for &Value {
 
         if !self.unit.is_compatible_with(&rhs.unit) {
             if rhs.unit.is_dimensionless() && !self.unit.is_dimensionless() {
-                let rhs_amount = (rhs.canonical - rhs.unit.offset) / rhs.unit.scalar;
+                let rhs_amount = rhs.amount();
                 let rhs_promoted = Value::new(rhs_amount, Arc::clone(&self.unit));
                 return Ok(Value {
                     canonical: self.canonical + rhs_promoted.canonical,
                     unit: Arc::clone(&self.unit),
                 });
             } else if self.unit.is_dimensionless() && !rhs.unit.is_dimensionless() {
-                let self_amount = (self.canonical - self.unit.offset) / self.unit.scalar;
+                let self_amount = self.amount();
                 let self_promoted = Value::new(self_amount, Arc::clone(&rhs.unit));
                 return Ok(Value {
                     canonical: self_promoted.canonical + rhs.canonical,
@@ -208,27 +234,6 @@ impl Add<&Value> for &Value {
             canonical: self.canonical + rhs.canonical,
             unit: Arc::clone(&self.unit),
         })
-    }
-}
-
-impl Add<Value> for Value {
-    type Output = Result<Value, AbacusError>;
-    fn add(self, rhs: Self) -> Self::Output {
-        &self + &rhs
-    }
-}
-
-impl Add<&Value> for Value {
-    type Output = Result<Value, AbacusError>;
-    fn add(self, rhs: &Value) -> Self::Output {
-        &self + rhs
-    }
-}
-
-impl Add<Value> for &Value {
-    type Output = Result<Value, AbacusError>;
-    fn add(self, rhs: Value) -> Self::Output {
-        self + &rhs
     }
 }
 
@@ -250,14 +255,14 @@ impl Sub<&Value> for &Value {
 
         if !self.unit.is_compatible_with(&rhs.unit) {
             if rhs.unit.is_dimensionless() && !self.unit.is_dimensionless() {
-                let rhs_amount = (rhs.canonical - rhs.unit.offset) / rhs.unit.scalar;
+                let rhs_amount = rhs.amount();
                 let rhs_promoted = Value::new(rhs_amount, Arc::clone(&self.unit));
                 return Ok(Value {
                     canonical: self.canonical - rhs_promoted.canonical,
                     unit: Arc::clone(&self.unit),
                 });
             } else if self.unit.is_dimensionless() && !rhs.unit.is_dimensionless() {
-                let self_amount = (self.canonical - self.unit.offset) / self.unit.scalar;
+                let self_amount = self.amount();
                 let self_promoted = Value::new(self_amount, Arc::clone(&rhs.unit));
                 return Ok(Value {
                     canonical: self_promoted.canonical - rhs.canonical,
@@ -271,27 +276,6 @@ impl Sub<&Value> for &Value {
             canonical: self.canonical - rhs.canonical,
             unit: Arc::clone(&self.unit),
         })
-    }
-}
-
-impl Sub<Value> for Value {
-    type Output = Result<Value, AbacusError>;
-    fn sub(self, rhs: Self) -> Self::Output {
-        &self - &rhs
-    }
-}
-
-impl Sub<&Value> for Value {
-    type Output = Result<Value, AbacusError>;
-    fn sub(self, rhs: &Value) -> Self::Output {
-        &self - rhs
-    }
-}
-
-impl Sub<Value> for &Value {
-    type Output = Result<Value, AbacusError>;
-    fn sub(self, rhs: Value) -> Self::Output {
-        self - &rhs
     }
 }
 
@@ -331,27 +315,6 @@ impl Mul<&Value> for &Value {
     }
 }
 
-impl Mul<Value> for Value {
-    type Output = Result<Value, AbacusError>;
-    fn mul(self, rhs: Self) -> Self::Output {
-        &self * &rhs
-    }
-}
-
-impl Mul<&Value> for Value {
-    type Output = Result<Value, AbacusError>;
-    fn mul(self, rhs: &Value) -> Self::Output {
-        &self * rhs
-    }
-}
-
-impl Mul<Value> for &Value {
-    type Output = Result<Value, AbacusError>;
-    fn mul(self, rhs: Value) -> Self::Output {
-        self * &rhs
-    }
-}
-
 // Div implementations
 impl Div<&Value> for &Value {
     type Output = Result<Value, AbacusError>;
@@ -388,26 +351,35 @@ impl Div<&Value> for &Value {
     }
 }
 
-impl Div<Value> for Value {
-    type Output = Result<Value, AbacusError>;
-    fn div(self, rhs: Self) -> Self::Output {
-        &self / &rhs
-    }
+/// Generates the three ownership-coercing forwarding impls for a binary operator whose
+/// canonical implementation is `&Value op &Value`.
+macro_rules! impl_op_forwarding {
+    ($trait:ident, $method:ident) => {
+        impl $trait<Value> for Value {
+            type Output = Result<Value, AbacusError>;
+            fn $method(self, rhs: Self) -> Self::Output {
+                <&Value as $trait<&Value>>::$method(&self, &rhs)
+            }
+        }
+        impl $trait<&Value> for Value {
+            type Output = Result<Value, AbacusError>;
+            fn $method(self, rhs: &Value) -> Self::Output {
+                <&Value as $trait<&Value>>::$method(&self, rhs)
+            }
+        }
+        impl $trait<Value> for &Value {
+            type Output = Result<Value, AbacusError>;
+            fn $method(self, rhs: Value) -> Self::Output {
+                <&Value as $trait<&Value>>::$method(self, &rhs)
+            }
+        }
+    };
 }
 
-impl Div<&Value> for Value {
-    type Output = Result<Value, AbacusError>;
-    fn div(self, rhs: &Value) -> Self::Output {
-        &self / rhs
-    }
-}
-
-impl Div<Value> for &Value {
-    type Output = Result<Value, AbacusError>;
-    fn div(self, rhs: Value) -> Self::Output {
-        self / &rhs
-    }
-}
+impl_op_forwarding!(Add, add);
+impl_op_forwarding!(Sub, sub);
+impl_op_forwarding!(Mul, mul);
+impl_op_forwarding!(Div, div);
 
 #[cfg(test)]
 mod tests {

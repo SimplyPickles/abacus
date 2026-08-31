@@ -1,5 +1,6 @@
 use crate::{
     AbacusError, Unit, Value, evaluation::tokenizer::registry::unary::operators::UnaryOp,
+    evaluation::tokenizer::registry::function::distributions::special::factorial as fact_u64,
     units::dimensions::Dimensions,
 };
 use std::sync::Arc;
@@ -65,9 +66,8 @@ fn factorial(a: Value) -> Result<Value, AbacusError> {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
     let n = a.canonical.round() as u64;
-    let result = (1..=n).fold(1.0, |acc, x| acc * (x as f64));
     Ok(Value {
-        canonical: result,
+        canonical: fact_u64(n),
         unit: a.unit,
     })
 }

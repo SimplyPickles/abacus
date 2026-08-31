@@ -1,122 +1,59 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    registry::units::metric_units::METRIC_PREFIXES,
+    registry::{
+        helpers::{UnitDefinition, register_unit_definitions},
+        units::metric_units::METRIC_PREFIXES,
+    },
     units::{
         dimensions::Dimensions,
         unit::{Unit, UnitExpr},
     },
 };
 
-struct CgsUnitDef {
+/// Units that are NOT given metric prefixes.
+const CGS_SIMPLE: &[UnitDefinition] = &[
+    // Angstrom: 1e-10 m
+    UnitDefinition { keys: &["angstrom", "Å"], display: "Å",    scalar: 1e-10,               offset: 0.0, dimensions: Dimensions::LENGTH },
+    // Atmosphere: 101,325 Pa = 1.01325e8 g/(m*s^2)
+    UnitDefinition { keys: &["atmosphere", "atm"], display: "atm", scalar: 1.013_25e8,         offset: 0.0, dimensions: Dimensions([-1.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]) },
+    // Torr / mmHg
+    UnitDefinition { keys: &["torr", "Torr", "mmHg"], display: "torr", scalar: 101_325.0 * 1000.0 / 760.0, offset: 0.0, dimensions: Dimensions([-1.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]) },
+    // Barn: 1e-28 m^2
+    UnitDefinition { keys: &["barn", "b_barn"], display: "barn", scalar: 1e-28,               offset: 0.0, dimensions: Dimensions::AREA },
+];
+
+/// Units that ARE given metric prefixes (base key → display symbol → scalar → dimensions).
+struct PrefixableCgs {
     keys: &'static [&'static str],
     display: &'static str,
     scalar: f64,
     dimensions: Dimensions,
-    prefixable: bool,
 }
 
-const CGS_PHYSICS_UNITS: &[CgsUnitDef] = &[
-    // Angstrom: 1e-10 m
-    CgsUnitDef {
-        keys: &["angstrom", "Å"],
-        display: "Å",
-        scalar: 1e-10,
-        dimensions: Dimensions::LENGTH,
-        prefixable: false,
-    },
+const CGS_PREFIXABLE: &[PrefixableCgs] = &[
     // Electronvolt: 1.602176634e-19 J = 1.602176634e-16 g*m^2/s^2
-    CgsUnitDef {
-        keys: &["electronvolt", "eV"],
-        display: "eV",
-        scalar: 1.602_176_634e-16,
-        dimensions: Dimensions([2.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
-        prefixable: true,
-    },
+    PrefixableCgs { keys: &["electronvolt", "eV"],  display: "eV",   scalar: 1.602_176_634e-16, dimensions: Dimensions([2.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]) },
     // Dalton / amu: 1.6605390666e-24 g
-    CgsUnitDef {
-        keys: &["dalton", "Da", "amu"],
-        display: "Da",
-        scalar: 1.660_539_066_6e-24,
-        dimensions: Dimensions::MASS,
-        prefixable: true,
-    },
-    // Bar: 100,000 Pa = 100,000 * 1000 g/(m*s^2) = 1e8 g/(m*s^2)
-    CgsUnitDef {
-        keys: &["bar"],
-        display: "bar",
-        scalar: 1e8,
-        dimensions: Dimensions([-1.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
-        prefixable: true,
-    },
-    // Atmosphere: 101,325 Pa = 1.01325e8 g/(m*s^2)
-    CgsUnitDef {
-        keys: &["atmosphere", "atm"],
-        display: "atm",
-        scalar: 1.013_25e8,
-        dimensions: Dimensions([-1.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
-        prefixable: false,
-    },
-    // Torr / mmHg: 101325 / 760 Pa = 1.3332236842105263e5 g/(m*s^2)
-    CgsUnitDef {
-        keys: &["torr", "Torr", "mmHg"],
-        display: "torr",
-        scalar: 101_325.0 * 1000.0 / 760.0,
-        dimensions: Dimensions([-1.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
-        prefixable: false,
-    },
-    // Barn: 1e-28 m^2
-    CgsUnitDef {
-        keys: &["barn", "b_barn"],
-        display: "barn",
-        scalar: 1e-28,
-        dimensions: Dimensions::AREA,
-        prefixable: false,
-    },
-    // Gauss: 1e-4 T = 1e-1 g/(s^2*A)
-    CgsUnitDef {
-        keys: &["gauss", "G"],
-        display: "G",
-        scalar: 0.1,
-        dimensions: Dimensions([0.0, 1.0, -2.0, -1.0, 0.0, 0.0, 0.0, 0.0]),
-        prefixable: true,
-    },
+    PrefixableCgs { keys: &["dalton", "Da", "amu"], display: "Da",   scalar: 1.660_539_066_6e-24, dimensions: Dimensions::MASS },
+    // Bar: 100,000 Pa = 1e8 g/(m*s^2)
+    PrefixableCgs { keys: &["bar"],                  display: "bar",  scalar: 1e8, dimensions: Dimensions([-1.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]) },
+    // Gauss: 1e-4 T = 0.1 g/(s^2*A)
+    PrefixableCgs { keys: &["gauss", "G"],           display: "G",    scalar: 0.1, dimensions: Dimensions([0.0, 1.0, -2.0, -1.0, 0.0, 0.0, 0.0, 0.0]) },
     // Maxwell: 1e-8 Wb = 1e-5 g*m^2/(s^2*A)
-    CgsUnitDef {
-        keys: &["maxwell", "Mx"],
-        display: "Mx",
-        scalar: 1e-5,
-        dimensions: Dimensions([2.0, 1.0, -2.0, -1.0, 0.0, 0.0, 0.0, 0.0]),
-        prefixable: true,
-    },
+    PrefixableCgs { keys: &["maxwell", "Mx"],        display: "Mx",   scalar: 1e-5, dimensions: Dimensions([2.0, 1.0, -2.0, -1.0, 0.0, 0.0, 0.0, 0.0]) },
     // Poise: 0.1 Pa*s = 100 g/(m*s)
-    CgsUnitDef {
-        keys: &["poise", "P"],
-        display: "P",
-        scalar: 100.0,
-        dimensions: Dimensions([-1.0, 1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
-        prefixable: true,
-    },
+    PrefixableCgs { keys: &["poise", "P"],           display: "P",    scalar: 100.0, dimensions: Dimensions([-1.0, 1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0]) },
     // Stokes: 1e-4 m^2/s
-    CgsUnitDef {
-        keys: &["stokes", "St"],
-        display: "St",
-        scalar: 1e-4,
-        dimensions: Dimensions([2.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
-        prefixable: true,
-    },
+    PrefixableCgs { keys: &["stokes", "St"],         display: "St",   scalar: 1e-4, dimensions: Dimensions([2.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0]) },
     // Galileo: 0.01 m/s^2
-    CgsUnitDef {
-        keys: &["galileo", "Gal"],
-        display: "Gal",
-        scalar: 0.01,
-        dimensions: Dimensions([1.0, 0.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
-        prefixable: true,
-    },
+    PrefixableCgs { keys: &["galileo", "Gal"],       display: "Gal",  scalar: 0.01, dimensions: Dimensions([1.0, 0.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]) },
 ];
 
 pub fn register_cgs_physics_units(map: &mut HashMap<String, Arc<Unit>>) {
-    for def in CGS_PHYSICS_UNITS {
+    register_unit_definitions(map, CGS_SIMPLE);
+
+    for def in CGS_PREFIXABLE {
         let base_unit = Arc::new(Unit {
             scalar: def.scalar,
             offset: 0.0,
@@ -128,17 +65,15 @@ pub fn register_cgs_physics_units(map: &mut HashMap<String, Arc<Unit>>) {
             map.insert(key.to_string(), Arc::clone(&base_unit));
         }
 
-        if def.prefixable {
-            for pref in METRIC_PREFIXES {
-                let pref_unit = Arc::new(Unit {
-                    scalar: def.scalar * pref.scalar,
-                    offset: 0.0,
-                    dimensions: def.dimensions,
-                    display: UnitExpr::single(format!("{}{}", pref.alias, def.display)),
-                });
+        for pref in METRIC_PREFIXES {
+            let pref_unit = Arc::new(Unit {
+                scalar: def.scalar * pref.scalar,
+                offset: 0.0,
+                dimensions: def.dimensions,
+                display: UnitExpr::single(format!("{}{}", pref.alias, def.display)),
+            });
 
-                map.insert(format!("{}{}", pref.alias, def.display), pref_unit);
-            }
+            map.insert(format!("{}{}", pref.alias, def.display), pref_unit);
         }
     }
 }

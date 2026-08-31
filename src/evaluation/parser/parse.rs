@@ -715,7 +715,7 @@ impl RangeSeq {
                 if step_val.unit.is_compatible_with(&start.unit) {
                     step_val.canonical.abs()
                 } else if step_val.unit.is_dimensionless() && !start.unit.is_dimensionless() {
-                    let amount = (step_val.canonical - step_val.unit.offset) / step_val.unit.scalar;
+                    let amount = step_val.amount();
                     (amount * start.unit.scalar).abs()
                 } else {
                     return Err(AbacusError::IncompatibleDimensions);

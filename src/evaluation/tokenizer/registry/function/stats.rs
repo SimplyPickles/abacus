@@ -1,21 +1,9 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::operators::{FunctionOp, FunctionTarget},
-    units::{dimensions::Dimensions, unit::Unit, unit::UnitExpr},
+    units::unit::Unit,
 };
 use std::sync::Arc;
-
-fn make_dimensionless(val: f64) -> Value {
-    Value {
-        canonical: val,
-        unit: Arc::new(Unit {
-            scalar: 1.0,
-            offset: 0.0,
-            dimensions: Dimensions::DIMENSIONLESS,
-            display: UnitExpr::dimensionless(),
-        }),
-    }
-}
 
 fn check_compatible_units<'a>(args: &'a [Value]) -> Result<&'a Arc<Unit>, AbacusError> {
     if args.is_empty() {
@@ -302,7 +290,7 @@ fn corr_fn(args: &[Value]) -> Result<Value, AbacusError> {
     }
 
     let r = cov_sum / denom;
-    Ok(make_dimensionless(r))
+    Ok(Value::dimensionless(r))
 }
 
 fn var_p_fn(args: &[Value]) -> Result<Value, AbacusError> {
@@ -478,11 +466,11 @@ fn skew_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
     let var = m2 / n;
     if var == 0.0 {
-        return Ok(make_dimensionless(0.0));
+        return Ok(Value::dimensionless(0.0));
     }
     let skewness = (m3 / n) / var.powf(1.5);
 
-    Ok(make_dimensionless(skewness))
+    Ok(Value::dimensionless(skewness))
 }
 
 fn kurt_fn(args: &[Value]) -> Result<Value, AbacusError> {
@@ -504,11 +492,11 @@ fn kurt_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
     let var = m2 / n;
     if var == 0.0 {
-        return Ok(make_dimensionless(0.0));
+        return Ok(Value::dimensionless(0.0));
     }
     let excess_kurtosis = (m4 / n) / (var * var) - 3.0;
 
-    Ok(make_dimensionless(excess_kurtosis))
+    Ok(Value::dimensionless(excess_kurtosis))
 }
 
 fn mad_fn(args: &[Value]) -> Result<Value, AbacusError> {
@@ -552,7 +540,7 @@ fn zscore_fn(args: &[Value]) -> Result<Value, AbacusError> {
     }
 
     let z = (x.canonical - mean.canonical) / std.canonical;
-    Ok(make_dimensionless(z))
+    Ok(Value::dimensionless(z))
 }
 
 pub fn register_stats() -> Vec<FunctionOp> {

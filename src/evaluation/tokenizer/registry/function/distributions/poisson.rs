@@ -1,14 +1,10 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::make_dimensionless,
+        distributions::special::{factorial, make_dimensionless},
         operators::{FunctionOp, FunctionTarget},
     },
 };
-
-fn factorial(n: u64) -> f64 {
-    (1..=n).fold(1.0, |acc, x| acc * (x as f64))
-}
 
 /// poissonpdf(lambda, k)
 fn poissonpdf_fn(args: &[Value]) -> Result<Value, AbacusError> {

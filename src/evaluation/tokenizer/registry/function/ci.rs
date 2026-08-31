@@ -100,14 +100,10 @@ fn t_interval_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
         let t_star = t_critical(conf, n - 1.0)?;
         let moe = t_star * se;
 
-        let lo = Value::new(
-            (mean_val.canonical - moe - mean_val.unit.offset) / mean_val.unit.scalar,
-            Arc::clone(&mean_val.unit),
-        );
-        let hi = Value::new(
-            (mean_val.canonical + moe - mean_val.unit.offset) / mean_val.unit.scalar,
-            Arc::clone(&mean_val.unit),
-        );
+        let base = mean_val.amount();
+        let step = moe / mean_val.unit.scalar;
+        let lo = Value::new(base - step, Arc::clone(&mean_val.unit));
+        let hi = Value::new(base + step, Arc::clone(&mean_val.unit));
 
         return Ok(EvalResult::Interval(Interval::new(lo, hi)?));
     }
@@ -169,14 +165,10 @@ fn z_interval_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
     let z_star = z_critical(conf)?;
     let moe = z_star * se;
 
-    let lo = Value::new(
-        (mean_val.canonical - moe - mean_val.unit.offset) / mean_val.unit.scalar,
-        Arc::clone(&mean_val.unit),
-    );
-    let hi = Value::new(
-        (mean_val.canonical + moe - mean_val.unit.offset) / mean_val.unit.scalar,
-        Arc::clone(&mean_val.unit),
-    );
+    let base = mean_val.amount();
+    let step = moe / mean_val.unit.scalar;
+    let lo = Value::new(base - step, Arc::clone(&mean_val.unit));
+    let hi = Value::new(base + step, Arc::clone(&mean_val.unit));
 
     Ok(EvalResult::Interval(Interval::new(lo, hi)?))
 }

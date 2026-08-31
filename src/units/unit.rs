@@ -213,18 +213,4 @@ mod tests {
 
         assert_eq!(inverse_seconds.render(), "1/s");
     }
-
-    // #[test]
-    // fn simplifies_compatible_cross_unit_expressions() {
-    //     let mut unit = Unit {
-    //         scalar: 1000.0,
-    //         offset: 0.0,
-    //         dimensions: Dimensions::DIMENSIONLESS,
-    //         display: UnitExpr::single("km").divide(&UnitExpr::single("m")),
-    //     };
-    //     unit.simplify_display();
-
-    //     assert_eq!(unit.display.render(), "");
-    //     assert_eq!(unit.scalar, 1.0);
-    // }
 }

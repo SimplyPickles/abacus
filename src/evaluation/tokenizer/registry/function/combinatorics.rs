@@ -1,7 +1,7 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::{make_dimensionless, n_cr},
+        distributions::special::{factorial, make_dimensionless, n_cr},
         operators::{FunctionOp, FunctionTarget},
     },
 };
@@ -11,10 +11,6 @@ fn n_pr(n: u64, r: u64) -> f64 {
         return 0.0;
     }
     ((n - r + 1)..=n).fold(1.0, |acc, x| acc * (x as f64))
-}
-
-fn factorial_u64(n: u64) -> f64 {
-    (1..=n).fold(1.0, |acc, x| acc * (x as f64))
 }
 
 /// factorial(n)
@@ -27,7 +23,7 @@ fn factorial_fn(args: &[Value]) -> Result<Value, AbacusError> {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
     let n = n_val.round() as u64;
-    Ok(make_dimensionless(factorial_u64(n)))
+    Ok(make_dimensionless(factorial(n)))
 }
 
 /// nCr(n, r) or comb(n, r)

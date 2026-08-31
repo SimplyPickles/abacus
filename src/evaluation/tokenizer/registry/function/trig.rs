@@ -13,18 +13,6 @@ fn parse_angle_radians(val: &Value) -> Result<f64, AbacusError> {
     }
 }
 
-fn make_dimensionless(value: f64) -> Value {
-    Value {
-        canonical: value,
-        unit: Arc::new(Unit {
-            scalar: 1.0,
-            offset: 0.0,
-            dimensions: Dimensions::DIMENSIONLESS,
-            display: UnitExpr::dimensionless(),
-        }),
-    }
-}
-
 fn make_angle_rad(radians: f64) -> Value {
     Value {
         canonical: radians,
@@ -39,17 +27,17 @@ fn make_angle_rad(radians: f64) -> Value {
 
 fn sin_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let rad = parse_angle_radians(&args[0])?;
-    Ok(make_dimensionless(rad.sin()))
+    Ok(Value::dimensionless(rad.sin()))
 }
 
 fn cos_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let rad = parse_angle_radians(&args[0])?;
-    Ok(make_dimensionless(rad.cos()))
+    Ok(Value::dimensionless(rad.cos()))
 }
 
 fn tan_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let rad = parse_angle_radians(&args[0])?;
-    Ok(make_dimensionless(rad.tan()))
+    Ok(Value::dimensionless(rad.tan()))
 }
 
 fn asin_fn(args: &[Value]) -> Result<Value, AbacusError> {
@@ -84,17 +72,17 @@ fn atan2_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
 fn sinh_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let rad = parse_angle_radians(&args[0])?;
-    Ok(make_dimensionless(rad.sinh()))
+    Ok(Value::dimensionless(rad.sinh()))
 }
 
 fn cosh_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let rad = parse_angle_radians(&args[0])?;
-    Ok(make_dimensionless(rad.cosh()))
+    Ok(Value::dimensionless(rad.cosh()))
 }
 
 fn tanh_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let rad = parse_angle_radians(&args[0])?;
-    Ok(make_dimensionless(rad.tanh()))
+    Ok(Value::dimensionless(rad.tanh()))
 }
 
 fn asinh_fn(args: &[Value]) -> Result<Value, AbacusError> {

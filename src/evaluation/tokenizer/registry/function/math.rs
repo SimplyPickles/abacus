@@ -88,7 +88,7 @@ fn abs_fn(args: &[Value]) -> Result<Value, AbacusError> {
 /// floor(x) — Floor function (preserves unit)
 fn floor_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let val = &args[0];
-    let unit_amount = (val.canonical - val.unit.offset) / val.unit.scalar;
+    let unit_amount = val.amount();
     let floored_amount = unit_amount.floor();
     Ok(Value::new(floored_amount, Arc::clone(&val.unit)))
 }
@@ -96,7 +96,7 @@ fn floor_fn(args: &[Value]) -> Result<Value, AbacusError> {
 /// ceil(x) — Ceiling function (preserves unit)
 fn ceil_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let val = &args[0];
-    let unit_amount = (val.canonical - val.unit.offset) / val.unit.scalar;
+    let unit_amount = val.amount();
     let ceiled_amount = unit_amount.ceil();
     Ok(Value::new(ceiled_amount, Arc::clone(&val.unit)))
 }
@@ -104,7 +104,7 @@ fn ceil_fn(args: &[Value]) -> Result<Value, AbacusError> {
 /// round(x) — Rounding function (preserves unit)
 fn round_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let val = &args[0];
-    let unit_amount = (val.canonical - val.unit.offset) / val.unit.scalar;
+    let unit_amount = val.amount();
     let rounded_amount = unit_amount.round();
     Ok(Value::new(rounded_amount, Arc::clone(&val.unit)))
 }

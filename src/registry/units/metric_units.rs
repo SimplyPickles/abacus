@@ -117,11 +117,6 @@ pub fn register_metric_units() -> HashMap<String, Arc<Unit>> {
     map.insert("percent".to_string(), Arc::clone(&percent));
     map.insert("pct".to_string(), Arc::clone(&percent));
 
-    if let Some(sec_unit) = map.get("s").cloned() {
-        map.insert("seconds".to_string(), sec_unit.clone());
-        map.insert("second".to_string(), sec_unit);
-    }
-
     for &tz_name in TIMEZONE_NAMES {
         let tz_unit = Arc::new(Unit {
             scalar: 1.0,

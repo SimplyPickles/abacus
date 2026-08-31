@@ -1,10 +1,9 @@
-use crate::{AbacusError, Value, units::eval_result::EvalResult, units::hash::Hash};
+use crate::{AbacusError, Value, units::eval_result::EvalResult};
 
 #[derive(Debug, Clone)]
 pub enum FunctionTarget {
     Scalar(fn(&[Value]) -> Result<Value, AbacusError>),
     EvalResult(fn(&[Value]) -> Result<EvalResult, AbacusError>),
-    Hash(fn(&[Value]) -> Result<Hash, AbacusError>),
 }
 
 #[derive(Debug, Clone)]
@@ -51,7 +50,6 @@ impl FunctionOp {
         match self.func {
             FunctionTarget::Scalar(f) => f(args).map(EvalResult::Scalar),
             FunctionTarget::EvalResult(f) => f(args),
-            _ => Err(AbacusError::HashAsResult),
         }
     }
 }

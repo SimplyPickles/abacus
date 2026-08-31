@@ -34,7 +34,7 @@ fn clamp_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let min_canonical = if min.unit.is_compatible_with(&x.unit) {
         min.canonical
     } else if min.unit.is_dimensionless() && !x.unit.is_dimensionless() {
-        let min_amount = (min.canonical - min.unit.offset) / min.unit.scalar;
+        let min_amount = min.amount();
         Value::new(min_amount, Arc::clone(&x.unit)).canonical
     } else {
         return Err(AbacusError::IncompatibleDimensions);
@@ -43,7 +43,7 @@ fn clamp_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let max_canonical = if max.unit.is_compatible_with(&x.unit) {
         max.canonical
     } else if max.unit.is_dimensionless() && !x.unit.is_dimensionless() {
-        let max_amount = (max.canonical - max.unit.offset) / max.unit.scalar;
+        let max_amount = max.amount();
         Value::new(max_amount, Arc::clone(&x.unit)).canonical
     } else {
         return Err(AbacusError::IncompatibleDimensions);
@@ -92,24 +92,24 @@ pub fn compute_modulo(a: &Value, b: &Value) -> Result<Value, AbacusError> {
     }
 
     if a.unit.is_compatible_with(&b.unit) {
-        let a_amount = (a.canonical - a.unit.offset) / a.unit.scalar;
-        let b_amount = (b.canonical - b.unit.offset) / b.unit.scalar;
+        let a_amount = a.amount();
+        let b_amount = b.amount();
         if b_amount == 0.0 {
             return Err(AbacusError::IncompatibleFunctionArguments);
         }
         let rem_amount = a_amount % b_amount;
         Ok(Value::new(rem_amount, Arc::clone(&a.unit)))
     } else if b.unit.is_dimensionless() && !a.unit.is_dimensionless() {
-        let a_amount = (a.canonical - a.unit.offset) / a.unit.scalar;
-        let b_amount = (b.canonical - b.unit.offset) / b.unit.scalar;
+        let a_amount = a.amount();
+        let b_amount = b.amount();
         if b_amount == 0.0 {
             return Err(AbacusError::IncompatibleFunctionArguments);
         }
         let rem_amount = a_amount % b_amount;
         Ok(Value::new(rem_amount, Arc::clone(&a.unit)))
     } else if a.unit.is_dimensionless() && !b.unit.is_dimensionless() {
-        let a_amount = (a.canonical - a.unit.offset) / a.unit.scalar;
-        let b_amount = (b.canonical - b.unit.offset) / b.unit.scalar;
+        let a_amount = a.amount();
+        let b_amount = b.amount();
         if b_amount == 0.0 {
             return Err(AbacusError::IncompatibleFunctionArguments);
         }
