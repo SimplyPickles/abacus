@@ -2,7 +2,7 @@ use abacus::units::date::{
     Date, DayOfWeek, Time, date_to_epoch_days, days_in_month, epoch_days_to_date, is_leap_year,
     is_valid_date,
 };
-use abacus::{AbacusError, UnitRegistry, Value};
+use abacus::{AbacusError, UnitRegistry};
 use std::str::FromStr;
 
 #[test]

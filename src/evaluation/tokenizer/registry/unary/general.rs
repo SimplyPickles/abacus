@@ -1,7 +1,7 @@
 use crate::{
-    AbacusError, Unit, Value, evaluation::tokenizer::registry::unary::operators::UnaryOp,
+    AbacusError, Unit, Value,
     evaluation::tokenizer::registry::function::distributions::special::factorial as fact_u64,
-    units::dimensions::Dimensions,
+    evaluation::tokenizer::registry::unary::operators::UnaryOp, units::dimensions::Dimensions,
 };
 use std::sync::Arc;
 

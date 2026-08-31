@@ -1,4 +1,4 @@
-use abacus::{Abacus, Date, Time, TimeZone, eval};
+use abacus::{Abacus, Date, Time, TimeZone};
 use std::str::FromStr;
 
 #[test]

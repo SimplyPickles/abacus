@@ -1,6 +1,6 @@
 use crate::registry::UnitRegistry;
-use crate::{error::AbacusError, units::unit::Unit};
 use crate::units::{dimensions::Dimensions, unit::UnitExpr};
+use crate::{error::AbacusError, units::unit::Unit};
 
 use std::{
     fmt,

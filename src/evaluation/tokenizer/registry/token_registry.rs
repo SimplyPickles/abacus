@@ -1,9 +1,15 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::evaluation::tokenizer::registry::{
-    binary::{arithmetic::register_arithmetic, operators::BinaryOp}, function::{
-        ci::register_ci, combinatorics::register_combinatorics, date::register_date_functions, distributions::register_distributions, financial::register_financial, hypothesis::register_hypothesis, math::register_math, math_helpers::register_math_helpers, operators::FunctionOp, regression::register_regression, stats::register_stats, trig::register_trig,
-    }, unary::{general::register_general, operators::UnaryOp},
+    binary::{arithmetic::register_arithmetic, operators::BinaryOp},
+    function::{
+        ci::register_ci, combinatorics::register_combinatorics, date::register_date_functions,
+        distributions::register_distributions, financial::register_financial,
+        hypothesis::register_hypothesis, math::register_math, math_helpers::register_math_helpers,
+        operators::FunctionOp, regression::register_regression, stats::register_stats,
+        trig::register_trig,
+    },
+    unary::{general::register_general, operators::UnaryOp},
 };
 
 #[derive(Debug, Default)]
@@ -44,7 +50,8 @@ impl TokenRegistry {
             register_regression(),
             register_hypothesis(),
             register_date_functions(),
-        ].concat();
+        ]
+        .concat();
 
         Self {
             binary_operators: binary
