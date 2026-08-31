@@ -39,7 +39,7 @@ impl Hash {
 
     pub fn to_display(&self) -> String {
         let mut entries: Vec<_> = self.values.iter().collect();
-        entries.sort_by_key(|(k, _)| (*k).clone());
+        entries.sort_by_key(|&(k, _)| k);
         let formatted: Vec<String> = entries
             .into_iter()
             .map(|(k, v)| format!("{}: {}", k, v.to_display()))

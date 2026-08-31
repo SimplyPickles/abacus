@@ -185,18 +185,7 @@ impl EvalResult {
         match self {
             EvalResult::Scalar(v) => &v.unit,
             EvalResult::Interval(i) => &i.lo.unit,
-            EvalResult::Date(_) | EvalResult::Hash(_) => {
-                static DIMENSIONLESS: std::sync::OnceLock<Arc<Unit>> = std::sync::OnceLock::new();
-                DIMENSIONLESS.get_or_init(|| {
-                    use crate::units::{dimensions::Dimensions, unit::UnitExpr};
-                    Arc::new(Unit {
-                        scalar: 1.0,
-                        offset: 0.0,
-                        dimensions: Dimensions::DIMENSIONLESS,
-                        display: UnitExpr::dimensionless(),
-                    })
-                })
-            }
+            EvalResult::Date(_) | EvalResult::Hash(_) => Unit::dimensionless_arc_ref(),
         }
     }
 }

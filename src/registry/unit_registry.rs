@@ -9,10 +9,16 @@ use crate::{
     units::{unit::Unit, value::Value},
 };
 
+const PRIORITY_DERIVED_SYMBOLS: [&str; 20] = [
+    "N", "J", "W", "Pa", "Hz", "V", "C", "F", "Ω", "S", "Wb", "T", "H", "A", "lx", "kat",
+    "Bq", "Gy", "Sv", "lm",
+];
+
 #[derive(Debug, Default)]
 pub struct UnitRegistry {
     units: HashMap<String, Arc<Unit>>,
     cache: RwLock<HashMap<String, Arc<Unit>>>,
+    priority_derived_units: Vec<Arc<Unit>>,
 }
 
 impl UnitRegistry {
@@ -20,13 +26,20 @@ impl UnitRegistry {
         Self {
             units: HashMap::new(),
             cache: RwLock::new(HashMap::new()),
+            priority_derived_units: Vec::new(),
         }
     }
 
     pub fn standard() -> Self {
+        let units = register_metric_units();
+        let priority_derived_units = PRIORITY_DERIVED_SYMBOLS
+            .iter()
+            .filter_map(|&s| units.get(s).cloned())
+            .collect();
         Self {
-            units: register_metric_units(),
+            units,
             cache: RwLock::new(HashMap::new()),
+            priority_derived_units,
         }
     }
 
@@ -49,20 +62,10 @@ impl UnitRegistry {
         &self,
         dimensions: &crate::units::dimensions::Dimensions,
     ) -> Option<Arc<Unit>> {
-        let priority_symbols = [
-            "N", "J", "W", "Pa", "Hz", "V", "C", "F", "Ω", "S", "Wb", "T", "H", "A", "lx", "kat",
-            "Bq", "Gy", "Sv", "lm",
-        ];
-
-        for &sym in &priority_symbols {
-            if let Some(unit) = self.units.get(sym)
-                && &unit.dimensions == dimensions
-            {
-                return Some(Arc::clone(unit));
-            }
-        }
-
-        None
+        self.priority_derived_units
+            .iter()
+            .find(|u| &u.dimensions == dimensions)
+            .cloned()
     }
 
     pub fn unit(&self, symbol: &str) -> Result<Arc<Unit>, AbacusError> {
@@ -136,7 +139,15 @@ impl UnitRegistry {
     }
 
     pub fn insert_unit(&mut self, key: impl Into<String>, unit: Arc<Unit>) {
-        self.units.insert(key.into(), unit);
+        let key = key.into();
+        if PRIORITY_DERIVED_SYMBOLS.contains(&key.as_str()) {
+            if let Some(pos) = self.priority_derived_units.iter().position(|u| u.display.render() == key) {
+                self.priority_derived_units[pos] = Arc::clone(&unit);
+            } else {
+                self.priority_derived_units.push(Arc::clone(&unit));
+            }
+        }
+        self.units.insert(key, unit);
     }
 }
 

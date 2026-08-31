@@ -212,18 +212,7 @@ impl<'a> Parser<'a> {
                                 d2.time.hour += 12;
                             }
 
-                            let unit_h = self
-                                .unit_registry
-                                .unit("h")
-                                .or_else(|_| self.unit_registry.unit("hour"))
-                                .unwrap_or_else(|_| {
-                                    std::sync::Arc::new(crate::units::unit::Unit {
-                                        scalar: 3600.0,
-                                        offset: 0.0,
-                                        dimensions: crate::units::dimensions::Dimensions::TIME,
-                                        display: crate::units::unit::UnitExpr::single("h"),
-                                    })
-                                });
+                            let unit_h = self.hour_unit();
                             let diff_val = (&d2 - d1).convert_to(unit_h)?;
                             lhs = EvalResult::Scalar(diff_val);
                             continue;
@@ -241,18 +230,7 @@ impl<'a> Parser<'a> {
                     let rhs_result = self.parse_expr(1)?;
                     match rhs_result {
                         EvalResult::Date(ref d2) => {
-                            let unit_h = self
-                                .unit_registry
-                                .unit("h")
-                                .or_else(|_| self.unit_registry.unit("hour"))
-                                .unwrap_or_else(|_| {
-                                    std::sync::Arc::new(crate::units::unit::Unit {
-                                        scalar: 3600.0,
-                                        offset: 0.0,
-                                        dimensions: crate::units::dimensions::Dimensions::TIME,
-                                        display: crate::units::unit::UnitExpr::single("h"),
-                                    })
-                                });
+                            let unit_h = self.hour_unit();
                             let diff_val = (d2 - d1).convert_to(unit_h)?;
                             lhs = EvalResult::Scalar(diff_val);
                             continue;
@@ -431,21 +409,7 @@ impl<'a> Parser<'a> {
 
             Some(Token::Float(num)) => {
                 // A bare float without a unit — wrap in dimensionless Value
-                Ok(EvalResult::Scalar(Value::new(
-                    num,
-                    self.unit_registry.unit("1").unwrap_or_else(|_| {
-                        use crate::units::{
-                            dimensions::Dimensions,
-                            unit::{Unit, UnitExpr},
-                        };
-                        std::sync::Arc::new(Unit {
-                            scalar: 1.0,
-                            offset: 0.0,
-                            dimensions: Dimensions::DIMENSIONLESS,
-                            display: UnitExpr::dimensionless(),
-                        })
-                    }),
-                )))
+                Ok(EvalResult::Scalar(Value::dimensionless(num)))
             }
 
             // Grouped expression: ( expr )
@@ -631,6 +595,21 @@ impl<'a> Parser<'a> {
         } else {
             10
         }
+    }
+
+    /// Resolve the standard hour unit, with a fallback if not registered.
+    fn hour_unit(&self) -> std::sync::Arc<crate::units::unit::Unit> {
+        self.unit_registry
+            .unit("h")
+            .or_else(|_| self.unit_registry.unit("hour"))
+            .unwrap_or_else(|_| {
+                std::sync::Arc::new(crate::units::unit::Unit {
+                    scalar: 3600.0,
+                    offset: 0.0,
+                    dimensions: crate::units::dimensions::Dimensions::TIME,
+                    display: crate::units::unit::UnitExpr::single("h"),
+                })
+            })
     }
 }
 

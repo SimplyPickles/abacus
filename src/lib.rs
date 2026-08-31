@@ -126,7 +126,14 @@ impl Abacus {
     pub fn register_function_token(&mut self, op: FunctionOp) {
         self.tokens.register_function_operator(op.name, op);
     }
+
+    /// Returns a reference to the globally shared standard `Abacus` instance.
+    pub fn shared() -> &'static Self {
+        &STANDARD
+    }
 }
+
+pub static STANDARD: std::sync::LazyLock<Abacus> = std::sync::LazyLock::new(Abacus::standard);
 
 impl Default for Abacus {
     fn default() -> Self {
@@ -136,18 +143,15 @@ impl Default for Abacus {
 
 // Convenience function for standard expression evaluation
 pub fn eval(expr: &str) -> Result<EvalResult, AbacusError> {
-    Abacus::standard().eval(expr)
+    STANDARD.eval(expr)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::OnceLock;
-
-    static UNITS: OnceLock<UnitRegistry> = OnceLock::new();
 
     pub fn global_units() -> &'static UnitRegistry {
-        UNITS.get_or_init(UnitRegistry::standard)
+        &Abacus::shared().units
     }
 
     pub fn unit(symbol: &str) -> Result<std::sync::Arc<Unit>, AbacusError> {

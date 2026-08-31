@@ -1,5 +1,4 @@
 use crate::registry::UnitRegistry;
-use crate::units::{dimensions::Dimensions, unit::UnitExpr};
 use crate::{error::AbacusError, units::unit::Unit};
 
 use std::{
@@ -34,12 +33,7 @@ impl Value {
     pub fn dimensionless(val: f64) -> Self {
         Self {
             canonical: val,
-            unit: Arc::new(Unit {
-                scalar: 1.0,
-                offset: 0.0,
-                dimensions: Dimensions::DIMENSIONLESS,
-                display: UnitExpr::dimensionless(),
-            }),
+            unit: Unit::dimensionless_arc(),
         }
     }
 

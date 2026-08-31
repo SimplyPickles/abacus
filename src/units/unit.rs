@@ -188,6 +188,15 @@ impl Unit {
         }
     }
 
+    pub fn dimensionless_arc_ref() -> &'static Arc<Self> {
+        static DIMENSIONLESS: std::sync::OnceLock<Arc<Unit>> = std::sync::OnceLock::new();
+        DIMENSIONLESS.get_or_init(|| Arc::new(Self::dimensionless()))
+    }
+
+    pub fn dimensionless_arc() -> Arc<Self> {
+        Arc::clone(Self::dimensionless_arc_ref())
+    }
+
     pub fn is_dimensionless(&self) -> bool {
         self.dimensions == Dimensions::DIMENSIONLESS
     }
