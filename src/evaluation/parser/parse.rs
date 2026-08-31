@@ -142,8 +142,8 @@ impl<'a> Parser<'a> {
 
             // Check for range operator `..` (constructing an Interval) outside function arguments
             if self.function_arg_depth == 0 && self.peek() == Some(&Token::Range) {
-                let l_bp = 10;
-                let r_bp = 11;
+                let l_bp = 5;
+                let r_bp = 6;
                 if l_bp < min_bp {
                     break;
                 }

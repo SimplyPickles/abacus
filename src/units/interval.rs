@@ -83,6 +83,50 @@ impl Interval {
     /// For monotonic operations (e.g. addition) this is exact.
     /// For non-monotonic operations this is conservative (may overestimate the interval).
     pub fn apply_binary(&self, op: &BinaryOp, other: &Interval) -> Result<Interval, AbacusError> {
+        let style = if self.style == IntervalStyle::Range || other.style == IntervalStyle::Range {
+            IntervalStyle::Range
+        } else {
+            IntervalStyle::Bracket
+        };
+
+        // Division by an interval containing zero crosses a singularity / pole.
+        if op.alias == "/" && other.lo.canonical <= 0.0 && other.hi.canonical >= 0.0 {
+            let sample_rhs = if other.hi.canonical > 0.0 {
+                other.hi.clone()
+            } else if other.lo.canonical < 0.0 {
+                other.lo.clone()
+            } else {
+                Value::new(1.0, Arc::clone(&other.lo.unit))
+            };
+            let sample_unit = (self.lo.clone() / sample_rhs)?.unit;
+
+            let (lo_val, hi_val) = if (other.lo.canonical == 0.0 && other.hi.canonical == 0.0)
+                || (other.lo.canonical < 0.0 && other.hi.canonical > 0.0)
+            {
+                (f64::NEG_INFINITY, f64::INFINITY)
+            } else if other.lo.canonical == 0.0 {
+                if self.lo.canonical > 0.0 {
+                    (self.lo.canonical / other.hi.canonical, f64::INFINITY)
+                } else if self.hi.canonical < 0.0 {
+                    (f64::NEG_INFINITY, self.hi.canonical / other.hi.canonical)
+                } else {
+                    (f64::NEG_INFINITY, f64::INFINITY)
+                }
+            } else {
+                if self.lo.canonical > 0.0 {
+                    (f64::NEG_INFINITY, self.lo.canonical / other.lo.canonical)
+                } else if self.hi.canonical < 0.0 {
+                    (self.hi.canonical / other.lo.canonical, f64::INFINITY)
+                } else {
+                    (f64::NEG_INFINITY, f64::INFINITY)
+                }
+            };
+
+            let lo = Value::new(lo_val, Arc::clone(&sample_unit));
+            let hi = Value::new(hi_val, sample_unit);
+            return Ok(Interval { lo, hi, style });
+        }
+
         let corners = [
             op.apply(self.lo.clone(), other.lo.clone())?,
             op.apply(self.lo.clone(), other.hi.clone())?,
@@ -109,12 +153,6 @@ impl Interval {
             })
             .unwrap()
             .clone();
-
-        let style = if self.style == IntervalStyle::Range || other.style == IntervalStyle::Range {
-            IntervalStyle::Range
-        } else {
-            IntervalStyle::Bracket
-        };
 
         Ok(Interval { lo, hi, style })
     }

@@ -299,3 +299,23 @@ fn test_niche_unparenthesized_function_chaining() {
     // Unparenthesized abs with energy reduction: abs -10 N * 2 m -> 20 J
     assert_eq!(abacus.eval("abs -10 N * 2 m").unwrap().to_display(), "20 J");
 }
+
+#[test]
+fn test_numerical_stability_edge_cases() {
+    let abacus = Abacus::standard();
+
+    // 1. Poisson PMF and CDF with k > 170
+    let p_pdf = abacus.eval_scalar("poissonpdf(200, 200)").unwrap().canonical;
+    assert!(p_pdf.is_finite() && p_pdf > 0.0);
+    assert!((p_pdf - 0.0282).abs() < 1e-3);
+
+    let p_cdf = abacus.eval_scalar("poissoncdf(200, 200)").unwrap().canonical;
+    assert!(p_cdf.is_finite() && (p_cdf - 0.5188).abs() < 1e-2);
+
+    // 2. Hypergeometric rejection of negative / invalid arguments
+    assert!(abacus.eval("hypgeompdf(-10, -5, -2, -1)").is_err());
+    assert!(abacus.eval("hypgeomcdf(-10, -5, -2, -1)").is_err());
+
+    // 3. IRR divergence handling when no rate exists
+    assert!(abacus.eval("irr(100, 200, 300)").is_err());
+}

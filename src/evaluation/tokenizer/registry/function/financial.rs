@@ -144,9 +144,11 @@ fn irr_fn(args: &[Value]) -> Result<Value, AbacusError> {
     };
 
     let mut r = 0.1; // initial guess 10%
+    let mut converged = false;
     for _ in 0..100 {
         let npv_val = npv_at(r);
         if npv_val.abs() < 1e-10 {
+            converged = true;
             break;
         }
         let dnpv_val = dnpv_at(r);
@@ -154,11 +156,21 @@ fn irr_fn(args: &[Value]) -> Result<Value, AbacusError> {
             break;
         }
         let next_r = r - npv_val / dnpv_val;
+        if !next_r.is_finite() {
+            break;
+        }
         if (next_r - r).abs() < 1e-12 {
             r = next_r;
+            if npv_at(r).abs() < 1e-6 {
+                converged = true;
+            }
             break;
         }
         r = next_r;
+    }
+
+    if !converged && (!r.is_finite() || npv_at(r).abs() >= 1e-6) {
+        return Err(AbacusError::IncompatibleFunctionArguments);
     }
 
     Ok(Value::dimensionless(r))

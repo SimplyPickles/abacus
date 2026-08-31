@@ -89,7 +89,9 @@ impl Value {
     pub fn to_display(&self) -> String {
         let value = self.amount();
         let nearest_integer = value.round();
-        let display_value = if (value - nearest_integer).abs() <= 1e-12 * value.abs().max(1.0) {
+        let display_value = if value.is_finite()
+            && (value - nearest_integer).abs() <= 1e-12 * value.abs().max(1.0)
+        {
             nearest_integer
         } else {
             value

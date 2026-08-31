@@ -288,3 +288,22 @@ fn test_range_syntax_intervals() {
     let res = eval("1..10 m + 5 m").unwrap();
     assert_eq!(res.to_display(), "6 m..15 m");
 }
+
+#[test]
+fn test_interval_division_zero_crossing_singularity() {
+    // [1 m, 2 m] / [-1 s, 1 s] = [-inf m/s, inf m/s]
+    let res = eval("[1 m, 2 m] / [-1 s, 1 s]").unwrap();
+    assert_eq!(res.to_display(), "[-inf m/s, inf m/s]");
+
+    // [1, 2] / [0, 2] = [0.5, inf]
+    let res = eval("[1, 2] / [0, 2]").unwrap();
+    assert_eq!(res.to_display(), "[0.5, inf]");
+
+    // [-2, -1] / [0, 2] = [-inf, -0.5]
+    let res = eval("[-2, -1] / [0, 2]").unwrap();
+    assert_eq!(res.to_display(), "[-inf, -0.5]");
+
+    // Range style 1..2 / -1..1 = -inf..inf
+    let res = eval("1..2 / -1..1").unwrap();
+    assert_eq!(res.to_display(), "-inf..inf");
+}

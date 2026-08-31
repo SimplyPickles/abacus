@@ -11,6 +11,13 @@ use crate::{
 fn hypgeompdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
     check_dimensionless(args)?;
 
+    for arg in args {
+        let v = arg.canonical;
+        if v < 0.0 || !v.is_finite() {
+            return Err(AbacusError::IncompatibleFunctionArguments);
+        }
+    }
+
     let big_n = args[0].canonical.round() as u64;
     let big_k = args[1].canonical.round() as u64;
     let n = args[2].canonical.round() as u64;
@@ -27,6 +34,13 @@ fn hypgeompdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
 /// hypgeomcdf(N, K, n, k)
 fn hypgeomcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
     check_dimensionless(args)?;
+
+    for arg in args {
+        let v = arg.canonical;
+        if v < 0.0 || !v.is_finite() {
+            return Err(AbacusError::IncompatibleFunctionArguments);
+        }
+    }
 
     let big_n = args[0].canonical.round() as u64;
     let big_k = args[1].canonical.round() as u64;
