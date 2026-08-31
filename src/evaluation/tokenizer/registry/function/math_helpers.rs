@@ -91,7 +91,7 @@ pub fn compute_modulo(a: &Value, b: &Value) -> Result<Value, AbacusError> {
         return Err(AbacusError::AffineUnitOperation("modulo"));
     }
 
-    if a.unit.is_compatible_with(&b.unit) {
+    if a.unit.is_compatible_with(&b.unit) || (b.unit.is_dimensionless() && !a.unit.is_dimensionless()) {
         let a_amount = a.amount();
         let b_amount = b.amount();
         if b_amount == 0.0 {
@@ -99,22 +99,6 @@ pub fn compute_modulo(a: &Value, b: &Value) -> Result<Value, AbacusError> {
         }
         let rem_amount = a_amount % b_amount;
         Ok(Value::new(rem_amount, Arc::clone(&a.unit)))
-    } else if b.unit.is_dimensionless() && !a.unit.is_dimensionless() {
-        let a_amount = a.amount();
-        let b_amount = b.amount();
-        if b_amount == 0.0 {
-            return Err(AbacusError::IncompatibleFunctionArguments);
-        }
-        let rem_amount = a_amount % b_amount;
-        Ok(Value::new(rem_amount, Arc::clone(&a.unit)))
-    } else if a.unit.is_dimensionless() && !b.unit.is_dimensionless() {
-        let a_amount = a.amount();
-        let b_amount = b.amount();
-        if b_amount == 0.0 {
-            return Err(AbacusError::IncompatibleFunctionArguments);
-        }
-        let rem_amount = a_amount % b_amount;
-        Ok(Value::new(rem_amount, Arc::clone(&b.unit)))
     } else {
         Err(AbacusError::IncompatibleDimensions)
     }
