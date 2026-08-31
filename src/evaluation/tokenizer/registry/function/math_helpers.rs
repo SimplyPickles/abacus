@@ -1,6 +1,6 @@
 use crate::{
     AbacusError, Value,
-    evaluation::tokenizer::registry::function::operators::{FunctionOp, FunctionTarget},
+    evaluation::tokenizer::registry::function::operators::FunctionOp,
 };
 use std::sync::Arc;
 
@@ -110,35 +110,10 @@ fn modulo_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
 pub fn register_math_helpers() -> Vec<FunctionOp> {
     vec![
-        FunctionOp {
-            name: "clamp",
-            min_args: 3,
-            max_args: 3,
-            func: FunctionTarget::Scalar(clamp_fn),
-        },
-        FunctionOp {
-            name: "gcd",
-            min_args: 2,
-            max_args: 2,
-            func: FunctionTarget::Scalar(gcd_fn),
-        },
-        FunctionOp {
-            name: "lcm",
-            min_args: 2,
-            max_args: 2,
-            func: FunctionTarget::Scalar(lcm_fn),
-        },
-        FunctionOp {
-            name: "mod",
-            min_args: 2,
-            max_args: 2,
-            func: FunctionTarget::Scalar(modulo_fn),
-        },
-        FunctionOp {
-            name: "modulo",
-            min_args: 2,
-            max_args: 2,
-            func: FunctionTarget::Scalar(modulo_fn),
-        },
+        FunctionOp::scalar("clamp", 3, 3, clamp_fn),
+        FunctionOp::scalar("gcd", 2, 2, gcd_fn),
+        FunctionOp::scalar("lcm", 2, 2, lcm_fn),
+        FunctionOp::scalar("mod", 2, 2, modulo_fn),
+        FunctionOp::scalar("modulo", 2, 2, modulo_fn),
     ]
 }

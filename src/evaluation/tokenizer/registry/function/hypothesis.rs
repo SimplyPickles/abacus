@@ -4,7 +4,7 @@ use crate::{
         distributions::{
             chi_square::compute_chisqcdf, normal::std_normal_cdf, student_t::compute_tcdf,
         },
-        operators::{FunctionOp, FunctionTarget},
+        operators::FunctionOp,
         stats::{compute_mean, compute_variance},
     },
     units::{eval_result::EvalResult, hash::Hash, value::Value as AbacusValue},
@@ -344,72 +344,37 @@ pub fn register_hypothesis() -> Vec<FunctionOp> {
 
     // ZTest
     for name in &["ZTest", "ztest", "Z_Test"] {
-        ops.push(FunctionOp {
-            name,
-            min_args: 3,
-            max_args: usize::MAX,
-            func: FunctionTarget::EvalResult(z_test_fn),
-        });
+        ops.push(FunctionOp::eval_result(name, 3, usize::MAX, z_test_fn));
     }
 
     // TTest
     for name in &["TTest", "ttest", "T_Test"] {
-        ops.push(FunctionOp {
-            name,
-            min_args: 2,
-            max_args: usize::MAX,
-            func: FunctionTarget::EvalResult(t_test_fn),
-        });
+        ops.push(FunctionOp::eval_result(name, 2, usize::MAX, t_test_fn));
     }
 
     // 1-PropZTest
     for name in &["1-PropZTest", "1_PropZTest", "1PropZTest", "propztest"] {
-        ops.push(FunctionOp {
-            name,
-            min_args: 3,
-            max_args: 3,
-            func: FunctionTarget::EvalResult(one_prop_z_test_fn),
-        });
+        ops.push(FunctionOp::eval_result(name, 3, 3, one_prop_z_test_fn));
     }
 
     // 2-SampZTest
     for name in &["2-SampZTest", "2_SampZTest", "2SampZTest", "sampztest2"] {
-        ops.push(FunctionOp {
-            name,
-            min_args: 6,
-            max_args: 6,
-            func: FunctionTarget::EvalResult(two_samp_z_test_fn),
-        });
+        ops.push(FunctionOp::eval_result(name, 6, 6, two_samp_z_test_fn));
     }
 
     // 2-SampTTest
     for name in &["2-SampTTest", "2_SampTTest", "2SampTTest", "sampttest2"] {
-        ops.push(FunctionOp {
-            name,
-            min_args: 6,
-            max_args: 6,
-            func: FunctionTarget::EvalResult(two_samp_t_test_fn),
-        });
+        ops.push(FunctionOp::eval_result(name, 6, 6, two_samp_t_test_fn));
     }
 
     // 2-PropZTest
     for name in &["2-PropZTest", "2_PropZTest", "2PropZTest", "propztest2"] {
-        ops.push(FunctionOp {
-            name,
-            min_args: 4,
-            max_args: 4,
-            func: FunctionTarget::EvalResult(two_prop_z_test_fn),
-        });
+        ops.push(FunctionOp::eval_result(name, 4, 4, two_prop_z_test_fn));
     }
 
     // Chi2Test
     for name in &["Chi2Test", "chi2test", "Chi2_Test"] {
-        ops.push(FunctionOp {
-            name,
-            min_args: 4,
-            max_args: usize::MAX,
-            func: FunctionTarget::EvalResult(chi2_test_fn),
-        });
+        ops.push(FunctionOp::eval_result(name, 4, usize::MAX, chi2_test_fn));
     }
 
     ops

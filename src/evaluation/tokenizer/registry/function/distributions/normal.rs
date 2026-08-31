@@ -2,7 +2,7 @@ use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
         distributions::special::erfinv,
-        operators::{FunctionOp, FunctionTarget},
+        operators::FunctionOp,
     },
 };
 use std::f64::consts::TAU;
@@ -116,23 +116,8 @@ fn invnorm_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
 pub fn register_normal() -> Vec<FunctionOp> {
     vec![
-        FunctionOp {
-            name: "normpdf",
-            min_args: 1,
-            max_args: 3,
-            func: FunctionTarget::Scalar(normpdf_fn),
-        },
-        FunctionOp {
-            name: "normcdf",
-            min_args: 1,
-            max_args: 3,
-            func: FunctionTarget::Scalar(normcdf_fn),
-        },
-        FunctionOp {
-            name: "invnorm",
-            min_args: 1,
-            max_args: 3,
-            func: FunctionTarget::Scalar(invnorm_fn),
-        },
+        FunctionOp::scalar("normpdf", 1, 3, normpdf_fn),
+        FunctionOp::scalar("normcdf", 1, 3, normcdf_fn),
+        FunctionOp::scalar("invnorm", 1, 3, invnorm_fn),
     ]
 }

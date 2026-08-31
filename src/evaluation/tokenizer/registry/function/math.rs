@@ -2,7 +2,7 @@ use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
         check_dimensionless,
-        operators::{FunctionOp, FunctionTarget},
+        operators::FunctionOp,
     },
 };
 use std::sync::Arc;
@@ -105,65 +105,15 @@ fn sign_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
 pub fn register_math() -> Vec<FunctionOp> {
     vec![
-        FunctionOp {
-            name: "ln",
-            min_args: 1,
-            max_args: 1,
-            func: FunctionTarget::Scalar(ln_fn),
-        },
-        FunctionOp {
-            name: "log10",
-            min_args: 1,
-            max_args: 1,
-            func: FunctionTarget::Scalar(log10_fn),
-        },
-        FunctionOp {
-            name: "log2",
-            min_args: 1,
-            max_args: 1,
-            func: FunctionTarget::Scalar(log2_fn),
-        },
-        FunctionOp {
-            name: "log",
-            min_args: 1,
-            max_args: 2,
-            func: FunctionTarget::Scalar(log_fn),
-        },
-        FunctionOp {
-            name: "exp",
-            min_args: 1,
-            max_args: 1,
-            func: FunctionTarget::Scalar(exp_fn),
-        },
-        FunctionOp {
-            name: "abs",
-            min_args: 1,
-            max_args: 1,
-            func: FunctionTarget::Scalar(abs_fn),
-        },
-        FunctionOp {
-            name: "floor",
-            min_args: 1,
-            max_args: 1,
-            func: FunctionTarget::Scalar(floor_fn),
-        },
-        FunctionOp {
-            name: "ceil",
-            min_args: 1,
-            max_args: 1,
-            func: FunctionTarget::Scalar(ceil_fn),
-        },
-        FunctionOp {
-            name: "round",
-            min_args: 1,
-            max_args: 1,
-            func: FunctionTarget::Scalar(round_fn),
-        },
-        FunctionOp {
-            name: "sign",
-            min_args: 1,
-            max_args: 1,
-            func: FunctionTarget::Scalar(sign_fn),
-        },
+        FunctionOp::scalar("ln", 1, 1, ln_fn),
+        FunctionOp::scalar("log10", 1, 1, log10_fn),
+        FunctionOp::scalar("log2", 1, 1, log2_fn),
+        FunctionOp::scalar("log", 1, 2, log_fn),
+        FunctionOp::scalar("exp", 1, 1, exp_fn),
+        FunctionOp::scalar("abs", 1, 1, abs_fn),
+        FunctionOp::scalar("floor", 1, 1, floor_fn),
+        FunctionOp::scalar("ceil", 1, 1, ceil_fn),
+        FunctionOp::scalar("round", 1, 1, round_fn),
+        FunctionOp::scalar("sign", 1, 1, sign_fn),
     ]
 }

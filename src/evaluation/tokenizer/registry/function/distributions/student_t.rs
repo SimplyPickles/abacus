@@ -3,7 +3,7 @@ use crate::{
     evaluation::tokenizer::registry::function::{
         check_dimensionless,
         distributions::special::{beta_inc, erfinv, lgamma},
-        operators::{FunctionOp, FunctionTarget},
+        operators::FunctionOp,
     },
 };
 
@@ -96,23 +96,8 @@ fn invt_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
 pub fn register_student_t() -> Vec<FunctionOp> {
     vec![
-        FunctionOp {
-            name: "tpdf",
-            min_args: 2,
-            max_args: 2,
-            func: FunctionTarget::Scalar(tpdf_fn),
-        },
-        FunctionOp {
-            name: "tcdf",
-            min_args: 2,
-            max_args: 2,
-            func: FunctionTarget::Scalar(tcdf_fn),
-        },
-        FunctionOp {
-            name: "invt",
-            min_args: 2,
-            max_args: 2,
-            func: FunctionTarget::Scalar(invt_fn),
-        },
+        FunctionOp::scalar("tpdf", 2, 2, tpdf_fn),
+        FunctionOp::scalar("tcdf", 2, 2, tcdf_fn),
+        FunctionOp::scalar("invt", 2, 2, invt_fn),
     ]
 }

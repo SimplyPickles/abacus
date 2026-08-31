@@ -1,6 +1,9 @@
 use crate::{
     AbacusError, UnitRegistry, Value,
-    evaluation::tokenizer::{registry::token_registry::TokenRegistry, tokens::Token},
+    evaluation::tokenizer::{
+        registry::token_registry::{MatchedOpKind, TokenRegistry},
+        tokens::Token,
+    },
 };
 
 const CONVERSION_KEYWORDS: [&str; 3] = ["as", "to", "in"];
@@ -275,6 +278,7 @@ pub fn tokenize_string<'a>(
 ) -> Result<Vec<Token<'a>>, AbacusError> {
     let mut tokens = Vec::new();
     let mut chars = input_text.char_indices().peekable();
+    let ops_by_first_char = token_registry.operators_by_first_char();
 
     while let Some(&(i, c)) = chars.peek() {
         if c.is_whitespace() {
@@ -454,129 +458,90 @@ pub fn tokenize_string<'a>(
         }
 
         // Registered operator checks (prioritizing longer length operators like `++` over `+`)
-        let remaining = &input_text[i..];
-        enum MatchedOp {
-            Binary(&'static str),
-            Unary(&'static str),
-            Func(&'static str),
-        }
+        if let Some(candidates) = ops_by_first_char.get(&c) {
+            let remaining = &input_text[i..];
+            let mut best_match: Option<(&str, MatchedOpKind)> = None;
 
-        let mut best_match: Option<(&str, MatchedOp)> = None;
+            for &(pattern, kind) in candidates {
+                if let Some(rest) = remaining.strip_prefix(pattern) {
+                    match kind {
+                        MatchedOpKind::Binary(_) => {
+                            if pattern == "%" {
+                                let after = rest.trim_start();
+                                let is_of = after.to_ascii_lowercase().starts_with("of")
+                                    && (after.len() == 2 || !after.as_bytes()[2].is_ascii_alphanumeric());
+                                if is_of {
+                                    continue;
+                                }
+                                let starts_expr = after.starts_with(|c: char| c.is_ascii_digit() || c == '(');
+                                if !starts_expr {
+                                    continue;
+                                }
+                            }
+                            if let Some(last_char) = pattern.chars().last()
+                                && (last_char.is_alphanumeric() || last_char == '_')
+                                && let Some(next_char) = rest.chars().next()
+                                && (next_char.is_alphanumeric()
+                                    || next_char == '_'
+                                    || next_char == '°'
+                                    || next_char == 'Å'
+                                    || next_char == 'Ω')
+                            {
+                                continue;
+                            }
+                        }
+                        MatchedOpKind::Unary(_) => {
+                            if let Some(last_char) = pattern.chars().last()
+                                && (last_char.is_alphanumeric() || last_char == '_')
+                                && let Some(next_char) = rest.chars().next()
+                                && (next_char.is_alphanumeric()
+                                    || next_char == '_'
+                                    || next_char == '°'
+                                    || next_char == 'Å'
+                                    || next_char == 'Ω')
+                            {
+                                continue;
+                            }
+                        }
+                        MatchedOpKind::Func(_) => {
+                            if unit_registry.contains(pattern) {
+                                let next_slice = rest.trim_start();
+                                if !next_slice.starts_with('(') {
+                                    continue;
+                                }
+                            }
+                            if let Some(last_char) = pattern.chars().last()
+                                && (last_char.is_alphanumeric() || last_char == '_' || last_char == '-')
+                                && let Some(next_char) = rest.chars().next()
+                                && (next_char.is_alphanumeric()
+                                    || next_char == '_'
+                                    || next_char == '-'
+                                    || next_char == '°'
+                                    || next_char == 'Å'
+                                    || next_char == 'Ω')
+                            {
+                                continue;
+                            }
+                        }
+                    }
 
-        for (alias, op) in &token_registry.binary_operators {
-            if remaining.starts_with(alias.as_str()) {
-                if alias.as_str() == "%" {
-                    let after = remaining[1..].trim_start();
-                    let is_of = after.to_ascii_lowercase().starts_with("of")
-                        && (after.len() == 2 || !after.as_bytes()[2].is_ascii_alphanumeric());
-                    if is_of {
-                        continue;
-                    }
-                    let starts_expr = after.starts_with(|c: char| c.is_ascii_digit() || c == '(');
-                    if !starts_expr {
-                        continue;
-                    }
-                }
-                if let Some(last_char) = alias.chars().last()
-                    && (last_char.is_alphanumeric() || last_char == '_')
-                {
-                    let next_slice = &remaining[alias.len()..];
-                    if let Some(next_char) = next_slice.chars().next()
-                        && (next_char.is_alphanumeric()
-                            || next_char == '_'
-                            || next_char == '°'
-                            || next_char == 'Å'
-                            || next_char == 'Ω')
-                    {
-                        continue;
-                    }
-                }
-
-                let match_len = alias.len();
-                if let Some((best_alias, _)) = best_match {
-                    if match_len > best_alias.len() {
-                        best_match = Some((alias.as_str(), MatchedOp::Binary(op.alias)));
-                    }
-                } else {
-                    best_match = Some((alias.as_str(), MatchedOp::Binary(op.alias)));
-                }
-            }
-        }
-
-        for (alias, op) in &token_registry.unary_operators {
-            if remaining.starts_with(alias.as_str()) {
-                if let Some(last_char) = alias.chars().last()
-                    && (last_char.is_alphanumeric() || last_char == '_')
-                {
-                    let next_slice = &remaining[alias.len()..];
-                    if let Some(next_char) = next_slice.chars().next()
-                        && (next_char.is_alphanumeric()
-                            || next_char == '_'
-                            || next_char == '°'
-                            || next_char == 'Å'
-                            || next_char == 'Ω')
-                    {
-                        continue;
-                    }
-                }
-
-                let match_len = alias.len();
-                if let Some((best_alias, _)) = best_match {
-                    if match_len > best_alias.len() {
-                        best_match = Some((alias.as_str(), MatchedOp::Unary(op.alias)));
-                    }
-                } else {
-                    best_match = Some((alias.as_str(), MatchedOp::Unary(op.alias)));
+                    best_match = Some((pattern, kind));
+                    break;
                 }
             }
-        }
 
-        for (name, op) in &token_registry.function_operators {
-            if remaining.starts_with(name.as_str()) {
-                if unit_registry.contains(name.as_str()) {
-                    let next_slice = remaining[name.len()..].trim_start();
-                    if !next_slice.starts_with('(') {
-                        continue;
-                    }
+            if let Some((alias, matched_op)) = best_match {
+                let char_count = alias.chars().count();
+                for _ in 0..char_count {
+                    chars.next();
                 }
-                if let Some(last_char) = name.chars().last()
-                    && (last_char.is_alphanumeric() || last_char == '_' || last_char == '-')
-                {
-                    let next_slice = &remaining[name.len()..];
-                    if let Some(next_char) = next_slice.chars().next()
-                        && (next_char.is_alphanumeric()
-                            || next_char == '_'
-                            || next_char == '-'
-                            || next_char == '°'
-                            || next_char == 'Å'
-                            || next_char == 'Ω')
-                    {
-                        continue;
-                    }
+                match matched_op {
+                    MatchedOpKind::Binary(op_alias) => tokens.push(Token::BinaryOp(op_alias)),
+                    MatchedOpKind::Unary(op_alias) => tokens.push(Token::UnaryOp(op_alias)),
+                    MatchedOpKind::Func(fn_name) => tokens.push(Token::Function(fn_name)),
                 }
-
-                let match_len = name.len();
-                if let Some((best_alias, _)) = best_match {
-                    if match_len > best_alias.len() {
-                        best_match = Some((name.as_str(), MatchedOp::Func(op.name)));
-                    }
-                } else {
-                    best_match = Some((name.as_str(), MatchedOp::Func(op.name)));
-                }
+                continue;
             }
-        }
-
-        if let Some((alias, matched_op)) = best_match {
-            let char_count = alias.chars().count();
-            for _ in 0..char_count {
-                chars.next();
-            }
-            match matched_op {
-                MatchedOp::Binary(op_alias) => tokens.push(Token::BinaryOp(op_alias)),
-                MatchedOp::Unary(op_alias) => tokens.push(Token::UnaryOp(op_alias)),
-                MatchedOp::Func(fn_name) => tokens.push(Token::Function(fn_name)),
-            }
-            continue;
         }
 
         // Range operator `..` (must be checked before number parsing)

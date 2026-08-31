@@ -1,7 +1,7 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        operators::{FunctionOp, FunctionTarget},
+        operators::FunctionOp,
         stats::{compute_mean, parse_paired_data},
     },
     units::{eval_result::EvalResult, hash::Hash, unit::Unit, value::Value as AbacusValue},
@@ -262,72 +262,37 @@ pub fn register_regression() -> Vec<FunctionOp> {
 
     // linreg / LinReg -> Returns EvalResult::Hash containing slope, intercept, r2, r, se, mean_x, mean_y
     for name in &["linreg", "LinReg"] {
-        ops.push(FunctionOp {
-            name,
-            min_args: 4,
-            max_args: usize::MAX,
-            func: FunctionTarget::EvalResult(linreg_hash_fn),
-        });
+        ops.push(FunctionOp::eval_result(name, 4, usize::MAX, linreg_hash_fn));
     }
 
     // linreg_slope / LinRegSlope -> Returns scalar Value slope
     for name in &["linreg_slope", "LinRegSlope"] {
-        ops.push(FunctionOp {
-            name,
-            min_args: 4,
-            max_args: usize::MAX,
-            func: FunctionTarget::Scalar(linreg_slope_fn),
-        });
+        ops.push(FunctionOp::scalar(name, 4, usize::MAX, linreg_slope_fn));
     }
 
     // linreg_intercept / LinRegIntercept
     for name in &["linreg_intercept", "LinRegIntercept"] {
-        ops.push(FunctionOp {
-            name,
-            min_args: 4,
-            max_args: usize::MAX,
-            func: FunctionTarget::Scalar(linreg_intercept_fn),
-        });
+        ops.push(FunctionOp::scalar(name, 4, usize::MAX, linreg_intercept_fn));
     }
 
     // linreg_r2 / LinRegR2 / r2
     for name in &["linreg_r2", "LinRegR2", "r2", "R2"] {
-        ops.push(FunctionOp {
-            name,
-            min_args: 4,
-            max_args: usize::MAX,
-            func: FunctionTarget::Scalar(linreg_r2_fn),
-        });
+        ops.push(FunctionOp::scalar(name, 4, usize::MAX, linreg_r2_fn));
     }
 
     // linreg_r / LinRegR
     for name in &["linreg_r", "LinRegR"] {
-        ops.push(FunctionOp {
-            name,
-            min_args: 4,
-            max_args: usize::MAX,
-            func: FunctionTarget::Scalar(linreg_r_fn),
-        });
+        ops.push(FunctionOp::scalar(name, 4, usize::MAX, linreg_r_fn));
     }
 
     // linreg_se / LinRegSE
     for name in &["linreg_se", "LinRegSE"] {
-        ops.push(FunctionOp {
-            name,
-            min_args: 4,
-            max_args: usize::MAX,
-            func: FunctionTarget::Scalar(linreg_se_fn),
-        });
+        ops.push(FunctionOp::scalar(name, 4, usize::MAX, linreg_se_fn));
     }
 
     // linreg_predict / LinRegPredict / predict
     for name in &["linreg_predict", "LinRegPredict", "predict"] {
-        ops.push(FunctionOp {
-            name,
-            min_args: 5,
-            max_args: usize::MAX,
-            func: FunctionTarget::Scalar(linreg_predict_fn),
-        });
+        ops.push(FunctionOp::scalar(name, 5, usize::MAX, linreg_predict_fn));
     }
 
     ops

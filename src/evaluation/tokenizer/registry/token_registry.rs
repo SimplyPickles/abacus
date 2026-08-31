@@ -78,4 +78,41 @@ impl TokenRegistry {
         self.function_operators
             .insert(alias.to_string(), Arc::new(op));
     }
+
+    /// Indexes all registered operators by their first character, sorted by descending pattern length.
+    pub fn operators_by_first_char(&self) -> HashMap<char, Vec<(&str, MatchedOpKind)>> {
+        let mut map: HashMap<char, Vec<(&str, MatchedOpKind)>> = HashMap::new();
+        for (alias, op) in &self.binary_operators {
+            if let Some(c) = alias.chars().next() {
+                map.entry(c)
+                    .or_default()
+                    .push((alias.as_str(), MatchedOpKind::Binary(op.alias)));
+            }
+        }
+        for (alias, op) in &self.unary_operators {
+            if let Some(c) = alias.chars().next() {
+                map.entry(c)
+                    .or_default()
+                    .push((alias.as_str(), MatchedOpKind::Unary(op.alias)));
+            }
+        }
+        for (name, op) in &self.function_operators {
+            if let Some(c) = name.chars().next() {
+                map.entry(c)
+                    .or_default()
+                    .push((name.as_str(), MatchedOpKind::Func(op.name)));
+            }
+        }
+        for candidates in map.values_mut() {
+            candidates.sort_unstable_by_key(|b| std::cmp::Reverse(b.0.len()));
+        }
+        map
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MatchedOpKind {
+    Binary(&'static str),
+    Unary(&'static str),
+    Func(&'static str),
 }

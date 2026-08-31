@@ -2,7 +2,7 @@ use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
         check_dimensionless,
-        operators::{FunctionOp, FunctionTarget},
+        operators::FunctionOp,
     },
 };
 
@@ -40,17 +40,7 @@ fn geomcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
 pub fn register_geometric() -> Vec<FunctionOp> {
     vec![
-        FunctionOp {
-            name: "geompdf",
-            min_args: 2,
-            max_args: 2,
-            func: FunctionTarget::Scalar(geompdf_fn),
-        },
-        FunctionOp {
-            name: "geomcdf",
-            min_args: 2,
-            max_args: 2,
-            func: FunctionTarget::Scalar(geomcdf_fn),
-        },
+        FunctionOp::scalar("geompdf", 2, 2, geompdf_fn),
+        FunctionOp::scalar("geomcdf", 2, 2, geomcdf_fn),
     ]
 }

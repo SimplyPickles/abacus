@@ -3,7 +3,7 @@ use crate::{
     evaluation::tokenizer::registry::function::{
         check_dimensionless,
         distributions::special::n_cr,
-        operators::{FunctionOp, FunctionTarget},
+        operators::FunctionOp,
     },
 };
 
@@ -49,17 +49,7 @@ fn hypgeomcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
 pub fn register_hypergeometric() -> Vec<FunctionOp> {
     vec![
-        FunctionOp {
-            name: "hypgeompdf",
-            min_args: 4,
-            max_args: 4,
-            func: FunctionTarget::Scalar(hypgeompdf_fn),
-        },
-        FunctionOp {
-            name: "hypgeomcdf",
-            min_args: 4,
-            max_args: 4,
-            func: FunctionTarget::Scalar(hypgeomcdf_fn),
-        },
+        FunctionOp::scalar("hypgeompdf", 4, 4, hypgeompdf_fn),
+        FunctionOp::scalar("hypgeomcdf", 4, 4, hypgeomcdf_fn),
     ]
 }

@@ -4,7 +4,7 @@ use crate::{
         check_dimensionless,
         distributions::special::erfinv,
         distributions::student_t::compute_invt,
-        operators::{FunctionOp, FunctionTarget},
+        operators::FunctionOp,
         stats::{compute_mean, compute_variance},
     },
     units::eval_result::EvalResult,
@@ -462,22 +462,12 @@ pub fn register_ci() -> Vec<FunctionOp> {
 
     // ── TInterval aliases (TI-84 Option 8) ──
     for name in &["TInterval", "tinterval", "TInt", "t_interval", "ci", "tci"] {
-        ops.push(FunctionOp {
-            name,
-            min_args: 2,
-            max_args: usize::MAX,
-            func: FunctionTarget::EvalResult(t_interval_fn),
-        });
+        ops.push(FunctionOp::eval_result(name, 2, usize::MAX, t_interval_fn));
     }
 
     // ── ZInterval aliases (TI-84 Option 7) ──
     for name in &["ZInterval", "zinterval", "ZInt", "z_interval", "zci"] {
-        ops.push(FunctionOp {
-            name,
-            min_args: 3,
-            max_args: 4,
-            func: FunctionTarget::EvalResult(z_interval_fn),
-        });
+        ops.push(FunctionOp::eval_result(name, 3, 4, z_interval_fn));
     }
 
     // ── 1-PropZInt aliases (TI-84 Option A) ──
@@ -489,12 +479,7 @@ pub fn register_ci() -> Vec<FunctionOp> {
         "propzint",
         "propci",
     ] {
-        ops.push(FunctionOp {
-            name,
-            min_args: 2,
-            max_args: 3,
-            func: FunctionTarget::EvalResult(one_prop_z_int_fn),
-        });
+        ops.push(FunctionOp::eval_result(name, 2, 3, one_prop_z_int_fn));
     }
 
     // ── 2-SampTInt aliases (TI-84 Option 0) ──
@@ -505,12 +490,7 @@ pub fn register_ci() -> Vec<FunctionOp> {
         "2_samp_t_int",
         "samptint2",
     ] {
-        ops.push(FunctionOp {
-            name,
-            min_args: 6,
-            max_args: 7,
-            func: FunctionTarget::EvalResult(two_samp_t_int_fn),
-        });
+        ops.push(FunctionOp::eval_result(name, 6, 7, two_samp_t_int_fn));
     }
 
     // ── 2-SampZInt aliases (TI-84 Option 9) ──
@@ -521,12 +501,7 @@ pub fn register_ci() -> Vec<FunctionOp> {
         "2_samp_z_int",
         "sampzint2",
     ] {
-        ops.push(FunctionOp {
-            name,
-            min_args: 6,
-            max_args: 7,
-            func: FunctionTarget::EvalResult(two_samp_z_int_fn),
-        });
+        ops.push(FunctionOp::eval_result(name, 6, 7, two_samp_z_int_fn));
     }
 
     // ── 2-PropZInt aliases (TI-84 Option B) ──
@@ -537,33 +512,13 @@ pub fn register_ci() -> Vec<FunctionOp> {
         "2_prop_z_int",
         "propzint2",
     ] {
-        ops.push(FunctionOp {
-            name,
-            min_args: 4,
-            max_args: 5,
-            func: FunctionTarget::EvalResult(two_prop_z_int_fn),
-        });
+        ops.push(FunctionOp::eval_result(name, 4, 5, two_prop_z_int_fn));
     }
 
     // ── Margin of error helpers ──
-    ops.push(FunctionOp {
-        name: "moe",
-        min_args: 2,
-        max_args: usize::MAX,
-        func: FunctionTarget::Scalar(moe_fn),
-    });
-    ops.push(FunctionOp {
-        name: "tmoe",
-        min_args: 2,
-        max_args: 3,
-        func: FunctionTarget::Scalar(tmoe_fn),
-    });
-    ops.push(FunctionOp {
-        name: "zmoe",
-        min_args: 2,
-        max_args: 3,
-        func: FunctionTarget::Scalar(zmoe_fn),
-    });
+    ops.push(FunctionOp::scalar("moe", 2, usize::MAX, moe_fn));
+    ops.push(FunctionOp::scalar("tmoe", 2, 3, tmoe_fn));
+    ops.push(FunctionOp::scalar("zmoe", 2, 3, zmoe_fn));
 
     ops
 }

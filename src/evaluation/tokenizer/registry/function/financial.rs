@@ -2,7 +2,7 @@ use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
         check_dimensionless,
-        operators::{FunctionOp, FunctionTarget},
+        operators::FunctionOp,
     },
 };
 use std::sync::Arc;
@@ -194,41 +194,11 @@ fn compound_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
 pub fn register_financial() -> Vec<FunctionOp> {
     vec![
-        FunctionOp {
-            name: "pmt",
-            min_args: 3,
-            max_args: 4,
-            func: FunctionTarget::Scalar(pmt_fn),
-        },
-        FunctionOp {
-            name: "fv",
-            min_args: 3,
-            max_args: 4,
-            func: FunctionTarget::Scalar(fv_fn),
-        },
-        FunctionOp {
-            name: "pv",
-            min_args: 3,
-            max_args: 4,
-            func: FunctionTarget::Scalar(pv_fn),
-        },
-        FunctionOp {
-            name: "npv",
-            min_args: 2,
-            max_args: 255,
-            func: FunctionTarget::Scalar(npv_fn),
-        },
-        FunctionOp {
-            name: "irr",
-            min_args: 2,
-            max_args: 255,
-            func: FunctionTarget::Scalar(irr_fn),
-        },
-        FunctionOp {
-            name: "compound",
-            min_args: 3,
-            max_args: 4,
-            func: FunctionTarget::Scalar(compound_fn),
-        },
+        FunctionOp::scalar("pmt", 3, 4, pmt_fn),
+        FunctionOp::scalar("fv", 3, 4, fv_fn),
+        FunctionOp::scalar("pv", 3, 4, pv_fn),
+        FunctionOp::scalar("npv", 2, 255, npv_fn),
+        FunctionOp::scalar("irr", 2, 255, irr_fn),
+        FunctionOp::scalar("compound", 3, 4, compound_fn),
     ]
 }

@@ -3,7 +3,7 @@ use crate::{
     evaluation::tokenizer::registry::function::{
         check_dimensionless,
         distributions::special::{factorial, n_cr},
-        operators::{FunctionOp, FunctionTarget},
+        operators::FunctionOp,
     },
 };
 
@@ -65,35 +65,10 @@ fn n_pr_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
 pub fn register_combinatorics() -> Vec<FunctionOp> {
     vec![
-        FunctionOp {
-            name: "factorial",
-            min_args: 1,
-            max_args: 1,
-            func: FunctionTarget::Scalar(factorial_fn),
-        },
-        FunctionOp {
-            name: "nCr",
-            min_args: 2,
-            max_args: 2,
-            func: FunctionTarget::Scalar(n_cr_fn),
-        },
-        FunctionOp {
-            name: "comb",
-            min_args: 2,
-            max_args: 2,
-            func: FunctionTarget::Scalar(n_cr_fn),
-        },
-        FunctionOp {
-            name: "nPr",
-            min_args: 2,
-            max_args: 2,
-            func: FunctionTarget::Scalar(n_pr_fn),
-        },
-        FunctionOp {
-            name: "perm",
-            min_args: 2,
-            max_args: 2,
-            func: FunctionTarget::Scalar(n_pr_fn),
-        },
+        FunctionOp::scalar("factorial", 1, 1, factorial_fn),
+        FunctionOp::scalar("nCr", 2, 2, n_cr_fn),
+        FunctionOp::scalar("comb", 2, 2, n_cr_fn),
+        FunctionOp::scalar("nPr", 2, 2, n_pr_fn),
+        FunctionOp::scalar("perm", 2, 2, n_pr_fn),
     ]
 }

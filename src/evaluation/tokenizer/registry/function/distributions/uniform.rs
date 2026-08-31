@@ -2,7 +2,7 @@ use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
         check_dimensionless,
-        operators::{FunctionOp, FunctionTarget},
+        operators::FunctionOp,
     },
 };
 
@@ -64,23 +64,8 @@ fn invunif_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
 pub fn register_uniform() -> Vec<FunctionOp> {
     vec![
-        FunctionOp {
-            name: "unifpdf",
-            min_args: 3,
-            max_args: 3,
-            func: FunctionTarget::Scalar(unifpdf_fn),
-        },
-        FunctionOp {
-            name: "unifcdf",
-            min_args: 3,
-            max_args: 3,
-            func: FunctionTarget::Scalar(unifcdf_fn),
-        },
-        FunctionOp {
-            name: "invunif",
-            min_args: 3,
-            max_args: 3,
-            func: FunctionTarget::Scalar(invunif_fn),
-        },
+        FunctionOp::scalar("unifpdf", 3, 3, unifpdf_fn),
+        FunctionOp::scalar("unifcdf", 3, 3, unifcdf_fn),
+        FunctionOp::scalar("invunif", 3, 3, invunif_fn),
     ]
 }

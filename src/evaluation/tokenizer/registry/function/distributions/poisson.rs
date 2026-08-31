@@ -3,7 +3,7 @@ use crate::{
     evaluation::tokenizer::registry::function::{
         check_dimensionless,
         distributions::special::factorial,
-        operators::{FunctionOp, FunctionTarget},
+        operators::FunctionOp,
     },
 };
 
@@ -45,17 +45,7 @@ fn poissoncdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
 pub fn register_poisson() -> Vec<FunctionOp> {
     vec![
-        FunctionOp {
-            name: "poissonpdf",
-            min_args: 2,
-            max_args: 2,
-            func: FunctionTarget::Scalar(poissonpdf_fn),
-        },
-        FunctionOp {
-            name: "poissoncdf",
-            min_args: 2,
-            max_args: 2,
-            func: FunctionTarget::Scalar(poissoncdf_fn),
-        },
+        FunctionOp::scalar("poissonpdf", 2, 2, poissonpdf_fn),
+        FunctionOp::scalar("poissoncdf", 2, 2, poissoncdf_fn),
     ]
 }

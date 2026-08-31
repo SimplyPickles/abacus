@@ -2,7 +2,7 @@ use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
         check_dimensionless,
-        operators::{FunctionOp, FunctionTarget},
+        operators::FunctionOp,
     },
 };
 
@@ -53,23 +53,8 @@ fn invexp_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
 pub fn register_exponential() -> Vec<FunctionOp> {
     vec![
-        FunctionOp {
-            name: "exppdf",
-            min_args: 2,
-            max_args: 2,
-            func: FunctionTarget::Scalar(exppdf_fn),
-        },
-        FunctionOp {
-            name: "expcdf",
-            min_args: 2,
-            max_args: 2,
-            func: FunctionTarget::Scalar(expcdf_fn),
-        },
-        FunctionOp {
-            name: "invexp",
-            min_args: 2,
-            max_args: 2,
-            func: FunctionTarget::Scalar(invexp_fn),
-        },
+        FunctionOp::scalar("exppdf", 2, 2, exppdf_fn),
+        FunctionOp::scalar("expcdf", 2, 2, expcdf_fn),
+        FunctionOp::scalar("invexp", 2, 2, invexp_fn),
     ]
 }

@@ -3,7 +3,7 @@ use crate::{
     evaluation::tokenizer::registry::function::{
         check_dimensionless,
         distributions::special::{beta_inc, lgamma},
-        operators::{FunctionOp, FunctionTarget},
+        operators::FunctionOp,
     },
 };
 
@@ -47,17 +47,7 @@ fn fcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
 pub fn register_f_dist() -> Vec<FunctionOp> {
     vec![
-        FunctionOp {
-            name: "fpdf",
-            min_args: 3,
-            max_args: 3,
-            func: FunctionTarget::Scalar(fpdf_fn),
-        },
-        FunctionOp {
-            name: "fcdf",
-            min_args: 3,
-            max_args: 3,
-            func: FunctionTarget::Scalar(fcdf_fn),
-        },
+        FunctionOp::scalar("fpdf", 3, 3, fpdf_fn),
+        FunctionOp::scalar("fcdf", 3, 3, fcdf_fn),
     ]
 }
