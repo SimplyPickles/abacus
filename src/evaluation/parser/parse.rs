@@ -96,15 +96,16 @@ impl<'a> Parser<'a> {
             if let Some(Token::UnaryOp(name)) = self.peek() {
                 let name = *name;
                 if let Some(op) = self.token_registry.unary_operators.get(name)
-                    && (!op.prefix || op.alias == "++" || op.alias == "--") {
-                        let bp = self.postfix_bp(name);
-                        if bp < min_bp {
-                            break;
-                        }
-                        self.advance();
-                        lhs = lhs.apply_unary(op)?;
-                        continue;
+                    && (!op.prefix || op.alias == "++" || op.alias == "--")
+                {
+                    let bp = self.postfix_bp(name);
+                    if bp < min_bp {
+                        break;
                     }
+                    self.advance();
+                    lhs = lhs.apply_unary(op)?;
+                    continue;
+                }
             }
 
             // Check for infix binary operators
@@ -161,10 +162,14 @@ impl<'a> Parser<'a> {
                             self.advance();
 
                             // Infer 12-hour clock rollover if d2.time < d1.time on same date (e.g. 12:00 to 1:00 -> 12:00 to 13:00)
-                            if d2.year == d1.year && d2.month == d1.month && d2.day == d1.day
-                                && d2.time.hour < d1.time.hour && d2.time.hour < 12 {
-                                    d2.time.hour += 12;
-                                }
+                            if d2.year == d1.year
+                                && d2.month == d1.month
+                                && d2.day == d1.day
+                                && d2.time.hour < d1.time.hour
+                                && d2.time.hour < 12
+                            {
+                                d2.time.hour += 12;
+                            }
 
                             let unit_h = self
                                 .unit_registry
@@ -550,77 +555,80 @@ impl<'a> Parser<'a> {
 
                 // Check for Date property function call
                 if raw_args.len() == 1
-                    && let EvalResult::Date(ref d) = raw_args[0] {
-                        use crate::units::{
-                            dimensions::Dimensions,
-                            unit::{Unit, UnitExpr},
-                        };
-                        let num = match name {
-                            "year" => Some(d.year as f64),
-                            "month" => Some(d.month as f64),
-                            "day" => Some(d.day as f64),
-                            "hour" => Some(d.time.hour as f64),
-                            "minute" => Some(d.time.minute as f64),
-                            "second" => Some(d.time.second as f64),
-                            "millisecond" | "ms" => Some(d.time.millisecond as f64),
-                            "day_of_week" | "weekday" => Some(d.day_of_week() as u32 as f64),
-                            "day_of_year" => Some(d.day_of_year() as f64),
-                            "is_weekend" => Some(if d.is_weekend() { 1.0 } else { 0.0 }),
-                            "is_workday" | "is_business_day" => {
-                                Some(if d.is_business_day() { 1.0 } else { 0.0 })
-                            }
-                            _ => None,
-                        };
-                        if let Some(n) = num {
-                            let unit = std::sync::Arc::new(Unit {
-                                scalar: 1.0,
-                                offset: 0.0,
-                                dimensions: Dimensions::DIMENSIONLESS,
-                                display: UnitExpr::dimensionless(),
-                            });
-                            return Ok(EvalResult::Scalar(Value::new(n, unit)));
+                    && let EvalResult::Date(ref d) = raw_args[0]
+                {
+                    use crate::units::{
+                        dimensions::Dimensions,
+                        unit::{Unit, UnitExpr},
+                    };
+                    let num = match name {
+                        "year" => Some(d.year as f64),
+                        "month" => Some(d.month as f64),
+                        "day" => Some(d.day as f64),
+                        "hour" => Some(d.time.hour as f64),
+                        "minute" => Some(d.time.minute as f64),
+                        "second" => Some(d.time.second as f64),
+                        "millisecond" | "ms" => Some(d.time.millisecond as f64),
+                        "day_of_week" | "weekday" => Some(d.day_of_week() as u32 as f64),
+                        "day_of_year" => Some(d.day_of_year() as f64),
+                        "is_weekend" => Some(if d.is_weekend() { 1.0 } else { 0.0 }),
+                        "is_workday" | "is_business_day" => {
+                            Some(if d.is_business_day() { 1.0 } else { 0.0 })
                         }
+                        _ => None,
+                    };
+                    if let Some(n) = num {
+                        let unit = std::sync::Arc::new(Unit {
+                            scalar: 1.0,
+                            offset: 0.0,
+                            dimensions: Dimensions::DIMENSIONLESS,
+                            display: UnitExpr::dimensionless(),
+                        });
+                        return Ok(EvalResult::Scalar(Value::new(n, unit)));
                     }
+                }
 
                 if name == "format_date"
-                    && let Some(EvalResult::Date(d)) = raw_args.first() {
-                        let style = if raw_args.len() == 2 {
-                            let fmt_str = match &raw_args[1] {
-                                EvalResult::Scalar(v) => v.to_units_display().to_ascii_uppercase(),
-                                other => other.to_display().to_ascii_uppercase(),
-                            };
-                            if fmt_str.contains("YYYY") && fmt_str.starts_with("Y") {
-                                crate::units::date::DateFormat::YYYYMMDD
-                            } else if fmt_str.starts_with("M") {
-                                crate::units::date::DateFormat::MMDDYYYY
-                            } else {
-                                crate::units::date::DateFormat::DDMMYYYY
-                            }
+                    && let Some(EvalResult::Date(d)) = raw_args.first()
+                {
+                    let style = if raw_args.len() == 2 {
+                        let fmt_str = match &raw_args[1] {
+                            EvalResult::Scalar(v) => v.to_units_display().to_ascii_uppercase(),
+                            other => other.to_display().to_ascii_uppercase(),
+                        };
+                        if fmt_str.contains("YYYY") && fmt_str.starts_with("Y") {
+                            crate::units::date::DateFormat::YYYYMMDD
+                        } else if fmt_str.starts_with("M") {
+                            crate::units::date::DateFormat::MMDDYYYY
                         } else {
                             crate::units::date::DateFormat::DDMMYYYY
-                        };
-                        let mut formatted_d = d.clone();
-                        formatted_d.format = style;
-                        return Ok(EvalResult::Date(formatted_d));
-                    }
+                        }
+                    } else {
+                        crate::units::date::DateFormat::DDMMYYYY
+                    };
+                    let mut formatted_d = d.clone();
+                    formatted_d.format = style;
+                    return Ok(EvalResult::Date(formatted_d));
+                }
 
-                if raw_args.len() == 2 && (name == "workdays" || name == "business_days")
+                if raw_args.len() == 2
+                    && (name == "workdays" || name == "business_days")
                     && let (EvalResult::Date(d1), EvalResult::Date(d2)) =
                         (&raw_args[0], &raw_args[1])
-                    {
-                        use crate::units::{
-                            dimensions::Dimensions,
-                            unit::{Unit, UnitExpr},
-                        };
-                        let bdays = d1.business_days_between(d2) as f64;
-                        let unit = std::sync::Arc::new(Unit {
-                            scalar: 86400.0,
-                            offset: 0.0,
-                            dimensions: Dimensions::TIME,
-                            display: UnitExpr::single("workdays"),
-                        });
-                        return Ok(EvalResult::Scalar(Value::new(bdays, unit)));
-                    }
+                {
+                    use crate::units::{
+                        dimensions::Dimensions,
+                        unit::{Unit, UnitExpr},
+                    };
+                    let bdays = d1.business_days_between(d2) as f64;
+                    let unit = std::sync::Arc::new(Unit {
+                        scalar: 86400.0,
+                        offset: 0.0,
+                        dimensions: Dimensions::TIME,
+                        display: UnitExpr::single("workdays"),
+                    });
+                    return Ok(EvalResult::Scalar(Value::new(bdays, unit)));
+                }
 
                 let mut scalar_args = Vec::with_capacity(raw_args.len());
                 for arg_res in raw_args {

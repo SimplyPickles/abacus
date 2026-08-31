@@ -28,7 +28,9 @@ fn sqrt(a: Value) -> Result<Value, AbacusError> {
 
     let mut new_display = a.unit.display.clone();
 
-    if new_display.numerator.len().is_multiple_of(2) && new_display.denominator.len().is_multiple_of(2) {
+    if new_display.numerator.len().is_multiple_of(2)
+        && new_display.denominator.len().is_multiple_of(2)
+    {
         new_display
             .numerator
             .truncate(new_display.numerator.len() / 2);

@@ -24,21 +24,21 @@ fn parse_weekday(s: &str) -> Option<(crate::units::date::DayOfWeek, usize)> {
     let lower = s.to_ascii_lowercase();
     let matches = [
         ("wednesday", crate::units::date::DayOfWeek::Wednesday),
-        ("thursday",  crate::units::date::DayOfWeek::Thursday),
-        ("saturday",  crate::units::date::DayOfWeek::Saturday),
-        ("tuesday",   crate::units::date::DayOfWeek::Tuesday),
-        ("monday",    crate::units::date::DayOfWeek::Monday),
-        ("friday",    crate::units::date::DayOfWeek::Friday),
-        ("sunday",    crate::units::date::DayOfWeek::Sunday),
-        ("thurs",     crate::units::date::DayOfWeek::Thursday),
-        ("tues",      crate::units::date::DayOfWeek::Tuesday),
-        ("tue",       crate::units::date::DayOfWeek::Tuesday),
-        ("wed",       crate::units::date::DayOfWeek::Wednesday),
-        ("thu",       crate::units::date::DayOfWeek::Thursday),
-        ("fri",       crate::units::date::DayOfWeek::Friday),
-        ("sat",       crate::units::date::DayOfWeek::Saturday),
-        ("sun",       crate::units::date::DayOfWeek::Sunday),
-        ("mon",       crate::units::date::DayOfWeek::Monday),
+        ("thursday", crate::units::date::DayOfWeek::Thursday),
+        ("saturday", crate::units::date::DayOfWeek::Saturday),
+        ("tuesday", crate::units::date::DayOfWeek::Tuesday),
+        ("monday", crate::units::date::DayOfWeek::Monday),
+        ("friday", crate::units::date::DayOfWeek::Friday),
+        ("sunday", crate::units::date::DayOfWeek::Sunday),
+        ("thurs", crate::units::date::DayOfWeek::Thursday),
+        ("tues", crate::units::date::DayOfWeek::Tuesday),
+        ("tue", crate::units::date::DayOfWeek::Tuesday),
+        ("wed", crate::units::date::DayOfWeek::Wednesday),
+        ("thu", crate::units::date::DayOfWeek::Thursday),
+        ("fri", crate::units::date::DayOfWeek::Friday),
+        ("sat", crate::units::date::DayOfWeek::Saturday),
+        ("sun", crate::units::date::DayOfWeek::Sunday),
+        ("mon", crate::units::date::DayOfWeek::Monday),
     ];
 
     for (name, dow) in matches {
@@ -59,11 +59,11 @@ fn parse_rel_unit(s: &str) -> Option<(RelUnit, usize)> {
     let lower = s.to_ascii_lowercase();
     let matches = [
         ("months", RelUnit::Month),
-        ("month",  RelUnit::Month),
-        ("weeks",  RelUnit::Week),
-        ("week",   RelUnit::Week),
-        ("years",  RelUnit::Year),
-        ("year",   RelUnit::Year),
+        ("month", RelUnit::Month),
+        ("weeks", RelUnit::Week),
+        ("week", RelUnit::Week),
+        ("years", RelUnit::Year),
+        ("year", RelUnit::Year),
     ];
 
     for (name, u) in matches {
@@ -85,10 +85,10 @@ fn parse_rel_modifier(s: &str) -> Option<(RelModifier, usize)> {
     let lower = s.to_ascii_lowercase();
     let matches = [
         ("previous", RelModifier::Last),
-        ("last",     RelModifier::Last),
-        ("past",     RelModifier::Last),
-        ("next",     RelModifier::Next),
-        ("this",     RelModifier::This),
+        ("last", RelModifier::Last),
+        ("past", RelModifier::Last),
+        ("next", RelModifier::Next),
+        ("this", RelModifier::This),
     ];
 
     for (name, m) in matches {
@@ -140,12 +140,24 @@ fn try_parse_relative_date_keyword(s: &str) -> Option<(crate::Date, usize)> {
 
     // 2. Standalone relative keywords
     let lower = s.to_ascii_lowercase();
-    if let Some(len) = strip_word_prefix(&lower, "today") { return Some((crate::Date::today(),     len)); }
-    if let Some(len) = strip_word_prefix(&lower, "tdy")   { return Some((crate::Date::today(),     len)); }
-    if let Some(len) = strip_word_prefix(&lower, "tomorrow") { return Some((crate::Date::tomorrow(), len)); }
-    if let Some(len) = strip_word_prefix(&lower, "tmr")   { return Some((crate::Date::tomorrow(),  len)); }
-    if let Some(len) = strip_word_prefix(&lower, "yesterday") { return Some((crate::Date::yesterday(), len)); }
-    if let Some(len) = strip_word_prefix(&lower, "now")   { return Some((crate::Date::now(),       len)); }
+    if let Some(len) = strip_word_prefix(&lower, "today") {
+        return Some((crate::Date::today(), len));
+    }
+    if let Some(len) = strip_word_prefix(&lower, "tdy") {
+        return Some((crate::Date::today(), len));
+    }
+    if let Some(len) = strip_word_prefix(&lower, "tomorrow") {
+        return Some((crate::Date::tomorrow(), len));
+    }
+    if let Some(len) = strip_word_prefix(&lower, "tmr") {
+        return Some((crate::Date::tomorrow(), len));
+    }
+    if let Some(len) = strip_word_prefix(&lower, "yesterday") {
+        return Some((crate::Date::yesterday(), len));
+    }
+    if let Some(len) = strip_word_prefix(&lower, "now") {
+        return Some((crate::Date::now(), len));
+    }
 
     // 3. Bare weekday
     if let Some((target_dow, sub_len)) = parse_weekday(s) {
@@ -848,11 +860,11 @@ pub fn tokenize_string<'a>(
                         } else if sym_c == '^' {
                             unit_end = idx + sym_c.len_utf8();
                             unit_chars.next();
-                            if let Some((sign_idx, sign_c)) = unit_chars.peek().cloned() {
-                                if sign_c == '+' || sign_c == '-' {
-                                    unit_end = sign_idx + sign_c.len_utf8();
-                                    unit_chars.next();
-                                }
+                            if let Some((sign_idx, sign_c)) = unit_chars.peek().cloned()
+                                && (sign_c == '+' || sign_c == '-')
+                            {
+                                unit_end = sign_idx + sign_c.len_utf8();
+                                unit_chars.next();
                             }
                             while let Some((digit_idx, digit_c)) = unit_chars.peek().cloned() {
                                 if digit_c.is_ascii_digit() || digit_c == '.' {
@@ -896,11 +908,11 @@ pub fn tokenize_string<'a>(
                 } else if sym_c == '^' {
                     end = idx + sym_c.len_utf8();
                     chars.next();
-                    if let Some(&(sign_idx, sign_c)) = chars.peek() {
-                        if sign_c == '+' || sign_c == '-' {
-                            end = sign_idx + sign_c.len_utf8();
-                            chars.next();
-                        }
+                    if let Some(&(sign_idx, sign_c)) = chars.peek()
+                        && (sign_c == '+' || sign_c == '-')
+                    {
+                        end = sign_idx + sign_c.len_utf8();
+                        chars.next();
                     }
                     while let Some(&(digit_idx, digit_c)) = chars.peek() {
                         if digit_c.is_ascii_digit() || digit_c == '.' {
@@ -959,14 +971,13 @@ pub fn tokenize_string<'a>(
     let mut resolved: Vec<Token> = Vec::new();
     let mut idx = 0;
     while idx < tokens.len() {
-        if idx + 1 < tokens.len() {
-            if let (Token::Float(num), Token::Unit(unit_sym)) = (&tokens[idx], &tokens[idx + 1]) {
-                if let Ok(unit) = unit_registry.unit(unit_sym) {
-                    resolved.push(Token::Val(Value::new(*num, unit)));
-                    idx += 2;
-                    continue;
-                }
-            }
+        if idx + 1 < tokens.len()
+            && let (Token::Float(num), Token::Unit(unit_sym)) = (&tokens[idx], &tokens[idx + 1])
+            && let Ok(unit) = unit_registry.unit(unit_sym)
+        {
+            resolved.push(Token::Val(Value::new(*num, unit)));
+            idx += 2;
+            continue;
         }
         resolved.push(tokens[idx].clone());
         idx += 1;
@@ -1004,10 +1015,8 @@ pub fn tokenize_string<'a>(
     let mut final_tokens: Vec<Token> = Vec::new();
     for i in 0..resolved.len() {
         final_tokens.push(resolved[i].clone());
-        if i + 1 < resolved.len() {
-            if is_left(&resolved[i]) && is_right(&resolved[i + 1]) {
-                final_tokens.push(Token::BinaryOp("*"));
-            }
+        if i + 1 < resolved.len() && is_left(&resolved[i]) && is_right(&resolved[i + 1]) {
+            final_tokens.push(Token::BinaryOp("*"));
         }
     }
 

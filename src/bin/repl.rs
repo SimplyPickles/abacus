@@ -203,8 +203,7 @@ fn main() {
                     println!("\x1b[38;2;189;147;249m  Abacus REPL Commands & Syntax:\x1b[0m");
                     println!("    .help       Show this help summary");
                     println!("    .clear      Clear the terminal screen");
-                    println!("    :q / exit   Exit the REPL");
-                    println!("");
+                    println!("    :q / exit   Exit the REPL\n");
                     continue;
                 }
 

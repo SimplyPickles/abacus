@@ -875,9 +875,10 @@ impl FromStr for Date {
 
             let tz_word = remaining_words.trim();
             if !tz_word.is_empty()
-                && let Ok(tz) = TimeZone::parse(tz_word) {
-                    timezone = Some(tz);
-                }
+                && let Ok(tz) = TimeZone::parse(tz_word)
+            {
+                timezone = Some(tz);
+            }
         }
 
         let mut date = Date::with_time(year, month, day, time);

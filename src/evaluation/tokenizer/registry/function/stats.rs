@@ -148,12 +148,7 @@ fn compute_variance(args: &[Value], ddof: f64) -> f64 {
 }
 
 /// Computes the cross-covariance sum and the xy-unit for a paired dataset.
-fn compute_covariance(
-    x_data: &[Value],
-    y_data: &[Value],
-    n: usize,
-    ddof: f64,
-) -> (f64, Arc<Unit>) {
+fn compute_covariance(x_data: &[Value], y_data: &[Value], n: usize, ddof: f64) -> (f64, Arc<Unit>) {
     let x_unit = &x_data[0].unit;
     let y_unit = &y_data[0].unit;
 
@@ -186,7 +181,10 @@ fn var_fn(args: &[Value]) -> Result<Value, AbacusError> {
         dimensions: first_unit.dimensions * 2.0,
         display: first_unit.display.multiply(&first_unit.display),
     });
-    Ok(Value { canonical: variance, unit: squared_unit })
+    Ok(Value {
+        canonical: variance,
+        unit: squared_unit,
+    })
 }
 
 fn std_fn(args: &[Value]) -> Result<Value, AbacusError> {
@@ -194,7 +192,10 @@ fn std_fn(args: &[Value]) -> Result<Value, AbacusError> {
     if args.len() < 2 {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
-    Ok(Value { canonical: compute_variance(args, 1.0).sqrt(), unit: Arc::clone(first_unit) })
+    Ok(Value {
+        canonical: compute_variance(args, 1.0).sqrt(),
+        unit: Arc::clone(first_unit),
+    })
 }
 
 fn var_p_fn(args: &[Value]) -> Result<Value, AbacusError> {
@@ -209,7 +210,10 @@ fn var_p_fn(args: &[Value]) -> Result<Value, AbacusError> {
         dimensions: first_unit.dimensions * 2.0,
         display: first_unit.display.multiply(&first_unit.display),
     });
-    Ok(Value { canonical: variance, unit: squared_unit })
+    Ok(Value {
+        canonical: variance,
+        unit: squared_unit,
+    })
 }
 
 fn std_p_fn(args: &[Value]) -> Result<Value, AbacusError> {
@@ -217,7 +221,10 @@ fn std_p_fn(args: &[Value]) -> Result<Value, AbacusError> {
     if args.is_empty() {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
-    Ok(Value { canonical: compute_variance(args, 0.0).sqrt(), unit: Arc::clone(first_unit) })
+    Ok(Value {
+        canonical: compute_variance(args, 0.0).sqrt(),
+        unit: Arc::clone(first_unit),
+    })
 }
 
 /// Helper for linear interpolation quantile calculation
@@ -338,7 +345,10 @@ fn cov_fn(args: &[Value]) -> Result<Value, AbacusError> {
     check_compatible_units(x_data)?;
     check_compatible_units(y_data)?;
     let (cov, unit) = compute_covariance(x_data, y_data, n, 1.0);
-    Ok(Value { canonical: cov, unit })
+    Ok(Value {
+        canonical: cov,
+        unit,
+    })
 }
 
 fn cov_p_fn(args: &[Value]) -> Result<Value, AbacusError> {
@@ -346,7 +356,10 @@ fn cov_p_fn(args: &[Value]) -> Result<Value, AbacusError> {
     check_compatible_units(x_data)?;
     check_compatible_units(y_data)?;
     let (cov, unit) = compute_covariance(x_data, y_data, n, 0.0);
-    Ok(Value { canonical: cov, unit })
+    Ok(Value {
+        canonical: cov,
+        unit,
+    })
 }
 
 fn geomean_fn(args: &[Value]) -> Result<Value, AbacusError> {

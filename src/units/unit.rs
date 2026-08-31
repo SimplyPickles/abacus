@@ -136,13 +136,14 @@ impl Unit {
                 for den_idx in 0..display.denominator.len() {
                     let den_sym = &display.denominator[den_idx];
                     if let Some(un2) = lookup(den_sym)
-                        && un1.dimensions == un2.dimensions {
-                            scalar *= un2.scalar / un1.scalar;
-                            display.numerator.remove(num_idx);
-                            display.denominator.remove(den_idx);
-                            matched = true;
-                            break;
-                        }
+                        && un1.dimensions == un2.dimensions
+                    {
+                        scalar *= un2.scalar / un1.scalar;
+                        display.numerator.remove(num_idx);
+                        display.denominator.remove(den_idx);
+                        matched = true;
+                        break;
+                    }
                 }
                 if !matched {
                     num_idx += 1;

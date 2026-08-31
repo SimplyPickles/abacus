@@ -91,7 +91,9 @@ pub fn compute_modulo(a: &Value, b: &Value) -> Result<Value, AbacusError> {
         return Err(AbacusError::AffineUnitOperation("modulo"));
     }
 
-    if a.unit.is_compatible_with(&b.unit) || (b.unit.is_dimensionless() && !a.unit.is_dimensionless()) {
+    if a.unit.is_compatible_with(&b.unit)
+        || (b.unit.is_dimensionless() && !a.unit.is_dimensionless())
+    {
         let a_amount = a.amount();
         let b_amount = b.amount();
         if b_amount == 0.0 {
