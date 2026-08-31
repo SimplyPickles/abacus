@@ -1,39 +1,17 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::make_dimensionless,
         operators::{FunctionOp, FunctionTarget},
+        stats::{compute_mean, parse_paired_data},
     },
     units::{eval_result::EvalResult, hash::Hash, unit::Unit, value::Value as AbacusValue},
 };
 use std::sync::Arc;
 
-/// Parse x_data and y_data arrays from arguments.
-/// Split arguments into two equal halves or by checking element count.
-fn parse_regression_inputs(args: &[Value]) -> Result<(Vec<Value>, Vec<Value>), AbacusError> {
-    if args.len() < 4 || !args.len().is_multiple_of(2) {
-        return Err(AbacusError::IncompatibleFunctionArguments);
-    }
-
-    let n = args.len() / 2;
-    let x_slice = &args[..n];
-    let y_slice = &args[n..];
-
-    let first_x_unit = &x_slice[0].unit;
-    for x in x_slice {
-        if !x.unit.is_compatible_with(first_x_unit) {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
-
-    let first_y_unit = &y_slice[0].unit;
-    for y in y_slice {
-        if !y.unit.is_compatible_with(first_y_unit) {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
-
-    Ok((x_slice.to_vec(), y_slice.to_vec()))
+/// Parse x_data and y_data arrays from arguments by delegating to parse_paired_data.
+fn parse_regression_inputs(args: &[Value]) -> Result<(&[Value], &[Value]), AbacusError> {
+    let (x, y, _) = parse_paired_data(args)?;
+    Ok((x, y))
 }
 
 /// Computes basic regression statistics (mean_x, mean_y, Sxx, Syy, Sxy, n)
@@ -55,8 +33,8 @@ impl RegStats {
             return Err(AbacusError::IncompatibleFunctionArguments);
         }
 
-        let mean_x = x_data.iter().map(|v| v.canonical).sum::<f64>() / n;
-        let mean_y = y_data.iter().map(|v| v.canonical).sum::<f64>() / n;
+        let mean_x = compute_mean(x_data);
+        let mean_y = compute_mean(y_data);
 
         let mut sxx = 0.0;
         let mut syy = 0.0;
@@ -120,7 +98,7 @@ impl RegStats {
 // ── linreg(x_data..., y_data...) -> EvalResult::Hash ──
 fn linreg_hash_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
     let (x_data, y_data) = parse_regression_inputs(args)?;
-    let stats = RegStats::compute(&x_data, &y_data)?;
+    let stats = RegStats::compute(x_data, y_data)?;
 
     let mut hash = Hash::new();
 
@@ -146,10 +124,10 @@ fn linreg_hash_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
     );
 
     // r2
-    hash.insert("r2", make_dimensionless(stats.r2()));
+    hash.insert("r2", Value::dimensionless(stats.r2()));
 
     // r
-    hash.insert("r", make_dimensionless(stats.r()));
+    hash.insert("r", Value::dimensionless(stats.r()));
 
     // se (if n > 2)
     if stats.n > 2.0 {
@@ -187,7 +165,7 @@ fn linreg_hash_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
 // ── linreg_slope(x_data..., y_data...) ──
 fn linreg_slope_fn(args: &[Value]) -> Result<AbacusValue, AbacusError> {
     let (x_data, y_data) = parse_regression_inputs(args)?;
-    let stats = RegStats::compute(&x_data, &y_data)?;
+    let stats = RegStats::compute(x_data, y_data)?;
     let m = stats.slope();
     let unit = stats.slope_unit();
 
@@ -197,7 +175,7 @@ fn linreg_slope_fn(args: &[Value]) -> Result<AbacusValue, AbacusError> {
 // ── linreg_intercept(x_data..., y_data...) ──
 fn linreg_intercept_fn(args: &[Value]) -> Result<AbacusValue, AbacusError> {
     let (x_data, y_data) = parse_regression_inputs(args)?;
-    let stats = RegStats::compute(&x_data, &y_data)?;
+    let stats = RegStats::compute(x_data, y_data)?;
     let b = stats.intercept();
 
     Ok(AbacusValue {
@@ -209,21 +187,21 @@ fn linreg_intercept_fn(args: &[Value]) -> Result<AbacusValue, AbacusError> {
 // ── linreg_r2(x_data..., y_data...) ──
 fn linreg_r2_fn(args: &[Value]) -> Result<AbacusValue, AbacusError> {
     let (x_data, y_data) = parse_regression_inputs(args)?;
-    let stats = RegStats::compute(&x_data, &y_data)?;
-    Ok(make_dimensionless(stats.r2()))
+    let stats = RegStats::compute(x_data, y_data)?;
+    Ok(Value::dimensionless(stats.r2()))
 }
 
 // ── linreg_r(x_data..., y_data...) ──
 fn linreg_r_fn(args: &[Value]) -> Result<AbacusValue, AbacusError> {
     let (x_data, y_data) = parse_regression_inputs(args)?;
-    let stats = RegStats::compute(&x_data, &y_data)?;
-    Ok(make_dimensionless(stats.r()))
+    let stats = RegStats::compute(x_data, y_data)?;
+    Ok(Value::dimensionless(stats.r()))
 }
 
 // ── linreg_se(x_data..., y_data...) ──
 fn linreg_se_fn(args: &[Value]) -> Result<AbacusValue, AbacusError> {
     let (x_data, y_data) = parse_regression_inputs(args)?;
-    let stats = RegStats::compute(&x_data, &y_data)?;
+    let stats = RegStats::compute(x_data, y_data)?;
 
     if stats.n <= 2.0 {
         return Err(AbacusError::IncompatibleFunctionArguments);
@@ -268,7 +246,7 @@ fn linreg_predict_fn(args: &[Value]) -> Result<AbacusValue, AbacusError> {
         return Err(AbacusError::IncompatibleDimensions);
     }
 
-    let stats = RegStats::compute(&x_data, &y_data)?;
+    let stats = RegStats::compute(x_data, y_data)?;
     let m = stats.slope();
     let b = stats.intercept();
     let y_pred = m * x_target.canonical + b;

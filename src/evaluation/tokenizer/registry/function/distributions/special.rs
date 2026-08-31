@@ -1,8 +1,4 @@
-use crate::Value;
 
-pub fn make_dimensionless(val: f64) -> Value {
-    Value::dimensionless(val)
-}
 
 /// Computes n! as f64. Returns 1.0 for n=0.
 pub fn factorial(n: u64) -> f64 {

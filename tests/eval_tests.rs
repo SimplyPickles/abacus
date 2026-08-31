@@ -145,7 +145,7 @@ fn test_unparenthesized_single_parameter_functions() {
 
     // ln 10
     let ln_val = calc.eval_scalar("ln 10").unwrap().canonical;
-    assert!((ln_val - 2.302585).abs() < 1e-5);
+    assert!((ln_val - std::f64::consts::LN_10).abs() < 1e-5);
 
     // log10 100
     assert_eq!(calc.eval("log10 100").unwrap().to_display(), "2");
@@ -231,7 +231,7 @@ fn test_error_handling() {
     // Verifies incompatible dimension addition and unknown unit errors
     assert!(matches!(
         eval("5 m + 3 s"),
-        Err(AbacusError::IncompatibleDimensions { .. })
+        Err(AbacusError::IncompatibleDimensions)
     ));
 
     assert!(matches!(

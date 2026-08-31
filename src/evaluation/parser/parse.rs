@@ -17,7 +17,7 @@ use crate::{
 ///   5 — Exponentiation (`^`, right-associative)
 ///   6 — Postfix (`!`)
 pub struct Parser<'a> {
-    tokens: Vec<Token<'a>>,
+    tokens: Vec<Option<Token<'a>>>,
     pos: usize,
     token_registry: &'a TokenRegistry,
     unit_registry: &'a UnitRegistry,
@@ -31,7 +31,7 @@ impl<'a> Parser<'a> {
         unit_registry: &'a UnitRegistry,
     ) -> Self {
         Self {
-            tokens,
+            tokens: tokens.into_iter().map(Some).collect(),
             pos: 0,
             token_registry,
             unit_registry,
@@ -41,15 +41,27 @@ impl<'a> Parser<'a> {
 
     /// Peek at the current token without consuming it.
     fn peek(&self) -> Option<&Token<'a>> {
-        self.tokens.get(self.pos)
+        self.tokens.get(self.pos).and_then(|t| t.as_ref())
+    }
+
+    /// Peek at the next token without consuming it.
+    fn peek_next(&self) -> Option<&Token<'a>> {
+        self.tokens.get(self.pos + 1).and_then(|t| t.as_ref())
     }
 
     /// Consume the current token and advance.
-    fn advance(&mut self) -> Option<Token<'a>> {
+    fn advance(&mut self) {
         if self.pos < self.tokens.len() {
-            let tok = self.tokens[self.pos].clone();
             self.pos += 1;
-            Some(tok)
+        }
+    }
+
+    /// Consume and return the current token.
+    fn next_token(&mut self) -> Option<Token<'a>> {
+        if self.pos < self.tokens.len() {
+            let tok = self.tokens[self.pos].take();
+            self.pos += 1;
+            tok
         } else {
             None
         }
@@ -138,7 +150,7 @@ impl<'a> Parser<'a> {
                 if let Some(Token::Unit(u)) = self.peek() {
                     let sym = *u;
                     if (sym == "%" || sym == "percent" || sym == "pct")
-                        && self.tokens.get(self.pos + 1) == Some(&Token::BinaryOp("of"))
+                        && self.peek_next() == Some(&Token::BinaryOp("of"))
                     {
                         self.advance();
                         self.advance();
@@ -292,7 +304,7 @@ impl<'a> Parser<'a> {
                 if bp < min_bp {
                     break;
                 }
-                let prop = match self.advance() {
+                let prop = match self.next_token() {
                     Some(Token::DotProperty(p)) => p,
                     _ => unreachable!(),
                 };
@@ -371,7 +383,7 @@ impl<'a> Parser<'a> {
 
     /// Parse a prefix expression (NUD in Pratt terminology).
     fn parse_prefix(&mut self) -> Result<EvalResult, AbacusError> {
-        match self.advance() {
+        match self.next_token() {
             Some(Token::Val(val)) => Ok(EvalResult::Scalar(val)),
             Some(Token::Date(d)) => Ok(EvalResult::Date(d)),
 
@@ -732,31 +744,14 @@ impl RangeSeq {
         }
 
         let diff = (end_val - start_val).abs();
-        let estimated_count = (diff / step_abs).floor() + 1.0;
-        if estimated_count > Self::MAX_RANGE_ELEMENTS as f64 {
+        let epsilon = 1e-12 * step_abs.max(1.0);
+        let count = ((diff + epsilon) / step_abs).floor() as usize + 1;
+        if count > Self::MAX_RANGE_ELEMENTS {
             return Err(AbacusError::IncompatibleFunctionArguments);
         }
-
-        let mut count = 0;
-        let mut current = start_val;
-        let epsilon = 1e-12 * step_abs.max(1.0);
         let step = if start_val <= end_val {
-            while current <= end_val + epsilon {
-                count += 1;
-                if count > Self::MAX_RANGE_ELEMENTS {
-                    return Err(AbacusError::IncompatibleFunctionArguments);
-                }
-                current += step_abs;
-            }
             step_abs
         } else {
-            while current >= end_val - epsilon {
-                count += 1;
-                if count > Self::MAX_RANGE_ELEMENTS {
-                    return Err(AbacusError::IncompatibleFunctionArguments);
-                }
-                current -= step_abs;
-            }
             -step_abs
         };
 
@@ -796,22 +791,9 @@ pub fn evaluate(
     if parser.has_explicit_conversion {
         Ok(result)
     } else {
-        let result = result.to_derived(unit_registry)?;
-        match result {
-            EvalResult::Scalar(mut v) => {
-                v.simplify_unit_display(unit_registry);
-                Ok(EvalResult::Scalar(v))
-            }
-            EvalResult::Interval(mut i) => {
-                i.simplify_unit_display(unit_registry);
-                Ok(EvalResult::Interval(i))
-            }
-            EvalResult::Hash(mut h) => {
-                h.simplify_unit_display(unit_registry);
-                Ok(EvalResult::Hash(h))
-            }
-            EvalResult::Date(d) => Ok(EvalResult::Date(d)),
-        }
+        let mut result = result.to_derived(unit_registry)?;
+        result.simplify_unit_display(unit_registry);
+        Ok(result)
     }
 }
 

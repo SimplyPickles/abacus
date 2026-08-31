@@ -228,6 +228,151 @@ impl Time {
         )
     }
 
+    pub fn parse_time_spec(s: &str, has_at: bool) -> Option<(Time, usize)> {
+        if s.is_empty() {
+            return None;
+        }
+
+        let mut char_indices = s.char_indices().peekable();
+        let &(start_idx, first_c) = char_indices.peek()?;
+        if !first_c.is_ascii_digit() {
+            return None;
+        }
+
+        let mut end_num1 = start_idx;
+        while let Some(&(idx, c)) = char_indices.peek() {
+            if c.is_ascii_digit() {
+                end_num1 = idx + 1;
+                char_indices.next();
+            } else {
+                break;
+            }
+        }
+
+        let hour_str = &s[start_idx..end_num1];
+        let mut hour = hour_str.parse::<u32>().ok()?;
+
+        let mut minute = 0u32;
+        let mut second = 0u32;
+        let mut millisecond = 0u32;
+        let mut current_end = end_num1;
+
+        let has_colon = char_indices.peek().is_some_and(|&(_, c)| c == ':');
+
+        if has_colon {
+            char_indices.next(); // consume ':'
+            let start_num2 = current_end + 1;
+            let mut end_num2 = start_num2;
+
+            while let Some(&(idx, c)) = char_indices.peek() {
+                if c.is_ascii_digit() {
+                    end_num2 = idx + 1;
+                    char_indices.next();
+                } else {
+                    break;
+                }
+            }
+
+            if end_num2 == start_num2 {
+                return None;
+            }
+
+            minute = s[start_num2..end_num2].parse::<u32>().ok()?;
+            current_end = end_num2;
+
+            if char_indices.peek().is_some_and(|&(_, c)| c == ':') {
+                char_indices.next(); // consume ':'
+                let start_num3 = current_end + 1;
+                let mut end_num3 = start_num3;
+
+                while let Some(&(idx, c)) = char_indices.peek() {
+                    if c.is_ascii_digit() {
+                        end_num3 = idx + 1;
+                        char_indices.next();
+                    } else {
+                        break;
+                    }
+                }
+
+                if end_num3 > start_num3 {
+                    second = s[start_num3..end_num3].parse::<u32>().ok()?;
+                    current_end = end_num3;
+
+                    if char_indices.peek().is_some_and(|&(_, c)| c == '.') {
+                        let mut dot_lookahead = char_indices.clone();
+                        dot_lookahead.next();
+                        if dot_lookahead
+                            .peek()
+                            .is_some_and(|&(_, c)| c.is_ascii_digit())
+                        {
+                            char_indices.next(); // consume '.'
+                            let start_ms = current_end + 1;
+                            let mut end_ms = start_ms;
+                            while let Some(&(idx, c)) = char_indices.peek() {
+                                if c.is_ascii_digit() {
+                                    end_ms = idx + 1;
+                                    char_indices.next();
+                                } else {
+                                    break;
+                                }
+                            }
+                            let ms_str = &s[start_ms..end_ms];
+                            millisecond = match ms_str.len() {
+                                1 => ms_str.parse::<u32>().unwrap_or(0) * 100,
+                                2 => ms_str.parse::<u32>().unwrap_or(0) * 10,
+                                3 => ms_str.parse::<u32>().unwrap_or(0),
+                                _ => ms_str[..3].parse::<u32>().unwrap_or(0),
+                            };
+                            current_end = end_ms;
+                        }
+                    }
+                }
+            }
+        }
+
+        let after_time = &s[current_end..];
+        let trimmed = after_time.trim_start();
+        let ws_len = after_time.len() - trimmed.len();
+        let upper_trimmed = trimmed.to_ascii_uppercase();
+
+        let mut is_am_pm = false;
+        let mut is_pm = false;
+
+        if upper_trimmed.starts_with("AM") {
+            if trimmed.len() == 2 || !trimmed.as_bytes()[2].is_ascii_alphanumeric() {
+                is_am_pm = true;
+                is_pm = false;
+                current_end += ws_len + 2;
+            }
+        } else if upper_trimmed.starts_with("PM")
+            && (trimmed.len() == 2 || !trimmed.as_bytes()[2].is_ascii_alphanumeric())
+        {
+            is_am_pm = true;
+            is_pm = true;
+            current_end += ws_len + 2;
+        }
+
+        if is_am_pm {
+            if hour == 0 || hour > 12 {
+                return None;
+            }
+            if is_pm && hour < 12 {
+                hour += 12;
+            } else if !is_pm && hour == 12 {
+                hour = 0;
+            }
+        } else if !has_colon && !has_at {
+            return None;
+        }
+
+        let time = Self::new(hour, minute, second, millisecond);
+        if time.is_valid() {
+            Some((time, current_end))
+        } else {
+            None
+        }
+    }
+
     pub fn format(&self) -> String {
         if self.millisecond == 0 {
             format!("{:02}:{:02}:{:02}", self.hour, self.minute, self.second)
@@ -267,6 +412,16 @@ impl Default for Time {
 impl fmt::Display for Time {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.format())
+    }
+}
+
+impl FromStr for Time {
+    type Err = AbacusError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Time::parse_time_spec(s.trim(), false)
+            .map(|(t, _)| t)
+            .ok_or_else(|| AbacusError::InvalidDate(format!("invalid time format: '{s}'")))
     }
 }
 
@@ -441,6 +596,79 @@ impl Date {
     pub fn with_format(mut self, format: DateFormat) -> Self {
         self.format = format;
         self
+    }
+
+    pub fn parse_ymd_components(s: &str) -> Option<(i32, u32, u32, usize)> {
+        let trimmed = s.trim_start();
+        if trimmed.is_empty() || !trimmed.chars().next()?.is_ascii_digit() {
+            return None;
+        }
+
+        // Find the date portion consisting strictly of digits and separators
+        let end_idx = trimmed
+            .find(|c: char| !c.is_ascii_digit() && c != '-' && c != '/')
+            .unwrap_or(trimmed.len());
+        let date_part = &trimmed[..end_idx];
+
+        let sep = if date_part.contains('-') {
+            '-'
+        } else if date_part.contains('/') {
+            '/'
+        } else {
+            return None;
+        };
+
+        let parts: Vec<&str> = date_part.split(sep).collect();
+        if parts.len() != 3 {
+            return None;
+        }
+
+        let (p1, p2, p3) = (parts[0], parts[1], parts[2]);
+        if !(p1.len() == 4 || p3.len() == 4) {
+            return None;
+        }
+        if p1.is_empty() || p2.is_empty() || p3.is_empty() {
+            return None;
+        }
+        if !p1.chars().all(|c| c.is_ascii_digit())
+            || !p2.chars().all(|c| c.is_ascii_digit())
+            || !p3.chars().all(|c| c.is_ascii_digit())
+        {
+            return None;
+        }
+
+        let prefix_ws = s.len() - trimmed.len();
+        let consumed = prefix_ws + date_part.len();
+
+        let (year, month, day) = if p1.len() == 4 {
+            (
+                p1.parse::<i32>().ok()?,
+                p2.parse::<u32>().ok()?,
+                p3.parse::<u32>().ok()?,
+            )
+        } else {
+            (
+                p3.parse::<i32>().ok()?,
+                p2.parse::<u32>().ok()?,
+                p1.parse::<u32>().ok()?,
+            )
+        };
+
+        Some((year, month, day, consumed))
+    }
+
+    pub fn apply_time_value(&self, rhs: &Value, sign: i64) -> Result<Date, AbacusError> {
+        if rhs.unit.dimensions != Dimensions::TIME {
+            return Err(AbacusError::IncompatibleDimensions);
+        }
+        let sym = rhs.unit.display.render().to_ascii_lowercase();
+        if sym.contains("business") || sym.contains("work") || sym == "bday" || sym == "bdays" {
+            let count = (rhs.canonical / 86400.0).round() as i64;
+            Ok(self.add_business_days(sign * count))
+        } else {
+            let ms = (rhs.canonical * 1000.0).round() as i64;
+            Ok(self.add_milliseconds(sign * ms))
+        }
     }
 
     pub fn new_with_hms(
@@ -743,141 +971,38 @@ impl FromStr for Date {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let s = s.trim();
-        let tokens: Vec<&str> = s.split_whitespace().collect();
-
-        if tokens.is_empty() {
+        if s.is_empty() {
             return Err(AbacusError::InvalidDate("empty string".to_string()));
         }
 
         // Handle ISO T separator: e.g. "2026-08-07T10:00:00Z"
-        let tokens: Vec<String> = if tokens.len() == 1 && tokens[0].contains('T') {
-            tokens[0]
-                .replace('T', " ")
-                .split_whitespace()
-                .map(|s| s.to_string())
-                .collect()
+        let normalized = if !s.contains(' ') && s.contains('T') {
+            s.replace('T', " ")
         } else {
-            tokens.iter().map(|s| s.to_string()).collect()
+            s.to_string()
         };
 
-        if tokens.is_empty() {
-            return Err(AbacusError::InvalidDate(format!(
-                "invalid date string '{s}'"
-            )));
-        }
-
-        let date_str = &tokens[0];
-        let sep = if date_str.contains('-') {
-            '-'
-        } else if date_str.contains('/') {
-            '/'
-        } else {
-            return Err(AbacusError::InvalidDate(format!(
-                "unrecognized date format: '{s}'"
-            )));
-        };
-
-        let date_parts: Vec<&str> = date_str.split(sep).collect();
-        if date_parts.len() != 3 {
-            return Err(AbacusError::InvalidDate(format!(
-                "invalid date components: '{s}'"
-            )));
-        }
-
-        let (p1, p2, p3) = (date_parts[0], date_parts[1], date_parts[2]);
-        let (year, month, day) = if p1.len() == 4 {
-            (
-                p1.parse::<i32>()
-                    .map_err(|_| AbacusError::InvalidDate(s.to_string()))?,
-                p2.parse::<u32>()
-                    .map_err(|_| AbacusError::InvalidDate(s.to_string()))?,
-                p3.parse::<u32>()
-                    .map_err(|_| AbacusError::InvalidDate(s.to_string()))?,
-            )
-        } else if p3.len() == 4 {
-            (
-                p3.parse::<i32>()
-                    .map_err(|_| AbacusError::InvalidDate(s.to_string()))?,
-                p2.parse::<u32>()
-                    .map_err(|_| AbacusError::InvalidDate(s.to_string()))?,
-                p1.parse::<u32>()
-                    .map_err(|_| AbacusError::InvalidDate(s.to_string()))?,
-            )
-        } else {
-            return Err(AbacusError::InvalidDate(format!(
-                "invalid year in date: '{s}'"
-            )));
-        };
+        let (year, month, day, consumed) = Date::parse_ymd_components(&normalized)
+            .ok_or_else(|| AbacusError::InvalidDate(format!("invalid date format: '{s}'")))?;
 
         let mut time = Time::new(0, 0, 0, 0);
         let mut timezone = None;
 
-        if tokens.len() >= 2 {
-            let time_token = &tokens[1];
-            if time_token.contains(':') {
-                let hms: Vec<&str> = time_token.split(':').collect();
-                if hms.len() >= 2 {
-                    let h = hms[0]
-                        .parse::<u32>()
-                        .map_err(|_| AbacusError::InvalidDate(s.to_string()))?;
-                    let m = hms[1]
-                        .parse::<u32>()
-                        .map_err(|_| AbacusError::InvalidDate(s.to_string()))?;
-                    let (sec, ms) = if hms.len() >= 3 {
-                        if hms[2].contains('.') {
-                            let sec_ms: Vec<&str> = hms[2].split('.').collect();
-                            let s_val = sec_ms[0]
-                                .parse::<u32>()
-                                .map_err(|_| AbacusError::InvalidDate(s.to_string()))?;
-                            let ms_str = sec_ms[1];
-                            let ms_val = match ms_str.len() {
-                                1 => ms_str.parse::<u32>().unwrap_or(0) * 100,
-                                2 => ms_str.parse::<u32>().unwrap_or(0) * 10,
-                                3 => ms_str.parse::<u32>().unwrap_or(0),
-                                _ => ms_str[..3].parse::<u32>().unwrap_or(0),
-                            };
-                            (s_val, ms_val)
-                        } else {
-                            (
-                                hms[2]
-                                    .parse::<u32>()
-                                    .map_err(|_| AbacusError::InvalidDate(s.to_string()))?,
-                                0,
-                            )
-                        }
-                    } else {
-                        (0, 0)
-                    };
-                    time = Time::new(h, m, sec, ms);
+        let rem = normalized[consumed..].trim_start();
+        if !rem.is_empty() {
+            if let Some((parsed_time, time_len)) = Time::parse_time_spec(rem, false) {
+                time = parsed_time;
+                let tz_part = rem[time_len..].trim();
+                if !tz_part.is_empty()
+                    && let Ok(tz) = TimeZone::parse(tz_part)
+                {
+                    timezone = Some(tz);
                 }
-            }
-
-            let start_idx = if tokens[1].contains(':') { 2 } else { 1 };
-            let mut remaining_words = tokens[start_idx..].join(" ");
-            let upper_rem = remaining_words.to_ascii_uppercase();
-
-            if upper_rem.starts_with("AM") || upper_rem.starts_with("PM") {
-                let is_pm = upper_rem.starts_with("PM");
-                if is_pm && time.hour < 12 {
-                    time.hour += 12;
-                } else if !is_pm && time.hour == 12 {
-                    time.hour = 0;
+            } else {
+                let tz_part = rem.trim();
+                if let Ok(tz) = TimeZone::parse(tz_part) {
+                    timezone = Some(tz);
                 }
-                let rest_idx = if remaining_words.len() >= 2 {
-                    let mut split = remaining_words.split_whitespace();
-                    split.next();
-                    split.collect::<Vec<&str>>().join(" ")
-                } else {
-                    String::new()
-                };
-                remaining_words = rest_idx;
-            }
-
-            let tz_word = remaining_words.trim();
-            if !tz_word.is_empty()
-                && let Ok(tz) = TimeZone::parse(tz_word)
-            {
-                timezone = Some(tz);
             }
         }
 
@@ -923,17 +1048,7 @@ impl Add<&Value> for &Date {
     type Output = Result<Date, AbacusError>;
 
     fn add(self, rhs: &Value) -> Self::Output {
-        if rhs.unit.dimensions != Dimensions::TIME {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-        let sym = rhs.unit.display.render().to_ascii_lowercase();
-        if sym.contains("business") || sym.contains("work") || sym == "bday" || sym == "bdays" {
-            let count = (rhs.canonical / 86400.0).round() as i64;
-            Ok(self.add_business_days(count))
-        } else {
-            let ms = (rhs.canonical * 1000.0).round() as i64;
-            Ok(self.add_milliseconds(ms))
-        }
+        self.apply_time_value(rhs, 1)
     }
 }
 
@@ -948,17 +1063,7 @@ impl Sub<&Value> for &Date {
     type Output = Result<Date, AbacusError>;
 
     fn sub(self, rhs: &Value) -> Self::Output {
-        if rhs.unit.dimensions != Dimensions::TIME {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-        let sym = rhs.unit.display.render().to_ascii_lowercase();
-        if sym.contains("business") || sym.contains("work") || sym == "bday" || sym == "bdays" {
-            let count = (rhs.canonical / 86400.0).round() as i64;
-            Ok(self.add_business_days(-count))
-        } else {
-            let ms = (rhs.canonical * 1000.0).round() as i64;
-            Ok(self.add_milliseconds(-ms))
-        }
+        self.apply_time_value(rhs, -1)
     }
 }
 

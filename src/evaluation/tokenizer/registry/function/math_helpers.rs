@@ -1,11 +1,17 @@
 use crate::{
     AbacusError, Value,
-    evaluation::tokenizer::registry::function::{
-        distributions::special::make_dimensionless,
-        operators::{FunctionOp, FunctionTarget},
-    },
+    evaluation::tokenizer::registry::function::operators::{FunctionOp, FunctionTarget},
 };
 use std::sync::Arc;
+
+/// Validates that all values in the slice are dimensionless.
+pub fn check_dimensionless(args: &[Value]) -> Result<(), AbacusError> {
+    if args.iter().all(|a| a.unit.is_dimensionless()) {
+        Ok(())
+    } else {
+        Err(AbacusError::IncompatibleDimensions)
+    }
+}
 
 fn gcd_u64(mut a: u64, mut b: u64) -> u64 {
     while b != 0 {
@@ -63,26 +69,18 @@ fn clamp_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
 /// gcd(a, b) — Greatest Common Divisor
 fn gcd_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
     let a = args[0].canonical.abs().round() as u64;
     let b = args[1].canonical.abs().round() as u64;
-    Ok(make_dimensionless(gcd_u64(a, b) as f64))
+    Ok(Value::dimensionless(gcd_u64(a, b) as f64))
 }
 
 /// lcm(a, b) — Least Common Multiple
 fn lcm_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
     let a = args[0].canonical.abs().round() as u64;
     let b = args[1].canonical.abs().round() as u64;
-    Ok(make_dimensionless(lcm_u64(a, b) as f64))
+    Ok(Value::dimensionless(lcm_u64(a, b) as f64))
 }
 
 /// modulo_fn(a, b) — Unit-aware modulo calculation

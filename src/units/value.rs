@@ -130,49 +130,24 @@ pub fn format_human_duration(seconds_f64: f64) -> String {
         return "0 seconds".to_string();
     }
 
-    let years = total / 31_536_000;
-    total %= 31_536_000;
-
-    let days = total / 86_400;
-    total %= 86_400;
-
-    let hours = total / 3_600;
-    total %= 3_600;
-
-    let minutes = total / 60;
-    let seconds = total % 60;
+    const DURATION_UNITS: &[(&str, i64)] = &[
+        ("year", 31_536_000),
+        ("day", 86_400),
+        ("hour", 3_600),
+        ("minute", 60),
+        ("second", 1),
+    ];
 
     let mut parts = Vec::new();
-    if years > 0 {
-        parts.push(format!(
-            "{} year{}",
-            years,
-            if years == 1 { "" } else { "s" }
-        ));
-    }
-    if days > 0 {
-        parts.push(format!("{} day{}", days, if days == 1 { "" } else { "s" }));
-    }
-    if hours > 0 {
-        parts.push(format!(
-            "{} hour{}",
-            hours,
-            if hours == 1 { "" } else { "s" }
-        ));
-    }
-    if minutes > 0 {
-        parts.push(format!(
-            "{} minute{}",
-            minutes,
-            if minutes == 1 { "" } else { "s" }
-        ));
-    }
-    if seconds > 0 {
-        parts.push(format!(
-            "{} second{}",
-            seconds,
-            if seconds == 1 { "" } else { "s" }
-        ));
+    for &(name, divisor) in DURATION_UNITS {
+        let count = total / divisor;
+        total %= divisor;
+        if count > 0 {
+            parts.push(format!(
+                "{count} {name}{suffix}",
+                suffix = if count == 1 { "" } else { "s" }
+            ));
+        }
     }
 
     let result = parts.join(", ");

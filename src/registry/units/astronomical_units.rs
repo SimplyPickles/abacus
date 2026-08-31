@@ -3,12 +3,9 @@ use std::{collections::HashMap, sync::Arc};
 use crate::{
     registry::{
         helpers::{UnitDefinition, register_unit_definitions},
-        units::metric_units::METRIC_PREFIXES,
+        units::metric_units::register_metric_prefixed_units,
     },
-    units::{
-        dimensions::Dimensions,
-        unit::{Unit, UnitExpr},
-    },
+    units::{dimensions::Dimensions, unit::Unit},
 };
 
 const ASTRO_UNITS: &[UnitDefinition] = &[
@@ -58,18 +55,15 @@ pub fn register_astronomical_units(map: &mut HashMap<String, Arc<Unit>>) {
     register_unit_definitions(map, ASTRO_UNITS);
 
     // Prefixed parsec (kpc, Mpc, Gpc)
-    let pc_scalar = 30_856_775_814_913_673.0;
-    for pref in METRIC_PREFIXES {
-        let pref_unit = Arc::new(Unit {
-            scalar: pc_scalar * pref.scalar,
-            offset: 0.0,
-            dimensions: Dimensions::LENGTH,
-            display: UnitExpr::single(format!("{}pc", pref.alias)),
-        });
-
-        map.insert(format!("{}parsec", pref.name), Arc::clone(&pref_unit));
-        map.insert(format!("{}pc", pref.alias), pref_unit);
-    }
+    register_metric_prefixed_units(
+        map,
+        Some("parsec"),
+        "pc",
+        30_856_775_814_913_673.0,
+        Dimensions::LENGTH,
+        false,
+        &[],
+    );
 }
 
 #[cfg(test)]

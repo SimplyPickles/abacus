@@ -1,7 +1,7 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::{erfinv, make_dimensionless},
+        distributions::special::erfinv,
         operators::{FunctionOp, FunctionTarget},
     },
 };
@@ -58,7 +58,7 @@ fn normpdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let (x, mean, std) = parse_norm_args(args)?;
     let z = (x - mean) / std;
     let pdf = (1.0 / (std * TAU.sqrt())) * (-0.5 * z * z).exp();
-    Ok(make_dimensionless(pdf))
+    Ok(Value::dimensionless(pdf))
 }
 
 /// normcdf(x) or normcdf(x, mean, std)
@@ -66,7 +66,7 @@ fn normcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let (x, mean, std) = parse_norm_args(args)?;
     let z = (x - mean) / std;
     let cdf = 0.5 * (1.0 + erf(z / std::f64::consts::SQRT_2));
-    Ok(make_dimensionless(cdf))
+    Ok(Value::dimensionless(cdf))
 }
 
 /// invnorm(p) or invnorm(p, mean, std)
@@ -80,7 +80,7 @@ fn invnorm_fn(args: &[Value]) -> Result<Value, AbacusError> {
             return Err(AbacusError::IncompatibleFunctionArguments);
         }
         let z = std::f64::consts::SQRT_2 * erfinv(2.0 * p - 1.0);
-        Ok(make_dimensionless(z))
+        Ok(Value::dimensionless(z))
     } else if args.len() == 3 {
         let p_arg = &args[0];
         if !p_arg.unit.is_dimensionless() {

@@ -1,7 +1,8 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::{erfinv, gamma_p, lgamma, make_dimensionless},
+        check_dimensionless,
+        distributions::special::{erfinv, gamma_p, lgamma},
         operators::{FunctionOp, FunctionTarget},
     },
 };
@@ -24,11 +25,7 @@ pub fn compute_chisqcdf(df: f64, x: f64) -> f64 {
 
 /// chisqpdf(df, x)
 fn chisqpdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
 
     let df = args[0].canonical;
     let x = args[1].canonical;
@@ -37,16 +34,12 @@ fn chisqpdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
 
-    Ok(make_dimensionless(compute_chisqpdf(df, x)))
+    Ok(Value::dimensionless(compute_chisqpdf(df, x)))
 }
 
 /// chisqcdf(df, x)
 fn chisqcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
 
     let df = args[0].canonical;
     let x = args[1].canonical;
@@ -55,16 +48,12 @@ fn chisqcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
 
-    Ok(make_dimensionless(compute_chisqcdf(df, x)))
+    Ok(Value::dimensionless(compute_chisqcdf(df, x)))
 }
 
 /// invchisq(p, df)
 fn invchisq_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
 
     let p = args[0].canonical;
     let df = args[1].canonical;
@@ -94,7 +83,7 @@ fn invchisq_fn(args: &[Value]) -> Result<Value, AbacusError> {
         }
     }
 
-    Ok(make_dimensionless(x))
+    Ok(Value::dimensionless(x))
 }
 
 pub fn register_chi_square() -> Vec<FunctionOp> {

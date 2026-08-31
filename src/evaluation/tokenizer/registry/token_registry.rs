@@ -17,8 +17,6 @@ pub struct TokenRegistry {
     pub binary_operators: HashMap<String, Arc<BinaryOp>>,
     pub unary_operators: HashMap<String, Arc<UnaryOp>>,
     pub function_operators: HashMap<String, Arc<FunctionOp>>,
-
-    pub paren_operators: Vec<char>,
 }
 
 impl TokenRegistry {
@@ -27,8 +25,6 @@ impl TokenRegistry {
             binary_operators: HashMap::new(),
             unary_operators: HashMap::new(),
             function_operators: HashMap::new(),
-
-            paren_operators: vec!['(', ')'],
         }
     }
 
@@ -66,8 +62,6 @@ impl TokenRegistry {
                 .into_iter()
                 .map(|op| (op.name.to_string(), Arc::new(op)))
                 .collect(),
-
-            paren_operators: vec!['(', ')'],
         }
     }
 

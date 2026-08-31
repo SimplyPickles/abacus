@@ -1,18 +1,14 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::make_dimensionless,
+        check_dimensionless,
         operators::{FunctionOp, FunctionTarget},
     },
 };
 
 /// geompdf(p, k)
 fn geompdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
 
     let p = args[0].canonical;
     let k_val = args[1].canonical;
@@ -23,16 +19,12 @@ fn geompdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
     let k = k_val.round() as i32;
     let pdf = (1.0 - p).powi(k - 1) * p;
-    Ok(make_dimensionless(pdf))
+    Ok(Value::dimensionless(pdf))
 }
 
 /// geomcdf(p, k)
 fn geomcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
 
     let p = args[0].canonical;
     let k_val = args[1].canonical;
@@ -43,7 +35,7 @@ fn geomcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
     let k = k_val.round() as i32;
     let cdf = 1.0 - (1.0 - p).powi(k);
-    Ok(make_dimensionless(cdf))
+    Ok(Value::dimensionless(cdf))
 }
 
 pub fn register_geometric() -> Vec<FunctionOp> {

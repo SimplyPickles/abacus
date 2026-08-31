@@ -11,4 +11,5 @@ pub mod regression;
 pub mod stats;
 pub mod trig;
 
+pub use math_helpers::check_dimensionless;
 pub use operators::{FunctionOp, FunctionTarget};

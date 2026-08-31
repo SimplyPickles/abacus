@@ -3,12 +3,9 @@ use std::{collections::HashMap, sync::Arc};
 use crate::{
     registry::{
         helpers::{UnitDefinition, register_unit_definitions},
-        units::metric_units::METRIC_PREFIXES,
+        units::metric_units::register_metric_prefixed_units,
     },
-    units::{
-        dimensions::Dimensions,
-        unit::{Unit, UnitExpr},
-    },
+    units::{dimensions::Dimensions, unit::Unit},
 };
 
 const VOLUME_AND_AREA_UNITS: &[UnitDefinition] = &[
@@ -92,19 +89,13 @@ pub fn register_volume_and_area_units(map: &mut HashMap<String, Arc<Unit>>) {
     register_unit_definitions(map, VOLUME_AND_AREA_UNITS);
 
     // Prefixed liters (mL, cL, dL, kL, etc.)
-    let liter_base_scalar = 1e-3;
-    for pref in METRIC_PREFIXES {
-        let pref_unit = Arc::new(Unit {
-            scalar: pref.scalar * liter_base_scalar,
-            offset: 0.0,
-            dimensions: Dimensions::VOLUME,
-            display: UnitExpr::single(format!("{}L", pref.alias)),
-        });
-
-        map.insert(format!("{}liter", pref.name), Arc::clone(&pref_unit));
-        map.insert(format!("{}liters", pref.name), Arc::clone(&pref_unit));
-        map.insert(format!("{}litre", pref.name), Arc::clone(&pref_unit));
-        map.insert(format!("{}litres", pref.name), Arc::clone(&pref_unit));
-        map.insert(format!("{}L", pref.alias), pref_unit);
-    }
+    register_metric_prefixed_units(
+        map,
+        Some("liter"),
+        "L",
+        1e-3,
+        Dimensions::VOLUME,
+        true,
+        &["litre"],
+    );
 }

@@ -1,18 +1,15 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::{make_dimensionless, n_cr},
+        check_dimensionless,
+        distributions::special::n_cr,
         operators::{FunctionOp, FunctionTarget},
     },
 };
 
 /// hypgeompdf(N, K, n, k)
 fn hypgeompdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
 
     let big_n = args[0].canonical.round() as u64;
     let big_k = args[1].canonical.round() as u64;
@@ -24,16 +21,12 @@ fn hypgeompdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
     }
 
     let pdf = (n_cr(big_k, k) * n_cr(big_n - big_k, n - k)) / n_cr(big_n, n);
-    Ok(make_dimensionless(pdf))
+    Ok(Value::dimensionless(pdf))
 }
 
 /// hypgeomcdf(N, K, n, k)
 fn hypgeomcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
 
     let big_n = args[0].canonical.round() as u64;
     let big_k = args[1].canonical.round() as u64;
@@ -51,7 +44,7 @@ fn hypgeomcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
         }
     }
 
-    Ok(make_dimensionless(cdf))
+    Ok(Value::dimensionless(cdf))
 }
 
 pub fn register_hypergeometric() -> Vec<FunctionOp> {

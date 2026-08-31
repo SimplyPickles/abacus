@@ -184,8 +184,9 @@ impl Unit {
 
     pub fn is_percent(&self) -> bool {
         self.is_dimensionless()
-            && (self.display.render() == "%"
-                || (self.display.numerator.len() == 1 && self.display.numerator[0] == "%"))
+            && self.display.denominator.is_empty()
+            && self.display.numerator.len() == 1
+            && self.display.numerator[0] == "%"
     }
 }
 

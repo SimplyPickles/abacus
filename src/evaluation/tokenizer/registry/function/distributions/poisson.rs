@@ -1,18 +1,15 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::{factorial, make_dimensionless},
+        check_dimensionless,
+        distributions::special::factorial,
         operators::{FunctionOp, FunctionTarget},
     },
 };
 
 /// poissonpdf(lambda, k)
 fn poissonpdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
 
     let lambda = args[0].canonical;
     let k_val = args[1].canonical;
@@ -23,16 +20,12 @@ fn poissonpdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
     let k = k_val.round() as u64;
     let pdf = (lambda.powf(k as f64) * (-lambda).exp()) / factorial(k);
-    Ok(make_dimensionless(pdf))
+    Ok(Value::dimensionless(pdf))
 }
 
 /// poissoncdf(lambda, k)
 fn poissoncdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
 
     let lambda = args[0].canonical;
     let k_val = args[1].canonical;
@@ -47,7 +40,7 @@ fn poissoncdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
         cdf += (lambda.powf(i as f64) * (-lambda).exp()) / factorial(i);
     }
 
-    Ok(make_dimensionless(cdf))
+    Ok(Value::dimensionless(cdf))
 }
 
 pub fn register_poisson() -> Vec<FunctionOp> {

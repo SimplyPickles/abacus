@@ -1,18 +1,15 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::{beta_inc, lgamma, make_dimensionless},
+        check_dimensionless,
+        distributions::special::{beta_inc, lgamma},
         operators::{FunctionOp, FunctionTarget},
     },
 };
 
 /// fpdf(df1, df2, x)
 fn fpdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
 
     let df1 = args[0].canonical;
     let df2 = args[1].canonical;
@@ -28,16 +25,12 @@ fn fpdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
         + x.ln();
 
     let pdf = (log_num - log_den).exp();
-    Ok(make_dimensionless(pdf))
+    Ok(Value::dimensionless(pdf))
 }
 
 /// fcdf(df1, df2, x)
 fn fcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
 
     let df1 = args[0].canonical;
     let df2 = args[1].canonical;
@@ -49,7 +42,7 @@ fn fcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
     let k = df1 * x / (df1 * x + df2);
     let cdf = beta_inc(df1 / 2.0, df2 / 2.0, k);
-    Ok(make_dimensionless(cdf))
+    Ok(Value::dimensionless(cdf))
 }
 
 pub fn register_f_dist() -> Vec<FunctionOp> {

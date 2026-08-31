@@ -157,34 +157,74 @@ pub fn register_metric_units() -> HashMap<String, Arc<Unit>> {
             map.insert("metres".to_string(), Arc::clone(&base_unit));
         }
 
-        for pref in METRIC_PREFIXES {
-            let pref_unit = Arc::new(Unit {
-                scalar: pref.scalar,
-                offset: 0.0,
-                dimensions: base.dim,
-                display: UnitExpr::single(format!("{}{}", pref.alias, base.alias)),
-            });
-
-            map.insert(
-                format!("{}{}", pref.alias, base.alias),
-                Arc::clone(&pref_unit),
-            );
-            map.insert(
-                format!("{}{}", pref.name, base.name),
-                Arc::clone(&pref_unit),
-            );
-            map.insert(
-                format!("{}{}s", pref.name, base.name),
-                Arc::clone(&pref_unit),
-            );
-            if base.name == "meter" {
-                map.insert(format!("{}metre", pref.name), Arc::clone(&pref_unit));
-                map.insert(format!("{}metres", pref.name), Arc::clone(&pref_unit));
-            }
-        }
+        let extra_names = if base.name == "meter" {
+            &["metre"][..]
+        } else {
+            &[][..]
+        };
+        register_metric_prefixed_units(
+            &mut map,
+            Some(base.name),
+            base.alias,
+            1.0,
+            base.dim,
+            true,
+            extra_names,
+        );
     }
 
     map
+}
+
+/// Helper function to register metric prefixed units across modules.
+pub fn register_metric_prefixed_units(
+    map: &mut HashMap<String, Arc<Unit>>,
+    base_name: Option<&str>,
+    base_alias: &str,
+    base_scalar: f64,
+    dimensions: Dimensions,
+    add_plural: bool,
+    extra_names: &[&str],
+) {
+    for pref in METRIC_PREFIXES {
+        let pref_unit = Arc::new(Unit {
+            scalar: base_scalar * pref.scalar,
+            offset: 0.0,
+            dimensions,
+            display: UnitExpr::single(format!("{}{}", pref.alias, base_alias)),
+        });
+
+        map.insert(
+            format!("{}{}", pref.alias, base_alias),
+            Arc::clone(&pref_unit),
+        );
+
+        if let Some(name) = base_name {
+            map.insert(
+                format!("{}{}", pref.name, name),
+                Arc::clone(&pref_unit),
+            );
+            if add_plural && !name.ends_with('s') {
+                map.insert(
+                    format!("{}{}s", pref.name, name),
+                    Arc::clone(&pref_unit),
+                );
+            }
+        }
+
+        for extra in extra_names {
+            map.insert(
+                format!("{}{}", pref.name, extra),
+                Arc::clone(&pref_unit),
+            );
+            if add_plural && !extra.ends_with('s') {
+                map.insert(
+                    format!("{}{}s", pref.name, extra),
+                    Arc::clone(&pref_unit),
+                );
+            }
+        }
+    }
 }
 
 #[cfg(test)]

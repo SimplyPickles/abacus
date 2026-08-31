@@ -2,10 +2,10 @@ use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
         distributions::{
-            chi_square::compute_chisqcdf, normal::std_normal_cdf, special::make_dimensionless,
-            student_t::compute_tcdf,
+            chi_square::compute_chisqcdf, normal::std_normal_cdf, student_t::compute_tcdf,
         },
         operators::{FunctionOp, FunctionTarget},
+        stats::{compute_mean, compute_variance},
     },
     units::{eval_result::EvalResult, hash::Hash, value::Value as AbacusValue},
 };
@@ -58,9 +58,9 @@ fn z_test_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
     let p_value = 2.0 * (1.0 - std_normal_cdf(z.abs()));
 
     let mut hash = Hash::new();
-    hash.insert("z", make_dimensionless(z));
-    hash.insert("p", make_dimensionless(p_value));
-    hash.insert("p_value", make_dimensionless(p_value));
+    hash.insert("z", Value::dimensionless(z));
+    hash.insert("p", Value::dimensionless(p_value));
+    hash.insert("p_value", Value::dimensionless(p_value));
     hash.insert(
         "mean",
         AbacusValue {
@@ -68,7 +68,7 @@ fn z_test_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
             unit: Arc::clone(&mu0.unit),
         },
     );
-    hash.insert("n", make_dimensionless(n));
+    hash.insert("n", Value::dimensionless(n));
 
     Ok(EvalResult::Hash(hash))
 }
@@ -105,13 +105,8 @@ fn t_test_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
         if n <= 1.0 {
             return Err(AbacusError::IncompatibleFunctionArguments);
         }
-        let mean = data.iter().map(|v| v.canonical).sum::<f64>() / n;
-        let var = data
-            .iter()
-            .map(|v| (v.canonical - mean).powi(2))
-            .sum::<f64>()
-            / (n - 1.0);
-        let s = var.sqrt();
+        let mean = compute_mean(data);
+        let s = compute_variance(data, 1.0).sqrt();
         (mean, s, n)
     };
 
@@ -125,10 +120,10 @@ fn t_test_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
     let p_value = 2.0 * (1.0 - compute_tcdf(df, t.abs()));
 
     let mut hash = Hash::new();
-    hash.insert("t", make_dimensionless(t));
-    hash.insert("p", make_dimensionless(p_value));
-    hash.insert("p_value", make_dimensionless(p_value));
-    hash.insert("df", make_dimensionless(df));
+    hash.insert("t", Value::dimensionless(t));
+    hash.insert("p", Value::dimensionless(p_value));
+    hash.insert("p_value", Value::dimensionless(p_value));
+    hash.insert("df", Value::dimensionless(df));
     hash.insert(
         "mean",
         AbacusValue {
@@ -143,7 +138,7 @@ fn t_test_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
             unit: Arc::clone(&mu0.unit),
         },
     );
-    hash.insert("n", make_dimensionless(n));
+    hash.insert("n", Value::dimensionless(n));
 
     Ok(EvalResult::Hash(hash))
 }
@@ -169,11 +164,11 @@ fn one_prop_z_test_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
     let p_value = 2.0 * (1.0 - std_normal_cdf(z.abs()));
 
     let mut hash = Hash::new();
-    hash.insert("z", make_dimensionless(z));
-    hash.insert("p", make_dimensionless(p_value));
-    hash.insert("p_value", make_dimensionless(p_value));
-    hash.insert("phat", make_dimensionless(phat));
-    hash.insert("n", make_dimensionless(n));
+    hash.insert("z", Value::dimensionless(z));
+    hash.insert("p", Value::dimensionless(p_value));
+    hash.insert("p_value", Value::dimensionless(p_value));
+    hash.insert("phat", Value::dimensionless(phat));
+    hash.insert("n", Value::dimensionless(n));
 
     Ok(EvalResult::Hash(hash))
 }
@@ -209,9 +204,9 @@ fn two_samp_z_test_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
     let p_value = 2.0 * (1.0 - std_normal_cdf(z.abs()));
 
     let mut hash = Hash::new();
-    hash.insert("z", make_dimensionless(z));
-    hash.insert("p", make_dimensionless(p_value));
-    hash.insert("p_value", make_dimensionless(p_value));
+    hash.insert("z", Value::dimensionless(z));
+    hash.insert("p", Value::dimensionless(p_value));
+    hash.insert("p_value", Value::dimensionless(p_value));
     hash.insert(
         "diff",
         AbacusValue {
@@ -260,10 +255,10 @@ fn two_samp_t_test_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
     let p_value = 2.0 * (1.0 - compute_tcdf(df, t.abs()));
 
     let mut hash = Hash::new();
-    hash.insert("t", make_dimensionless(t));
-    hash.insert("p", make_dimensionless(p_value));
-    hash.insert("p_value", make_dimensionless(p_value));
-    hash.insert("df", make_dimensionless(df));
+    hash.insert("t", Value::dimensionless(t));
+    hash.insert("p", Value::dimensionless(p_value));
+    hash.insert("p_value", Value::dimensionless(p_value));
+    hash.insert("df", Value::dimensionless(df));
     hash.insert(
         "diff",
         AbacusValue {
@@ -300,12 +295,12 @@ fn two_prop_z_test_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
     let p_value = 2.0 * (1.0 - std_normal_cdf(z.abs()));
 
     let mut hash = Hash::new();
-    hash.insert("z", make_dimensionless(z));
-    hash.insert("p", make_dimensionless(p_value));
-    hash.insert("p_value", make_dimensionless(p_value));
-    hash.insert("p1", make_dimensionless(p1));
-    hash.insert("p2", make_dimensionless(p2));
-    hash.insert("diff", make_dimensionless(diff));
+    hash.insert("z", Value::dimensionless(z));
+    hash.insert("p", Value::dimensionless(p_value));
+    hash.insert("p_value", Value::dimensionless(p_value));
+    hash.insert("p1", Value::dimensionless(p1));
+    hash.insert("p2", Value::dimensionless(p2));
+    hash.insert("diff", Value::dimensionless(diff));
 
     Ok(EvalResult::Hash(hash))
 }
@@ -336,10 +331,10 @@ fn chi2_test_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
     let p_value = 1.0 - compute_chisqcdf(df, chi2);
 
     let mut hash = Hash::new();
-    hash.insert("chi2", make_dimensionless(chi2));
-    hash.insert("p", make_dimensionless(p_value));
-    hash.insert("p_value", make_dimensionless(p_value));
-    hash.insert("df", make_dimensionless(df));
+    hash.insert("chi2", Value::dimensionless(chi2));
+    hash.insert("p", Value::dimensionless(p_value));
+    hash.insert("p_value", Value::dimensionless(p_value));
+    hash.insert("df", Value::dimensionless(df));
 
     Ok(EvalResult::Hash(hash))
 }

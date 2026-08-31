@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use crate::{
     registry::{
         helpers::{UnitDefinition, register_unit_definitions},
-        units::metric_units::METRIC_PREFIXES,
+        units::metric_units::register_metric_prefixed_units,
     },
     units::{
         dimensions::Dimensions,
@@ -129,16 +129,15 @@ pub fn register_cgs_physics_units(map: &mut HashMap<String, Arc<Unit>>) {
             map.insert(key.to_string(), Arc::clone(&base_unit));
         }
 
-        for pref in METRIC_PREFIXES {
-            let pref_unit = Arc::new(Unit {
-                scalar: def.scalar * pref.scalar,
-                offset: 0.0,
-                dimensions: def.dimensions,
-                display: UnitExpr::single(format!("{}{}", pref.alias, def.display)),
-            });
-
-            map.insert(format!("{}{}", pref.alias, def.display), pref_unit);
-        }
+        register_metric_prefixed_units(
+            map,
+            None,
+            def.display,
+            def.scalar,
+            def.dimensions,
+            false,
+            &[],
+        );
     }
 }
 

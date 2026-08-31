@@ -1,7 +1,8 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::{factorial, make_dimensionless, n_cr},
+        check_dimensionless,
+        distributions::special::{factorial, n_cr},
         operators::{FunctionOp, FunctionTarget},
     },
 };
@@ -15,24 +16,18 @@ fn n_pr(n: u64, r: u64) -> f64 {
 
 /// factorial(n)
 fn factorial_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    if !args[0].unit.is_dimensionless() {
-        return Err(AbacusError::IncompatibleDimensions);
-    }
+    check_dimensionless(args)?;
     let n_val = args[0].canonical;
     if n_val < 0.0 || !n_val.is_finite() || n_val > 170.0 {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
     let n = n_val.round() as u64;
-    Ok(make_dimensionless(factorial(n)))
+    Ok(Value::dimensionless(factorial(n)))
 }
 
 /// nCr(n, r) or comb(n, r)
 fn n_cr_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
     let n_val = args[0].canonical;
     let r_val = args[1].canonical;
     if n_val < 0.0
@@ -46,16 +41,12 @@ fn n_cr_fn(args: &[Value]) -> Result<Value, AbacusError> {
     }
     let n = n_val.round() as u64;
     let r = r_val.round() as u64;
-    Ok(make_dimensionless(n_cr(n, r)))
+    Ok(Value::dimensionless(n_cr(n, r)))
 }
 
 /// nPr(n, r) or perm(n, r)
 fn n_pr_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
     let n_val = args[0].canonical;
     let r_val = args[1].canonical;
     if n_val < 0.0
@@ -69,7 +60,7 @@ fn n_pr_fn(args: &[Value]) -> Result<Value, AbacusError> {
     }
     let n = n_val.round() as u64;
     let r = r_val.round() as u64;
-    Ok(make_dimensionless(n_pr(n, r)))
+    Ok(Value::dimensionless(n_pr(n, r)))
 }
 
 pub fn register_combinatorics() -> Vec<FunctionOp> {

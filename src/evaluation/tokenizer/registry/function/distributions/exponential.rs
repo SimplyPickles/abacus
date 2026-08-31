@@ -1,18 +1,14 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::make_dimensionless,
+        check_dimensionless,
         operators::{FunctionOp, FunctionTarget},
     },
 };
 
 /// exppdf(lambda, x)
 fn exppdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
 
     let lambda = args[0].canonical;
     let x = args[1].canonical;
@@ -22,16 +18,12 @@ fn exppdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
     }
 
     let pdf = lambda * (-lambda * x).exp();
-    Ok(make_dimensionless(pdf))
+    Ok(Value::dimensionless(pdf))
 }
 
 /// expcdf(lambda, x)
 fn expcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
 
     let lambda = args[0].canonical;
     let x = args[1].canonical;
@@ -41,16 +33,12 @@ fn expcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
     }
 
     let cdf = 1.0 - (-lambda * x).exp();
-    Ok(make_dimensionless(cdf))
+    Ok(Value::dimensionless(cdf))
 }
 
 /// invexp(p, lambda)
 fn invexp_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
 
     let p = args[0].canonical;
     let lambda = args[1].canonical;
@@ -60,7 +48,7 @@ fn invexp_fn(args: &[Value]) -> Result<Value, AbacusError> {
     }
 
     let x = -(1.0 - p).ln() / lambda;
-    Ok(make_dimensionless(x))
+    Ok(Value::dimensionless(x))
 }
 
 pub fn register_exponential() -> Vec<FunctionOp> {

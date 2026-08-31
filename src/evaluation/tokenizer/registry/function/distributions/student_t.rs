@@ -1,7 +1,8 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::{beta_inc, erfinv, lgamma, make_dimensionless},
+        check_dimensionless,
+        distributions::special::{beta_inc, erfinv, lgamma},
         operators::{FunctionOp, FunctionTarget},
     },
 };
@@ -25,11 +26,7 @@ pub fn compute_tcdf(df: f64, t: f64) -> f64 {
 
 /// tpdf(df, t)
 fn tpdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
 
     let df = args[0].canonical;
     let t = args[1].canonical;
@@ -38,16 +35,12 @@ fn tpdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
 
-    Ok(make_dimensionless(compute_tpdf(df, t)))
+    Ok(Value::dimensionless(compute_tpdf(df, t)))
 }
 
 /// tcdf(df, t)
 fn tcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
 
     let df = args[0].canonical;
     let t = args[1].canonical;
@@ -56,7 +49,7 @@ fn tcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
 
-    Ok(make_dimensionless(compute_tcdf(df, t)))
+    Ok(Value::dimensionless(compute_tcdf(df, t)))
 }
 
 pub fn compute_invt(p: f64, df: f64) -> f64 {
@@ -84,11 +77,7 @@ pub fn compute_invt(p: f64, df: f64) -> f64 {
 
 /// invt(p, df)
 fn invt_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
 
     let p = args[0].canonical;
     let df = args[1].canonical;
@@ -102,7 +91,7 @@ fn invt_fn(args: &[Value]) -> Result<Value, AbacusError> {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
 
-    Ok(make_dimensionless(res))
+    Ok(Value::dimensionless(res))
 }
 
 pub fn register_student_t() -> Vec<FunctionOp> {

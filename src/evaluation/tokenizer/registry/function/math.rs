@@ -1,7 +1,7 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::make_dimensionless,
+        check_dimensionless,
         operators::{FunctionOp, FunctionTarget},
     },
 };
@@ -9,70 +9,58 @@ use std::sync::Arc;
 
 /// ln(x) — Natural logarithm
 fn ln_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    if !args[0].unit.is_dimensionless() {
-        return Err(AbacusError::IncompatibleDimensions);
-    }
+    check_dimensionless(args)?;
     let x = args[0].canonical;
     if x <= 0.0 {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
-    Ok(make_dimensionless(x.ln()))
+    Ok(Value::dimensionless(x.ln()))
 }
 
 /// log10(x) — Base-10 logarithm
 fn log10_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    if !args[0].unit.is_dimensionless() {
-        return Err(AbacusError::IncompatibleDimensions);
-    }
+    check_dimensionless(args)?;
     let x = args[0].canonical;
     if x <= 0.0 {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
-    Ok(make_dimensionless(x.log10()))
+    Ok(Value::dimensionless(x.log10()))
 }
 
 /// log2(x) — Base-2 logarithm
 fn log2_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    if !args[0].unit.is_dimensionless() {
-        return Err(AbacusError::IncompatibleDimensions);
-    }
+    check_dimensionless(args)?;
     let x = args[0].canonical;
     if x <= 0.0 {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
-    Ok(make_dimensionless(x.log2()))
+    Ok(Value::dimensionless(x.log2()))
 }
 
 /// log(x) [base 10] or log(x, base)
 fn log_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
     let x = args[0].canonical;
     if x <= 0.0 {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
 
     if args.len() == 1 {
-        Ok(make_dimensionless(x.log10()))
+        Ok(Value::dimensionless(x.log10()))
     } else {
         let base = args[1].canonical;
         if base <= 0.0 || base == 1.0 {
             return Err(AbacusError::IncompatibleFunctionArguments);
         }
-        Ok(make_dimensionless(x.log(base)))
+        Ok(Value::dimensionless(x.log(base)))
     }
 }
 
 /// exp(x) — Exponential e^x
 fn exp_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    if !args[0].unit.is_dimensionless() {
-        return Err(AbacusError::IncompatibleDimensions);
-    }
+    check_dimensionless(args)?;
     let x = args[0].canonical;
-    Ok(make_dimensionless(x.exp()))
+    Ok(Value::dimensionless(x.exp()))
 }
 
 /// abs(x) — Absolute value (preserves unit)
@@ -112,7 +100,7 @@ fn round_fn(args: &[Value]) -> Result<Value, AbacusError> {
 /// sign(x) — Signum (1.0, 0.0, -1.0)
 fn sign_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let x = args[0].canonical;
-    Ok(make_dimensionless(x.signum()))
+    Ok(Value::dimensionless(x.signum()))
 }
 
 pub fn register_math() -> Vec<FunctionOp> {

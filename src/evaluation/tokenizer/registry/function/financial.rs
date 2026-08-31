@@ -1,7 +1,7 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::make_dimensionless,
+        check_dimensionless,
         operators::{FunctionOp, FunctionTarget},
     },
 };
@@ -9,9 +9,7 @@ use std::sync::Arc;
 
 /// pmt(rate, nper, pv) or pmt(rate, nper, pv, fv)
 fn pmt_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    if !args[0].unit.is_dimensionless() || !args[1].unit.is_dimensionless() {
-        return Err(AbacusError::IncompatibleDimensions);
-    }
+    check_dimensionless(&args[0..2])?;
     let rate = args[0].canonical;
     let nper = args[1].canonical;
     let pv_val = &args[2];
@@ -43,9 +41,7 @@ fn pmt_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
 /// fv(rate, nper, pmt, pv)
 fn fv_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    if !args[0].unit.is_dimensionless() || !args[1].unit.is_dimensionless() {
-        return Err(AbacusError::IncompatibleDimensions);
-    }
+    check_dimensionless(&args[0..2])?;
     let rate = args[0].canonical;
     let nper = args[1].canonical;
     let pmt_val = &args[2];
@@ -74,9 +70,7 @@ fn fv_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
 /// pv(rate, nper, pmt, fv)
 fn pv_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    if !args[0].unit.is_dimensionless() || !args[1].unit.is_dimensionless() {
-        return Err(AbacusError::IncompatibleDimensions);
-    }
+    check_dimensionless(&args[0..2])?;
     let rate = args[0].canonical;
     let nper = args[1].canonical;
     let pmt_val = &args[2];
@@ -105,9 +99,7 @@ fn pv_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
 /// npv(rate, cashflow1, cashflow2, ...)
 fn npv_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    if !args[0].unit.is_dimensionless() {
-        return Err(AbacusError::IncompatibleDimensions);
-    }
+    check_dimensionless(&args[0..1])?;
     let rate = args[0].canonical;
     let first_cashflow = &args[1];
 
@@ -169,15 +161,13 @@ fn irr_fn(args: &[Value]) -> Result<Value, AbacusError> {
         r = next_r;
     }
 
-    Ok(make_dimensionless(r))
+    Ok(Value::dimensionless(r))
 }
 
 /// compound(principal, rate, time) or compound(principal, rate, time, n)
 fn compound_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let principal = &args[0];
-    if !args[1].unit.is_dimensionless() || !args[2].unit.is_dimensionless() {
-        return Err(AbacusError::IncompatibleDimensions);
-    }
+    check_dimensionless(&args[1..=2])?;
 
     let rate = args[1].canonical;
     let time = args[2].canonical;

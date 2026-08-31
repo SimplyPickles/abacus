@@ -175,157 +175,10 @@ fn try_parse_relative_date_keyword(s: &str) -> Option<(crate::Date, usize)> {
     None
 }
 
-fn try_parse_time_spec(s: &str, has_at: bool) -> Option<(crate::Time, usize)> {
-    if s.is_empty() {
-        return None;
-    }
-
-    let mut char_indices = s.char_indices().peekable();
-    let &(start_idx, first_c) = char_indices.peek()?;
-    if !first_c.is_ascii_digit() {
-        return None;
-    }
-
-    let mut end_num1 = start_idx;
-    while let Some(&(idx, c)) = char_indices.peek() {
-        if c.is_ascii_digit() {
-            end_num1 = idx + 1;
-            char_indices.next();
-        } else {
-            break;
-        }
-    }
-
-    let hour_str = &s[start_idx..end_num1];
-    let mut hour = hour_str.parse::<u32>().ok()?;
-
-    let mut minute = 0u32;
-    let mut second = 0u32;
-    let mut millisecond = 0u32;
-    let mut current_end = end_num1;
-
-    let has_colon = char_indices.peek().is_some_and(|&(_, c)| c == ':');
-
-    if has_colon {
-        char_indices.next(); // consume ':'
-        let start_num2 = current_end + 1;
-        let mut end_num2 = start_num2;
-
-        while let Some(&(idx, c)) = char_indices.peek() {
-            if c.is_ascii_digit() {
-                end_num2 = idx + 1;
-                char_indices.next();
-            } else {
-                break;
-            }
-        }
-
-        if end_num2 == start_num2 {
-            return None;
-        }
-
-        minute = s[start_num2..end_num2].parse::<u32>().ok()?;
-        current_end = end_num2;
-
-        if char_indices.peek().is_some_and(|&(_, c)| c == ':') {
-            char_indices.next(); // consume ':'
-            let start_num3 = current_end + 1;
-            let mut end_num3 = start_num3;
-
-            while let Some(&(idx, c)) = char_indices.peek() {
-                if c.is_ascii_digit() {
-                    end_num3 = idx + 1;
-                    char_indices.next();
-                } else {
-                    break;
-                }
-            }
-
-            if end_num3 > start_num3 {
-                second = s[start_num3..end_num3].parse::<u32>().ok()?;
-                current_end = end_num3;
-
-                if char_indices.peek().is_some_and(|&(_, c)| c == '.') {
-                    let mut dot_lookahead = char_indices.clone();
-                    dot_lookahead.next();
-                    if dot_lookahead
-                        .peek()
-                        .is_some_and(|&(_, c)| c.is_ascii_digit())
-                    {
-                        char_indices.next(); // consume '.'
-                        let start_ms = current_end + 1;
-                        let mut end_ms = start_ms;
-                        while let Some(&(idx, c)) = char_indices.peek() {
-                            if c.is_ascii_digit() {
-                                end_ms = idx + 1;
-                                char_indices.next();
-                            } else {
-                                break;
-                            }
-                        }
-                        let ms_str = &s[start_ms..end_ms];
-                        millisecond = match ms_str.len() {
-                            1 => ms_str.parse::<u32>().unwrap_or(0) * 100,
-                            2 => ms_str.parse::<u32>().unwrap_or(0) * 10,
-                            3 => ms_str.parse::<u32>().unwrap_or(0),
-                            _ => ms_str[..3].parse::<u32>().unwrap_or(0),
-                        };
-                        current_end = end_ms;
-                    }
-                }
-            }
-        }
-    }
-
-    let after_time = &s[current_end..];
-    let trimmed = after_time.trim_start();
-    let ws_len = after_time.len() - trimmed.len();
-    let upper_trimmed = trimmed.to_ascii_uppercase();
-
-    let mut is_am_pm = false;
-    let mut is_pm = false;
-
-    if upper_trimmed.starts_with("AM") {
-        if trimmed.len() == 2 || !trimmed.as_bytes()[2].is_ascii_alphanumeric() {
-            is_am_pm = true;
-            is_pm = false;
-            current_end += ws_len + 2;
-        }
-    } else if upper_trimmed.starts_with("PM")
-        && (trimmed.len() == 2 || !trimmed.as_bytes()[2].is_ascii_alphanumeric())
-    {
-        is_am_pm = true;
-        is_pm = true;
-        current_end += ws_len + 2;
-    }
-
-    if is_am_pm {
-        if hour == 0 || hour > 12 {
-            return None;
-        }
-        if is_pm && hour < 12 {
-            hour += 12;
-        } else if !is_pm && hour == 12 {
-            hour = 0;
-        }
-    } else {
-        if !has_colon && !has_at {
-            return None;
-        }
-    }
-
-    let time = crate::Time::new(hour, minute, second, millisecond);
-    if time.is_valid() {
-        Some((time, current_end))
-    } else {
-        None
-    }
-}
-
 fn try_parse_date_literal(remaining: &str) -> Option<(crate::Date, usize)> {
-    if remaining.starts_with('@') {
-        if let Some(end_idx) = remaining[1..].find('@') {
-            let inner = &remaining[1..=end_idx];
+    if let Some(stripped) = remaining.strip_prefix('@') {
+        if let Some(end_idx) = stripped.find('@') {
+            let inner = &stripped[..end_idx];
             if let Ok(date) = inner.parse::<crate::Date>() {
                 return Some((date, end_idx + 2));
             }
@@ -350,7 +203,7 @@ fn try_parse_date_literal(remaining: &str) -> Option<(crate::Date, usize)> {
 
         let time_skipped = rest.len() - time_rest.len();
 
-        if let Some((time, time_len)) = try_parse_time_spec(time_rest, has_at) {
+        if let Some((time, time_len)) = crate::Time::parse_time_spec(time_rest, has_at) {
             date.time = time;
             end_idx += skipped_ws + time_skipped + time_len;
 
@@ -369,7 +222,7 @@ fn try_parse_date_literal(remaining: &str) -> Option<(crate::Date, usize)> {
     }
 
     // Standalone time literal: e.g. "3pm", "3 PM", "15:00"
-    if let Some((time, time_len)) = try_parse_time_spec(remaining, false) {
+    if let Some((time, time_len)) = crate::Time::parse_time_spec(remaining, false) {
         let mut date = crate::Date::today();
         date.time = time;
         let mut end_idx = time_len;
@@ -387,71 +240,32 @@ fn try_parse_date_literal(remaining: &str) -> Option<(crate::Date, usize)> {
     }
 
     // Check numeric date literals (e.g. YYYY-MM-DD, DD-MM-YYYY)
-    let chars: Vec<char> = remaining.chars().collect();
-    if chars.is_empty() || !chars[0].is_ascii_digit() {
-        return None;
-    }
-
-    let mut idx = 0;
-    while idx < chars.len()
-        && (chars[idx].is_ascii_digit() || chars[idx] == '-' || chars[idx] == '/')
-    {
-        idx += 1;
-    }
-
-    let date_part = &remaining[..idx];
-    let sep = if date_part.contains('-') {
-        '-'
-    } else if date_part.contains('/') {
-        '/'
-    } else {
-        return None;
-    };
-
-    let parts: Vec<&str> = date_part.split(sep).collect();
-    if parts.len() != 3 {
-        return None;
-    }
-
-    let (p1, p2, p3) = (parts[0], parts[1], parts[2]);
-    let p1_len = p1.len();
-    let p3_len = p3.len();
-
-    if !(p1_len == 4 || p3_len == 4) {
-        return None;
-    }
-    if p1.is_empty() || p2.is_empty() || p3.is_empty() {
-        return None;
-    }
-    if !p1.chars().all(|c| c.is_ascii_digit())
-        || !p2.chars().all(|c| c.is_ascii_digit())
-        || !p3.chars().all(|c| c.is_ascii_digit())
-    {
-        return None;
-    }
-
-    let mut end_idx = idx;
-    if end_idx < chars.len() && (chars[end_idx] == ' ' || chars[end_idx] == 'T') {
-        let rest = remaining[end_idx + 1..].trim_start();
-        let skipped = remaining[end_idx..].len() - rest.len();
-        if let Some((_time, time_len)) = try_parse_time_spec(rest, false) {
-            end_idx += skipped + time_len;
-            let after_tz = remaining[end_idx..].trim_start();
-            let after_tz_skipped = remaining[end_idx..].len() - after_tz.len();
-            if let Some(next_word) = after_tz.split_whitespace().next()
-                && crate::units::date::TimeZone::parse(next_word).is_ok()
-            {
-                end_idx += after_tz_skipped + next_word.len();
+    if let Some((_y, _m, _d, date_len)) = crate::Date::parse_ymd_components(remaining) {
+        let mut end_idx = date_len;
+        if end_idx < remaining.len()
+            && (remaining.as_bytes()[end_idx] == b' ' || remaining.as_bytes()[end_idx] == b'T')
+        {
+            let rest = remaining[end_idx + 1..].trim_start();
+            let skipped = remaining[end_idx..].len() - rest.len();
+            if let Some((_time, time_len)) = crate::Time::parse_time_spec(rest, false) {
+                end_idx += skipped + time_len;
+                let after_tz = remaining[end_idx..].trim_start();
+                let after_tz_skipped = remaining[end_idx..].len() - after_tz.len();
+                if let Some(next_word) = after_tz.split_whitespace().next()
+                    && crate::units::date::TimeZone::parse(next_word).is_ok()
+                {
+                    end_idx += after_tz_skipped + next_word.len();
+                }
             }
+        }
+
+        let candidate = &remaining[..end_idx];
+        if let Ok(date) = candidate.parse::<crate::Date>() {
+            return Some((date, end_idx));
         }
     }
 
-    let candidate = &remaining[..end_idx];
-    if let Ok(date) = candidate.parse::<crate::Date>() {
-        Some((date, end_idx))
-    } else {
-        None
-    }
+    None
 }
 
 pub fn tokenize_string<'a>(
@@ -965,19 +779,21 @@ pub fn tokenize_string<'a>(
     }
 
     // Combine adjacent Float + Unit into Val if separated by space (e.g. `5.0` + `km`)
-    let mut resolved: Vec<Token> = Vec::new();
-    let mut idx = 0;
-    while idx < tokens.len() {
-        if idx + 1 < tokens.len()
-            && let (Token::Float(num), Token::Unit(unit_sym)) = (&tokens[idx], &tokens[idx + 1])
-            && let Ok(unit) = unit_registry.unit(unit_sym)
-        {
-            resolved.push(Token::Val(Value::new(*num, unit)));
-            idx += 2;
-            continue;
+    let mut resolved: Vec<Token> = Vec::with_capacity(tokens.len());
+    let mut iter = tokens.into_iter().peekable();
+    while let Some(tok) = iter.next() {
+        if let Token::Float(num) = tok {
+            if let Some(Token::Unit(unit_sym)) = iter.peek()
+                && let Ok(unit) = unit_registry.unit(unit_sym)
+            {
+                iter.next();
+                resolved.push(Token::Val(Value::new(num, unit)));
+                continue;
+            }
+            resolved.push(Token::Float(num));
+        } else {
+            resolved.push(tok);
         }
-        resolved.push(tokens[idx].clone());
-        idx += 1;
     }
 
     // Insert implicit multiplication `BinaryOp("*")` between adjacent terms (e.g. `5(2+3)`, `2 sqrt(9)`)
@@ -1009,10 +825,16 @@ pub fn tokenize_string<'a>(
         _ => false,
     };
 
-    let mut final_tokens: Vec<Token> = Vec::new();
-    for i in 0..resolved.len() {
-        final_tokens.push(resolved[i].clone());
-        if i + 1 < resolved.len() && is_left(&resolved[i]) && is_right(&resolved[i + 1]) {
+    let mut final_tokens: Vec<Token> = Vec::with_capacity(resolved.len() * 2);
+    let mut iter = resolved.into_iter().peekable();
+    while let Some(tok) = iter.next() {
+        let insert_mul = if let Some(next_tok) = iter.peek() {
+            is_left(&tok) && is_right(next_tok)
+        } else {
+            false
+        };
+        final_tokens.push(tok);
+        if insert_mul {
             final_tokens.push(Token::BinaryOp("*"));
         }
     }

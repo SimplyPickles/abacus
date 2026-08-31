@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    registry::units::metric_units::METRIC_PREFIXES,
+    registry::units::metric_units::register_metric_prefixed_units,
     units::{
         dimensions::Dimensions,
         unit::{Unit, UnitExpr},
@@ -208,26 +208,15 @@ pub fn register_derived_units(map: &mut HashMap<String, Arc<Unit>>) {
         }
 
         if def.prefixable {
-            for pref in METRIC_PREFIXES {
-                let pref_unit = Arc::new(Unit {
-                    scalar: def.scalar * pref.scalar,
-                    offset: 0.0,
-                    dimensions: def.dimensions,
-                    display: UnitExpr::single(format!("{}{}", pref.alias, def.alias)),
-                });
-
-                map.insert(format!("{}{}", pref.name, def.name), Arc::clone(&pref_unit));
-                map.insert(
-                    format!("{}{}", pref.alias, def.alias),
-                    Arc::clone(&pref_unit),
-                );
-                if !def.name.ends_with('s') {
-                    map.insert(
-                        format!("{}{}s", pref.name, def.name),
-                        Arc::clone(&pref_unit),
-                    );
-                }
-            }
+            register_metric_prefixed_units(
+                map,
+                Some(def.name),
+                def.alias,
+                def.scalar,
+                def.dimensions,
+                !def.name.ends_with('s'),
+                &[],
+            );
         }
     }
 }

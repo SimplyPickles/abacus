@@ -127,24 +127,58 @@ fn mode_fn(args: &[Value]) -> Result<Value, AbacusError> {
 }
 
 /// Splits interleaved args into two equal halves: `(x_data, y_data, n)`.
-/// Returns an error if `args` has fewer than 4 elements or an odd count.
-fn parse_paired_data(args: &[Value]) -> Result<(&[Value], &[Value], usize), AbacusError> {
+/// Checks element count and verifies intra-slice unit consistency.
+pub fn parse_paired_data(args: &[Value]) -> Result<(&[Value], &[Value], usize), AbacusError> {
     if args.len() < 4 || !args.len().is_multiple_of(2) {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
     let n = args.len() / 2;
-    Ok((&args[..n], &args[n..], n))
+    let x_data = &args[..n];
+    let y_data = &args[n..];
+    check_compatible_units(x_data)?;
+    check_compatible_units(y_data)?;
+    Ok((x_data, y_data, n))
+}
+
+pub fn compute_mean(args: &[Value]) -> f64 {
+    args.iter().map(|v| v.canonical).sum::<f64>() / (args.len() as f64)
 }
 
 /// Computes the (co)variance of a single dataset with delta-degrees-of-freedom `ddof`.
 /// `ddof = 1` → sample variance, `ddof = 0` → population variance.
-fn compute_variance(args: &[Value], ddof: f64) -> f64 {
+pub fn compute_variance(args: &[Value], ddof: f64) -> f64 {
     let n = args.len() as f64;
-    let mean = args.iter().map(|v| v.canonical).sum::<f64>() / n;
+    let mean = compute_mean(args);
     args.iter()
         .map(|v| (v.canonical - mean).powi(2))
         .sum::<f64>()
         / (n - ddof)
+}
+
+/// Computes Pearson correlation coefficient between two datasets.
+pub fn compute_pearson_r(x_data: &[Value], y_data: &[Value]) -> Result<f64, AbacusError> {
+    let n = x_data.len();
+    let x_mean = compute_mean(x_data);
+    let y_mean = compute_mean(y_data);
+
+    let mut sxy = 0.0;
+    let mut sxx = 0.0;
+    let mut syy = 0.0;
+
+    for i in 0..n {
+        let dx = x_data[i].canonical - x_mean;
+        let dy = y_data[i].canonical - y_mean;
+        sxy += dx * dy;
+        sxx += dx * dx;
+        syy += dy * dy;
+    }
+
+    let denom = (sxx * syy).sqrt();
+    if denom == 0.0 {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+
+    Ok(sxy / denom)
 }
 
 /// Computes the cross-covariance sum and the xy-unit for a paired dataset.
@@ -313,37 +347,13 @@ fn iqr_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
 /// corr(x_range, y_range) or corr(x1..xN, y1..yN)
 fn corr_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    let (x_data, y_data, n) = parse_paired_data(args)?;
-    check_compatible_units(x_data)?;
-    check_compatible_units(y_data)?;
-
-    let x_mean = x_data.iter().map(|v| v.canonical).sum::<f64>() / (n as f64);
-    let y_mean = y_data.iter().map(|v| v.canonical).sum::<f64>() / (n as f64);
-
-    let mut cov_sum = 0.0;
-    let mut x_var_sum = 0.0;
-    let mut y_var_sum = 0.0;
-
-    for i in 0..n {
-        let dx = x_data[i].canonical - x_mean;
-        let dy = y_data[i].canonical - y_mean;
-        cov_sum += dx * dy;
-        x_var_sum += dx * dx;
-        y_var_sum += dy * dy;
-    }
-
-    let denom = (x_var_sum * y_var_sum).sqrt();
-    if denom == 0.0 {
-        return Err(AbacusError::IncompatibleFunctionArguments);
-    }
-
-    Ok(Value::dimensionless(cov_sum / denom))
+    let (x_data, y_data, _) = parse_paired_data(args)?;
+    let r = compute_pearson_r(x_data, y_data)?;
+    Ok(Value::dimensionless(r))
 }
 
 fn cov_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let (x_data, y_data, n) = parse_paired_data(args)?;
-    check_compatible_units(x_data)?;
-    check_compatible_units(y_data)?;
     let (cov, unit) = compute_covariance(x_data, y_data, n, 1.0);
     Ok(Value {
         canonical: cov,

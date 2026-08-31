@@ -1,7 +1,10 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    registry::helpers::storage_prefixes::{BINARY_STORAGE_PREFIXES, DECIMAL_STORAGE_PREFIXES},
+    registry::{
+        helpers::storage_prefixes::BINARY_STORAGE_PREFIXES,
+        units::metric_units::METRIC_PREFIXES,
+    },
     units::{
         dimensions::Dimensions,
         unit::{Unit, UnitExpr},
@@ -23,10 +26,12 @@ fn insert_unit(map: &mut HashMap<String, Arc<Unit>>, name: String, alias: String
 }
 
 pub fn register_storage_units(map: &mut HashMap<String, Arc<Unit>>) {
+    let decimal_storage_prefixes = &METRIC_PREFIXES[0..10];
+
     for &(name, alias, base_scalar) in STORAGE_BASE_UNITS {
         insert_unit(map, name.to_string(), alias.to_string(), base_scalar);
 
-        for prefix in DECIMAL_STORAGE_PREFIXES
+        for prefix in decimal_storage_prefixes
             .iter()
             .chain(BINARY_STORAGE_PREFIXES)
         {

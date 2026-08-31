@@ -1,18 +1,15 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::{make_dimensionless, n_cr},
+        check_dimensionless,
+        distributions::special::n_cr,
         operators::{FunctionOp, FunctionTarget},
     },
 };
 
 /// binompdf(n, p, k)
 fn binompdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
 
     let n_val = args[0].canonical;
     let p_val = args[1].canonical;
@@ -26,16 +23,12 @@ fn binompdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let k = k_val.round() as u64;
 
     let pdf = n_cr(n, k) * p_val.powi(k as i32) * (1.0 - p_val).powi((n - k) as i32);
-    Ok(make_dimensionless(pdf))
+    Ok(Value::dimensionless(pdf))
 }
 
 /// binomcdf(n, p, k)
 fn binomcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
 
     let n_val = args[0].canonical;
     let p_val = args[1].canonical;
@@ -53,7 +46,7 @@ fn binomcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
         cdf += n_cr(n, i) * p_val.powi(i as i32) * (1.0 - p_val).powi((n - i) as i32);
     }
 
-    Ok(make_dimensionless(cdf))
+    Ok(Value::dimensionless(cdf))
 }
 
 pub fn register_binomial() -> Vec<FunctionOp> {

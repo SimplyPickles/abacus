@@ -1,9 +1,11 @@
 use crate::{
     AbacusError, Value,
     evaluation::tokenizer::registry::function::{
-        distributions::special::{erfinv, make_dimensionless},
+        check_dimensionless,
+        distributions::special::erfinv,
         distributions::student_t::compute_invt,
         operators::{FunctionOp, FunctionTarget},
+        stats::{compute_mean, compute_variance},
     },
     units::eval_result::EvalResult,
     units::interval::Interval,
@@ -113,13 +115,8 @@ fn t_interval_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
     let n = data.len() as f64;
     let unit = Arc::clone(&data[0].unit);
 
-    let mean: f64 = data.iter().map(|v| v.canonical).sum::<f64>() / n;
-    let variance: f64 = data
-        .iter()
-        .map(|v| (v.canonical - mean).powi(2))
-        .sum::<f64>()
-        / (n - 1.0);
-    let std_dev = variance.sqrt();
+    let mean = compute_mean(&data);
+    let std_dev = compute_variance(&data, 1.0).sqrt();
     let se = std_dev / n.sqrt();
 
     let t_star = t_critical(conf, n - 1.0)?;
@@ -180,11 +177,7 @@ fn one_prop_z_int_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
 
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
 
     let x = args[0].canonical;
     let n = args[1].canonical;
@@ -206,8 +199,8 @@ fn one_prop_z_int_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
     let center = (p + z2 / (2.0 * n)) / denom;
     let moe = (z / denom) * ((p * (1.0 - p) / n) + (z2 / (4.0 * n * n))).sqrt();
 
-    let lo = make_dimensionless((center - moe).max(0.0));
-    let hi = make_dimensionless((center + moe).min(1.0));
+    let lo = Value::dimensionless((center - moe).max(0.0));
+    let hi = Value::dimensionless((center + moe).min(1.0));
 
     Ok(EvalResult::Interval(Interval::new(lo, hi)?))
 }
@@ -343,11 +336,7 @@ fn two_prop_z_int_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
 
-    for arg in args {
-        if !arg.unit.is_dimensionless() {
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-    }
+    check_dimensionless(args)?;
 
     let x1 = args[0].canonical;
     let n1 = args[1].canonical;
@@ -371,8 +360,8 @@ fn two_prop_z_int_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
     let z_star = z_critical(conf)?;
     let moe = z_star * se;
 
-    let lo = make_dimensionless(diff - moe);
-    let hi = make_dimensionless(diff + moe);
+    let lo = Value::dimensionless(diff - moe);
+    let hi = Value::dimensionless(diff + moe);
 
     Ok(EvalResult::Interval(Interval::new(lo, hi)?))
 }
@@ -383,13 +372,7 @@ fn moe_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let n = data.len() as f64;
     let unit = Arc::clone(&data[0].unit);
 
-    let mean: f64 = data.iter().map(|v| v.canonical).sum::<f64>() / n;
-    let variance: f64 = data
-        .iter()
-        .map(|v| (v.canonical - mean).powi(2))
-        .sum::<f64>()
-        / (n - 1.0);
-    let std_dev = variance.sqrt();
+    let std_dev = compute_variance(&data, 1.0).sqrt();
     let se = std_dev / n.sqrt();
 
     let t_star = t_critical(conf, n - 1.0)?;
