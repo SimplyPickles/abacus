@@ -10,6 +10,7 @@ use crate::units::value::Value;
 
 /// Enum representing days of the week.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum DayOfWeek {
     Monday = 1,
     Tuesday = 2,
@@ -55,6 +56,7 @@ impl fmt::Display for DayOfWeek {
 
 /// Structure representing a TimeZone with offset in minutes relative to UTC.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TimeZone {
     pub name: String,
     pub offset_minutes: i32,
@@ -165,6 +167,7 @@ impl fmt::Display for TimeZone {
 
 /// Structure representing a time of day with millisecond resolution.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Time {
     pub hour: u32,
     pub minute: u32,
@@ -504,6 +507,7 @@ pub fn epoch_days_to_date(epoch_days: i64) -> (i32, u32, u32) {
 
 /// Structure representing a calendar Date with Time and optional TimeZone.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Date {
     pub year: i32,
     pub month: u32,
@@ -975,6 +979,7 @@ impl Date {
 
 /// Date format style enum for displaying dates.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum DateFormat {
     /// DD-MM-YYYY format (e.g. 07-08-2026) - Default!
     #[default]

@@ -13,6 +13,7 @@ use crate::evaluation::tokenizer::registry::unary::operators::UnaryOp;
 /// engineering and safety-critical computations.
 ///
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum IntervalStyle {
     #[default]
     Bracket,
@@ -25,6 +26,7 @@ pub enum IntervalStyle {
 ///
 /// Ex. `[-25, 25] + 10 = [-15, 35]` or `1..10 + 5 = 6..15`
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Interval {
     pub lo: Value,
     pub hi: Value,

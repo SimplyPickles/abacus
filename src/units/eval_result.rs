@@ -6,6 +6,7 @@ use crate::{AbacusError, BinaryOp, Interval, UnaryOp, Unit, UnitRegistry, Value}
 
 /// The result of evaluating an expression — a scalar `Value`, an `Interval`, a `Hash` map, or a `Date`.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum EvalResult {
     Scalar(Value),
     Interval(Interval),

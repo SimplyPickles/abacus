@@ -1,6 +1,7 @@
 use crate::units::dimensions::Dimensions;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Unit {
     pub dimensions: Dimensions,
     pub scalar: f64,
@@ -9,6 +10,7 @@ pub struct Unit {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct UnitExpr {
     pub numerator: Vec<String>,
     pub denominator: Vec<String>,

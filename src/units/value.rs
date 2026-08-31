@@ -8,6 +8,7 @@ use std::{
 };
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Value {
     pub canonical: f64,
     pub unit: Arc<Unit>,

@@ -34,20 +34,30 @@ impl TokenRegistry {
         let mut unary: Vec<UnaryOp> = Vec::new();
         unary.append(&mut register_general());
 
-        let functions = [
+        let mut functions = [
             register_trig(),
             register_math(),
             register_combinatorics(),
             register_math_helpers(),
-            register_financial(),
-            register_stats(),
-            register_distributions(),
-            register_ci(),
-            register_regression(),
-            register_hypothesis(),
-            register_date_functions(),
         ]
         .concat();
+
+        #[cfg(feature = "financial")]
+        functions.extend(register_financial());
+
+        #[cfg(feature = "stats")]
+        {
+            functions.extend(register_stats());
+            functions.extend(register_ci());
+            functions.extend(register_regression());
+            functions.extend(register_hypothesis());
+        }
+
+        #[cfg(feature = "distributions")]
+        functions.extend(register_distributions());
+
+        #[cfg(feature = "date")]
+        functions.extend(register_date_functions());
 
         Self {
             binary_operators: binary

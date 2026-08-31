@@ -31,7 +31,11 @@ impl UnitRegistry {
     }
 
     pub fn standard() -> Self {
+        #[cfg(feature = "units")]
         let units = register_metric_units();
+        #[cfg(not(feature = "units"))]
+        let units = HashMap::new();
+
         let priority_derived_units = PRIORITY_DERIVED_SYMBOLS
             .iter()
             .filter_map(|&s| units.get(s).cloned())

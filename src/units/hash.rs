@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 /// A map of named key-value pairs representing structured calculation outputs (e.g. regression model results, inference test results).
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Hash {
     pub values: HashMap<String, Value>,
 }

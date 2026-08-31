@@ -3,6 +3,7 @@ use std::ops::{Add, Mul, Sub};
 pub const DIMENSION_COUNT: usize = 8;
 
 #[derive(Debug, Clone, Copy, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Dimensions(pub [f64; DIMENSION_COUNT]);
 
 // PartialEq implementation for `Dimensions` using an epsilon threshold for float comparison.

@@ -2,6 +2,7 @@ use std::fmt;
 
 // Error enum for evaluation/tokenization errors
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum AbacusError {
     UnknownUnit(String),
     IncompatibleDimensions,

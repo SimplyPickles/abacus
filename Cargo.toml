@@ -23,9 +23,16 @@ lto = false
 
 [dependencies]
 rustyline = { version = "15.0", optional = true }
+serde = { version = "1.0", default-features = false, features = ["derive", "std", "rc"], optional = true }
 
 [features]
-default = ["repl"]
+default = ["units", "stats", "distributions", "date", "financial", "repl"]
+units = []
+stats = []
+distributions = []
+date = []
+financial = []
+serde = ["dep:serde"]
 repl = ["dep:rustyline"]
 
 [[bin]]
