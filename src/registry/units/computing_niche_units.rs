@@ -58,7 +58,7 @@ const COMPUTING_NICHE_UNITS: &[UnitDefinition] = &[
     UnitDefinition {
         keys: &["hartley", "hartleys", "ban"],
         display: "Hart",
-        scalar: 3.321_928_094_887_362,
+        scalar: std::f64::consts::LOG2_10,
         offset: 0.0,
         dimensions: Dimensions::INFORMATION,
     },
@@ -66,7 +66,7 @@ const COMPUTING_NICHE_UNITS: &[UnitDefinition] = &[
     UnitDefinition {
         keys: &["nat", "nats"],
         display: "nat",
-        scalar: 1.442_695_040_888_963_4,
+        scalar: std::f64::consts::LOG2_E,
         offset: 0.0,
         dimensions: Dimensions::INFORMATION,
     },
