@@ -55,13 +55,7 @@ impl Sub for Dimensions {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        let mut result = [0.0; DIMENSION_COUNT];
-
-        for (index, output) in result.iter_mut().enumerate() {
-            *output = self.0[index] - rhs.0[index];
-        }
-
-        Self(result)
+        Self(std::array::from_fn(|i| self.0[i] - rhs.0[i]))
     }
 }
 
@@ -69,12 +63,6 @@ impl Mul<f64> for Dimensions {
     type Output = Self;
 
     fn mul(self, rhs: f64) -> Self::Output {
-        let mut result = [0.0; DIMENSION_COUNT];
-
-        for (index, output) in result.iter_mut().enumerate() {
-            *output = self.0[index] * rhs;
-        }
-
-        Self(result)
+        Self(std::array::from_fn(|i| self.0[i] * rhs))
     }
 }

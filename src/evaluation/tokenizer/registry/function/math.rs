@@ -112,14 +112,7 @@ fn round_fn(args: &[Value]) -> Result<Value, AbacusError> {
 /// sign(x) — Signum (1.0, 0.0, -1.0)
 fn sign_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let x = args[0].canonical;
-    let s = if x > 0.0 {
-        1.0
-    } else if x < 0.0 {
-        -1.0
-    } else {
-        0.0
-    };
-    Ok(make_dimensionless(s))
+    Ok(make_dimensionless(x.signum()))
 }
 
 pub fn register_math() -> Vec<FunctionOp> {
