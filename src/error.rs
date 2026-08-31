@@ -12,7 +12,6 @@ pub enum AbacusError {
     UnclosedParen,
     UnclosedBracket,
     IntervalInFunction,
-    HashAsResult,
     InvalidDate(String),
     InvalidNumber(String),
     IncompatibleOperatorType(String),
@@ -37,9 +36,6 @@ impl fmt::Display for AbacusError {
             Self::UnclosedBracket => write!(f, "unclosed bracket in interval"),
             Self::IntervalInFunction => {
                 write!(f, "interval values cannot be passed as function arguments")
-            }
-            Self::HashAsResult => {
-                write!(f, "hash cannot be used as a result")
             }
             Self::InvalidDate(msg) => write!(f, "invalid date: {msg}"),
             Self::InvalidNumber(num) => write!(f, "invalid number format: {num}"),

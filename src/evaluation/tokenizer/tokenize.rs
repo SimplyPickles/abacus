@@ -8,13 +8,14 @@ use crate::{
 
 const CONVERSION_KEYWORDS: [&str; 3] = ["as", "to", "in"];
 
-/// If `haystack` (already lowercased) starts with the literal word `word` and is followed
+/// If `haystack` starts with the literal word `word` (case-insensitively) and is followed
 /// by a non-alphanumeric character (or end-of-string), returns the word length; otherwise
 /// returns `None`.
 #[inline]
 fn strip_word_prefix(haystack: &str, word: &str) -> Option<usize> {
     let len = word.len();
-    if haystack.starts_with(word)
+    if haystack.len() >= len
+        && haystack.as_bytes()[..len].eq_ignore_ascii_case(word.as_bytes())
         && (haystack.len() == len || !haystack.as_bytes()[len].is_ascii_alphanumeric())
     {
         Some(len)
@@ -24,7 +25,6 @@ fn strip_word_prefix(haystack: &str, word: &str) -> Option<usize> {
 }
 
 fn parse_weekday(s: &str) -> Option<(crate::units::date::DayOfWeek, usize)> {
-    let lower = s.to_ascii_lowercase();
     let matches = [
         ("wednesday", crate::units::date::DayOfWeek::Wednesday),
         ("thursday", crate::units::date::DayOfWeek::Thursday),
@@ -45,7 +45,7 @@ fn parse_weekday(s: &str) -> Option<(crate::units::date::DayOfWeek, usize)> {
     ];
 
     for (name, dow) in matches {
-        if let Some(len) = strip_word_prefix(&lower, name) {
+        if let Some(len) = strip_word_prefix(s, name) {
             return Some((dow, len));
         }
     }
@@ -59,7 +59,6 @@ enum RelUnit {
 }
 
 fn parse_rel_unit(s: &str) -> Option<(RelUnit, usize)> {
-    let lower = s.to_ascii_lowercase();
     let matches = [
         ("months", RelUnit::Month),
         ("month", RelUnit::Month),
@@ -70,7 +69,7 @@ fn parse_rel_unit(s: &str) -> Option<(RelUnit, usize)> {
     ];
 
     for (name, u) in matches {
-        if let Some(len) = strip_word_prefix(&lower, name) {
+        if let Some(len) = strip_word_prefix(s, name) {
             return Some((u, len));
         }
     }
@@ -85,7 +84,6 @@ enum RelModifier {
 }
 
 fn parse_rel_modifier(s: &str) -> Option<(RelModifier, usize)> {
-    let lower = s.to_ascii_lowercase();
     let matches = [
         ("previous", RelModifier::Last),
         ("last", RelModifier::Last),
@@ -95,7 +93,7 @@ fn parse_rel_modifier(s: &str) -> Option<(RelModifier, usize)> {
     ];
 
     for (name, m) in matches {
-        if let Some(len) = strip_word_prefix(&lower, name) {
+        if let Some(len) = strip_word_prefix(s, name) {
             return Some((m, len));
         }
     }
@@ -142,23 +140,22 @@ fn try_parse_relative_date_keyword(s: &str) -> Option<(crate::Date, usize)> {
     }
 
     // 2. Standalone relative keywords
-    let lower = s.to_ascii_lowercase();
-    if let Some(len) = strip_word_prefix(&lower, "today") {
+    if let Some(len) = strip_word_prefix(s, "today") {
         return Some((crate::Date::today(), len));
     }
-    if let Some(len) = strip_word_prefix(&lower, "tdy") {
+    if let Some(len) = strip_word_prefix(s, "tdy") {
         return Some((crate::Date::today(), len));
     }
-    if let Some(len) = strip_word_prefix(&lower, "tomorrow") {
+    if let Some(len) = strip_word_prefix(s, "tomorrow") {
         return Some((crate::Date::tomorrow(), len));
     }
-    if let Some(len) = strip_word_prefix(&lower, "tmr") {
+    if let Some(len) = strip_word_prefix(s, "tmr") {
         return Some((crate::Date::tomorrow(), len));
     }
-    if let Some(len) = strip_word_prefix(&lower, "yesterday") {
+    if let Some(len) = strip_word_prefix(s, "yesterday") {
         return Some((crate::Date::yesterday(), len));
     }
-    if let Some(len) = strip_word_prefix(&lower, "now") {
+    if let Some(len) = strip_word_prefix(s, "now") {
         return Some((crate::Date::now(), len));
     }
 
@@ -194,10 +191,11 @@ fn try_parse_date_literal(remaining: &str) -> Option<(crate::Date, usize)> {
         let rest = remaining[end_idx..].trim_start();
         let skipped_ws = remaining[end_idx..].len() - rest.len();
 
-        let rest_lower = rest.to_ascii_lowercase();
-        let (has_at, time_rest) = if rest_lower.starts_with("at ")
-            || rest_lower.starts_with("at\t")
-            || rest_lower.starts_with("at\n")
+        let (has_at, time_rest) = if rest.len() >= 3
+            && rest.as_bytes()[..2].eq_ignore_ascii_case(b"at")
+            && (rest.as_bytes()[2] == b' '
+                || rest.as_bytes()[2] == b'\t'
+                || rest.as_bytes()[2] == b'\n')
         {
             (true, rest[2..].trim_start())
         } else {
@@ -287,7 +285,60 @@ pub fn tokenize_string<'a>(
         }
 
         // Date literals (e.g. today, tomorrow, yesterday, now, @2026-08-07@, 07-08-2026, 12:00, 1:00 PM)
-        if (c == '@' || c.is_ascii_digit() || c.is_ascii_alphabetic())
+        let is_date_candidate = c == '@'
+            || (c.is_ascii_digit() && {
+                let rem_bytes = &input_text.as_bytes()[i..];
+                let mut has_sep = false;
+                let mut idx = 0;
+                while idx < rem_bytes.len() && idx < 20 {
+                    let b = rem_bytes[idx];
+                    if b == b'-'
+                        || b == b'/'
+                        || b == b':'
+                        || b == b'p'
+                        || b == b'P'
+                        || b == b'a'
+                        || b == b'A'
+                    {
+                        has_sep = true;
+                        break;
+                    }
+                    if b == b' '
+                        || b == b'\t'
+                        || b == b','
+                        || b == b')'
+                        || b == b']'
+                        || b == b'+'
+                        || b == b'*'
+                    {
+                        break;
+                    }
+                    idx += 1;
+                }
+                has_sep
+            })
+            || matches!(
+                c,
+                't' | 'T'
+                    | 'y'
+                    | 'Y'
+                    | 'n'
+                    | 'N'
+                    | 'l'
+                    | 'L'
+                    | 'p'
+                    | 'P'
+                    | 'm'
+                    | 'M'
+                    | 'w'
+                    | 'W'
+                    | 'f'
+                    | 'F'
+                    | 's'
+                    | 'S'
+            );
+
+        if is_date_candidate
             && let Some((date, consumed_bytes)) = try_parse_date_literal(&input_text[i..])
         {
             tokens.push(Token::Date(date));
@@ -373,28 +424,42 @@ pub fn tokenize_string<'a>(
         }
 
         // Multi-word unit symbols (e.g. "business days", "business day", "work days", "work day", "working days", "working day")
-        if c.is_ascii_alphabetic() {
+        if c == 'b' || c == 'B' || c == 'w' || c == 'W' {
+            const MULTI_WORD_UNITS: &[&str] = &[
+                "business days",
+                "business day",
+                "working days",
+                "working day",
+                "work days",
+                "work day",
+            ];
             let remaining = &input_text[i..];
-            let words: Vec<&str> = remaining
-                .split(|c: char| !c.is_alphanumeric() && c != '_')
-                .filter(|w| !w.is_empty())
-                .collect();
-            if words.len() >= 2 {
-                let two_words = format!("{} {}", words[0], words[1]);
-                if unit_registry.unit(&two_words).is_ok() {
-                    let end_pos = remaining.find(words[1]).unwrap_or(0) + words[1].len();
-                    let unit_str = &input_text[i..i + end_pos];
-                    tokens.push(Token::Unit(unit_str));
-                    let target_idx = i + end_pos;
-                    while let Some(&(idx, _)) = chars.peek() {
-                        if idx < target_idx {
-                            chars.next();
-                        } else {
-                            break;
-                        }
+            let mut matched_len = 0;
+            for &unit_name in MULTI_WORD_UNITS {
+                if remaining.len() >= unit_name.len()
+                    && remaining.as_bytes()[..unit_name.len()]
+                        .eq_ignore_ascii_case(unit_name.as_bytes())
+                {
+                    // Check word boundary
+                    let next_char = remaining[unit_name.len()..].chars().next();
+                    if next_char.is_none_or(|nc| !nc.is_alphanumeric() && nc != '_') {
+                        matched_len = unit_name.len();
+                        break;
                     }
-                    continue;
                 }
+            }
+            if matched_len > 0 {
+                let unit_str = &input_text[i..i + matched_len];
+                tokens.push(Token::Unit(unit_str));
+                let target_idx = i + matched_len;
+                while let Some(&(idx, _)) = chars.peek() {
+                    if idx < target_idx {
+                        chars.next();
+                    } else {
+                        break;
+                    }
+                }
+                continue;
             }
         }
 
