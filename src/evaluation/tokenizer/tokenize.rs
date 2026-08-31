@@ -204,7 +204,7 @@ fn try_parse_time_spec(s: &str, has_at: bool) -> Option<(crate::Time, usize)> {
     let mut millisecond = 0u32;
     let mut current_end = end_num1;
 
-    let has_colon = char_indices.peek().map_or(false, |&(_, c)| c == ':');
+    let has_colon = char_indices.peek().is_some_and(|&(_, c)| c == ':');
 
     if has_colon {
         char_indices.next(); // consume ':'
@@ -227,7 +227,7 @@ fn try_parse_time_spec(s: &str, has_at: bool) -> Option<(crate::Time, usize)> {
         minute = s[start_num2..end_num2].parse::<u32>().ok()?;
         current_end = end_num2;
 
-        if char_indices.peek().map_or(false, |&(_, c)| c == ':') {
+        if char_indices.peek().is_some_and(|&(_, c)| c == ':') {
             char_indices.next(); // consume ':'
             let start_num3 = current_end + 1;
             let mut end_num3 = start_num3;
@@ -245,12 +245,12 @@ fn try_parse_time_spec(s: &str, has_at: bool) -> Option<(crate::Time, usize)> {
                 second = s[start_num3..end_num3].parse::<u32>().ok()?;
                 current_end = end_num3;
 
-                if char_indices.peek().map_or(false, |&(_, c)| c == '.') {
+                if char_indices.peek().is_some_and(|&(_, c)| c == '.') {
                     let mut dot_lookahead = char_indices.clone();
                     dot_lookahead.next();
                     if dot_lookahead
                         .peek()
-                        .map_or(false, |&(_, c)| c.is_ascii_digit())
+                        .is_some_and(|&(_, c)| c.is_ascii_digit())
                     {
                         char_indices.next(); // consume '.'
                         let start_ms = current_end + 1;
@@ -291,12 +291,12 @@ fn try_parse_time_spec(s: &str, has_at: bool) -> Option<(crate::Time, usize)> {
             is_pm = false;
             current_end += ws_len + 2;
         }
-    } else if upper_trimmed.starts_with("PM") {
-        if trimmed.len() == 2 || !trimmed.as_bytes()[2].is_ascii_alphanumeric() {
-            is_am_pm = true;
-            is_pm = true;
-            current_end += ws_len + 2;
-        }
+    } else if upper_trimmed.starts_with("PM")
+        && (trimmed.len() == 2 || !trimmed.as_bytes()[2].is_ascii_alphanumeric())
+    {
+        is_am_pm = true;
+        is_pm = true;
+        current_end += ws_len + 2;
     }
 
     if is_am_pm {
@@ -357,12 +357,12 @@ fn try_parse_date_literal(remaining: &str) -> Option<(crate::Date, usize)> {
             // Check optional timezone
             let after_tz = remaining[end_idx..].trim_start();
             let after_tz_skipped = remaining[end_idx..].len() - after_tz.len();
-            if let Some(next_word) = after_tz.split_whitespace().next() {
-                if crate::units::date::TimeZone::parse(next_word).is_ok() {
-                    let tz = crate::units::date::TimeZone::parse(next_word).unwrap();
-                    date.timezone = Some(tz);
-                    end_idx += after_tz_skipped + next_word.len();
-                }
+            if let Some(next_word) = after_tz.split_whitespace().next()
+                && crate::units::date::TimeZone::parse(next_word).is_ok()
+            {
+                let tz = crate::units::date::TimeZone::parse(next_word).unwrap();
+                date.timezone = Some(tz);
+                end_idx += after_tz_skipped + next_word.len();
             }
         }
         return Some((date, end_idx));
@@ -376,12 +376,12 @@ fn try_parse_date_literal(remaining: &str) -> Option<(crate::Date, usize)> {
 
         let after_tz = remaining[end_idx..].trim_start();
         let after_tz_skipped = remaining[end_idx..].len() - after_tz.len();
-        if let Some(next_word) = after_tz.split_whitespace().next() {
-            if crate::units::date::TimeZone::parse(next_word).is_ok() {
-                let tz = crate::units::date::TimeZone::parse(next_word).unwrap();
-                date.timezone = Some(tz);
-                end_idx += after_tz_skipped + next_word.len();
-            }
+        if let Some(next_word) = after_tz.split_whitespace().next()
+            && crate::units::date::TimeZone::parse(next_word).is_ok()
+        {
+            let tz = crate::units::date::TimeZone::parse(next_word).unwrap();
+            date.timezone = Some(tz);
+            end_idx += after_tz_skipped + next_word.len();
         }
         return Some((date, end_idx));
     }
@@ -438,10 +438,10 @@ fn try_parse_date_literal(remaining: &str) -> Option<(crate::Date, usize)> {
             end_idx += skipped + time_len;
             let after_tz = remaining[end_idx..].trim_start();
             let after_tz_skipped = remaining[end_idx..].len() - after_tz.len();
-            if let Some(next_word) = after_tz.split_whitespace().next() {
-                if crate::units::date::TimeZone::parse(next_word).is_ok() {
-                    end_idx += after_tz_skipped + next_word.len();
-                }
+            if let Some(next_word) = after_tz.split_whitespace().next()
+                && crate::units::date::TimeZone::parse(next_word).is_ok()
+            {
+                end_idx += after_tz_skipped + next_word.len();
             }
         }
     }
@@ -469,10 +469,30 @@ pub fn tokenize_string<'a>(
         }
 
         // Date literals (e.g. today, tomorrow, yesterday, now, @2026-08-07@, 07-08-2026, 12:00, 1:00 PM)
-        if c == '@' || c.is_ascii_digit() || c.is_ascii_alphabetic() {
-            if let Some((date, consumed_bytes)) = try_parse_date_literal(&input_text[i..]) {
-                tokens.push(Token::Date(date));
-                let target_idx = i + consumed_bytes;
+        if (c == '@' || c.is_ascii_digit() || c.is_ascii_alphabetic())
+            && let Some((date, consumed_bytes)) = try_parse_date_literal(&input_text[i..])
+        {
+            tokens.push(Token::Date(date));
+            let target_idx = i + consumed_bytes;
+            while let Some(&(idx, _)) = chars.peek() {
+                if idx < target_idx {
+                    chars.next();
+                } else {
+                    break;
+                }
+            }
+            continue;
+        }
+
+        // Timezone offset literals (e.g. +02:00, -04:00, +05:30)
+        if c == '+' || c == '-' {
+            let remaining = &input_text[i..];
+            if let Some(word) = remaining.split_whitespace().next()
+                && word.contains(':')
+                && crate::units::date::TimeZone::parse(word).is_ok()
+            {
+                tokens.push(Token::Unit(&input_text[i..i + word.len()]));
+                let target_idx = i + word.len();
                 while let Some(&(idx, _)) = chars.peek() {
                     if idx < target_idx {
                         chars.next();
@@ -481,25 +501,6 @@ pub fn tokenize_string<'a>(
                     }
                 }
                 continue;
-            }
-        }
-
-        // Timezone offset literals (e.g. +02:00, -04:00, +05:30)
-        if c == '+' || c == '-' {
-            let remaining = &input_text[i..];
-            if let Some(word) = remaining.split_whitespace().next() {
-                if word.contains(':') && crate::units::date::TimeZone::parse(word).is_ok() {
-                    tokens.push(Token::Unit(&input_text[i..i + word.len()]));
-                    let target_idx = i + word.len();
-                    while let Some(&(idx, _)) = chars.peek() {
-                        if idx < target_idx {
-                            chars.next();
-                        } else {
-                            break;
-                        }
-                    }
-                    continue;
-                }
             }
         }
 
@@ -618,23 +619,23 @@ pub fn tokenize_string<'a>(
                 chars.next();
                 chars.next();
                 continue;
-            } else if let Some(&(_, next_c)) = dot_lookahead.peek() {
-                if next_c.is_alphabetic() || next_c == '_' {
-                    chars.next(); // consume '.'
-                    let start = chars.peek().unwrap().0;
-                    let mut end = start;
-                    while let Some(&(idx, sym_c)) = chars.peek() {
-                        if sym_c.is_alphanumeric() || sym_c == '_' {
-                            end = idx + sym_c.len_utf8();
-                            chars.next();
-                        } else {
-                            break;
-                        }
+            } else if let Some(&(_, next_c)) = dot_lookahead.peek()
+                && (next_c.is_alphabetic() || next_c == '_')
+            {
+                chars.next(); // consume '.'
+                let start = chars.peek().unwrap().0;
+                let mut end = start;
+                while let Some(&(idx, sym_c)) = chars.peek() {
+                    if sym_c.is_alphanumeric() || sym_c == '_' {
+                        end = idx + sym_c.len_utf8();
+                        chars.next();
+                    } else {
+                        break;
                     }
-                    let prop = input_text[start..end].to_string();
-                    tokens.push(Token::DotProperty(prop));
-                    continue;
                 }
+                let prop = input_text[start..end].to_string();
+                tokens.push(Token::DotProperty(prop));
+                continue;
             }
         }
 
@@ -662,19 +663,18 @@ pub fn tokenize_string<'a>(
                         continue;
                     }
                 }
-                if let Some(last_char) = alias.chars().last() {
-                    if last_char.is_alphanumeric() || last_char == '_' {
-                        let next_slice = &remaining[alias.len()..];
-                        if let Some(next_char) = next_slice.chars().next() {
-                            if next_char.is_alphanumeric()
-                                || next_char == '_'
-                                || next_char == '°'
-                                || next_char == 'Å'
-                                || next_char == 'Ω'
-                            {
-                                continue;
-                            }
-                        }
+                if let Some(last_char) = alias.chars().last()
+                    && (last_char.is_alphanumeric() || last_char == '_')
+                {
+                    let next_slice = &remaining[alias.len()..];
+                    if let Some(next_char) = next_slice.chars().next()
+                        && (next_char.is_alphanumeric()
+                            || next_char == '_'
+                            || next_char == '°'
+                            || next_char == 'Å'
+                            || next_char == 'Ω')
+                    {
+                        continue;
                     }
                 }
 
@@ -691,19 +691,18 @@ pub fn tokenize_string<'a>(
 
         for (alias, op) in &token_registry.unary_operators {
             if remaining.starts_with(alias.as_str()) {
-                if let Some(last_char) = alias.chars().last() {
-                    if last_char.is_alphanumeric() || last_char == '_' {
-                        let next_slice = &remaining[alias.len()..];
-                        if let Some(next_char) = next_slice.chars().next() {
-                            if next_char.is_alphanumeric()
-                                || next_char == '_'
-                                || next_char == '°'
-                                || next_char == 'Å'
-                                || next_char == 'Ω'
-                            {
-                                continue;
-                            }
-                        }
+                if let Some(last_char) = alias.chars().last()
+                    && (last_char.is_alphanumeric() || last_char == '_')
+                {
+                    let next_slice = &remaining[alias.len()..];
+                    if let Some(next_char) = next_slice.chars().next()
+                        && (next_char.is_alphanumeric()
+                            || next_char == '_'
+                            || next_char == '°'
+                            || next_char == 'Å'
+                            || next_char == 'Ω')
+                    {
+                        continue;
                     }
                 }
 
@@ -726,20 +725,19 @@ pub fn tokenize_string<'a>(
                         continue;
                     }
                 }
-                if let Some(last_char) = name.chars().last() {
-                    if last_char.is_alphanumeric() || last_char == '_' || last_char == '-' {
-                        let next_slice = &remaining[name.len()..];
-                        if let Some(next_char) = next_slice.chars().next() {
-                            if next_char.is_alphanumeric()
-                                || next_char == '_'
-                                || next_char == '-'
-                                || next_char == '°'
-                                || next_char == 'Å'
-                                || next_char == 'Ω'
-                            {
-                                continue;
-                            }
-                        }
+                if let Some(last_char) = name.chars().last()
+                    && (last_char.is_alphanumeric() || last_char == '_' || last_char == '-')
+                {
+                    let next_slice = &remaining[name.len()..];
+                    if let Some(next_char) = next_slice.chars().next()
+                        && (next_char.is_alphanumeric()
+                            || next_char == '_'
+                            || next_char == '-'
+                            || next_char == '°'
+                            || next_char == 'Å'
+                            || next_char == 'Ω')
+                    {
+                        continue;
                     }
                 }
 
@@ -786,7 +784,7 @@ pub fn tokenize_string<'a>(
                 && chars
                     .clone()
                     .nth(1)
-                    .map_or(false, |(_, next_c)| next_c.is_ascii_digit()))
+                    .is_some_and(|(_, next_c)| next_c.is_ascii_digit()))
         {
             let start = i;
             let mut has_dot = false;
@@ -809,22 +807,22 @@ pub fn tokenize_string<'a>(
                 } else if (num_c == 'e' || num_c == 'E') && !has_exp {
                     let mut exp_lookahead = chars.clone();
                     exp_lookahead.next(); // skip 'e' or 'E'
-                    if let Some(&(_, sign_c)) = exp_lookahead.peek() {
-                        if sign_c == '+' || sign_c == '-' {
-                            exp_lookahead.next();
-                        }
+                    if let Some(&(_, sign_c)) = exp_lookahead.peek()
+                        && (sign_c == '+' || sign_c == '-')
+                    {
+                        exp_lookahead.next();
                     }
-                    if let Some(&(_, digit_c)) = exp_lookahead.peek() {
-                        if digit_c.is_ascii_digit() {
-                            has_exp = true;
-                            chars.next(); // consume 'e'/'E'
-                            if let Some(&(_, sign_c)) = chars.peek() {
-                                if sign_c == '+' || sign_c == '-' {
-                                    chars.next(); // consume '+' or '-'
-                                }
-                            }
-                            continue;
+                    if let Some(&(_, digit_c)) = exp_lookahead.peek()
+                        && digit_c.is_ascii_digit()
+                    {
+                        has_exp = true;
+                        chars.next(); // consume 'e'/'E'
+                        if let Some(&(_, sign_c)) = chars.peek()
+                            && (sign_c == '+' || sign_c == '-')
+                        {
+                            chars.next(); // consume '+' or '-'
                         }
+                        continue;
                     }
                     break;
                 } else {
@@ -838,52 +836,51 @@ pub fn tokenize_string<'a>(
                 .map_err(|_| AbacusError::UnknownUnit(num_str.to_string()))?;
 
             // Check if immediately followed by an unspaced unit identifier (e.g. 5km, 10m, 1s^-1)
-            if let Some(&(unit_start, unit_c)) = chars.peek() {
-                if unit_c.is_alphabetic()
+            if let Some(&(unit_start, unit_c)) = chars.peek()
+                && (unit_c.is_alphabetic()
                     || unit_c == '°'
                     || unit_c == 'Å'
                     || unit_c == 'Ω'
-                    || unit_c == '%'
-                {
-                    let mut unit_end = unit_start;
-                    let mut unit_chars = chars.clone();
-                    while let Some((idx, sym_c)) = unit_chars.peek().cloned() {
-                        if sym_c.is_alphanumeric()
-                            || sym_c == '_'
-                            || sym_c == '°'
-                            || sym_c == 'Å'
-                            || sym_c == 'Ω'
-                            || sym_c == '%'
+                    || unit_c == '%')
+            {
+                let mut unit_end = unit_start;
+                let mut unit_chars = chars.clone();
+                while let Some((idx, sym_c)) = unit_chars.peek().cloned() {
+                    if sym_c.is_alphanumeric()
+                        || sym_c == '_'
+                        || sym_c == '°'
+                        || sym_c == 'Å'
+                        || sym_c == 'Ω'
+                        || sym_c == '%'
+                    {
+                        unit_end = idx + sym_c.len_utf8();
+                        unit_chars.next();
+                    } else if sym_c == '^' {
+                        unit_end = idx + sym_c.len_utf8();
+                        unit_chars.next();
+                        if let Some((sign_idx, sign_c)) = unit_chars.peek().cloned()
+                            && (sign_c == '+' || sign_c == '-')
                         {
-                            unit_end = idx + sym_c.len_utf8();
+                            unit_end = sign_idx + sign_c.len_utf8();
                             unit_chars.next();
-                        } else if sym_c == '^' {
-                            unit_end = idx + sym_c.len_utf8();
-                            unit_chars.next();
-                            if let Some((sign_idx, sign_c)) = unit_chars.peek().cloned()
-                                && (sign_c == '+' || sign_c == '-')
-                            {
-                                unit_end = sign_idx + sign_c.len_utf8();
-                                unit_chars.next();
-                            }
-                            while let Some((digit_idx, digit_c)) = unit_chars.peek().cloned() {
-                                if digit_c.is_ascii_digit() || digit_c == '.' {
-                                    unit_end = digit_idx + digit_c.len_utf8();
-                                    unit_chars.next();
-                                } else {
-                                    break;
-                                }
-                            }
-                        } else {
-                            break;
                         }
+                        while let Some((digit_idx, digit_c)) = unit_chars.peek().cloned() {
+                            if digit_c.is_ascii_digit() || digit_c == '.' {
+                                unit_end = digit_idx + digit_c.len_utf8();
+                                unit_chars.next();
+                            } else {
+                                break;
+                            }
+                        }
+                    } else {
+                        break;
                     }
-                    let unit_candidate = &input_text[unit_start..unit_end];
-                    if let Ok(unit) = unit_registry.unit(unit_candidate) {
-                        tokens.push(Token::Val(Value::new(val, unit)));
-                        chars = unit_chars;
-                        continue;
-                    }
+                }
+                let unit_candidate = &input_text[unit_start..unit_end];
+                if let Ok(unit) = unit_registry.unit(unit_candidate) {
+                    tokens.push(Token::Val(Value::new(val, unit)));
+                    chars = unit_chars;
+                    continue;
                 }
             }
 
