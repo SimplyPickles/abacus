@@ -9,7 +9,7 @@ use crate::{
 /// and evaluates it down to a single `Value`.
 ///
 /// Precedence levels (binding power):
-///   0 — ConversionOp (`in`, `to`, `as`)
+///   0 — `ConversionOp` (`in`, `to`, `as`)
 ///   1 — Addition / Subtraction (`+`, `-`)
 ///   2 — Multiplication / Division (`*`, `/`)
 ///   3 — Implicit multiplication (e.g. `5 m` already resolved, but `Val * Val` adjacency)
@@ -80,7 +80,7 @@ impl<'a> Parser<'a> {
                 self.advance();
                 Ok(())
             }
-            Some(tok) => Err(AbacusError::UnexpectedToken(format!("{:?}", tok))),
+            Some(tok) => Err(AbacusError::UnexpectedToken(format!("{tok:?}"))),
             None => Err(AbacusError::UnexpectedEnd),
         }
     }
@@ -92,7 +92,7 @@ impl<'a> Parser<'a> {
         // Ensure all tokens were consumed
         if self.pos < self.tokens.len() {
             if let Some(tok) = self.peek() {
-                return Err(AbacusError::UnexpectedToken(format!("{:?}", tok)));
+                return Err(AbacusError::UnexpectedToken(format!("{tok:?}")));
             }
             return Err(AbacusError::UnexpectedEnd);
         }
@@ -345,8 +345,7 @@ impl<'a> Parser<'a> {
                             })
                             .ok_or_else(|| {
                                 AbacusError::UnexpectedToken(format!(
-                                    "unknown property '.{}' on Hash result",
-                                    prop
+                                    "unknown property '.{prop}' on Hash result"
                                 ))
                             })?;
                         EvalResult::Scalar(val.clone())
@@ -354,16 +353,14 @@ impl<'a> Parser<'a> {
                     EvalResult::Date(d) => {
                         let num = d.get_property(&prop).ok_or_else(|| {
                             AbacusError::UnexpectedToken(format!(
-                                "unknown property '.{}' on Date",
-                                prop
+                                "unknown property '.{prop}' on Date"
                             ))
                         })?;
                         EvalResult::Scalar(Value::dimensionless(num))
                     }
                     _ => {
                         return Err(AbacusError::UnexpectedToken(format!(
-                            "cannot access property '.{}' on this result type",
-                            prop
+                            "cannot access property '.{prop}' on this result type"
                         )));
                     }
                 };
@@ -560,7 +557,7 @@ impl<'a> Parser<'a> {
                 func.apply(&raw_args)
             }
 
-            Some(tok) => Err(AbacusError::UnexpectedToken(format!("{:?}", tok))),
+            Some(tok) => Err(AbacusError::UnexpectedToken(format!("{tok:?}"))),
             None => Err(AbacusError::UnexpectedEnd),
         }
     }
@@ -576,10 +573,10 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// Returns (left_bp, right_bp) for an infix binary operator.
+    /// Returns (`left_bp`, `right_bp`) for an infix binary operator.
     ///
-    /// For left-associative operators, right_bp = left_bp + 1.
-    /// For right-associative operators (e.g. `^`), right_bp = left_bp.
+    /// For left-associative operators, `right_bp` = `left_bp` + 1.
+    /// For right-associative operators (e.g. `^`), `right_bp` = `left_bp`.
     fn infix_bp(&self, name: &str) -> (u8, u8) {
         if let Some(op) = self.token_registry.binary_operators.get(name) {
             let base = (op.precedence * 2) + 2;

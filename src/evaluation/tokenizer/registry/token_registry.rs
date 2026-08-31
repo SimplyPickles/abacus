@@ -20,6 +20,7 @@ pub struct TokenRegistry {
 }
 
 impl TokenRegistry {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             binary_operators: HashMap::new(),
@@ -28,6 +29,7 @@ impl TokenRegistry {
         }
     }
 
+    #[must_use]
     pub fn standard() -> Self {
         let binary = register_arithmetic();
 
@@ -90,6 +92,7 @@ impl TokenRegistry {
     }
 
     /// Indexes all registered operators by their first character, sorted by descending pattern length.
+    #[must_use]
     pub fn operators_by_first_char(&self) -> HashMap<char, Vec<(&str, MatchedOpKind)>> {
         let mut map: HashMap<char, Vec<(&str, MatchedOpKind)>> = HashMap::new();
         for (alias, op) in &self.binary_operators {

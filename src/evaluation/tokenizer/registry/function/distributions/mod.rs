@@ -12,6 +12,7 @@ pub mod uniform;
 
 use crate::evaluation::tokenizer::registry::function::operators::FunctionOp;
 
+#[must_use]
 pub fn register_distributions() -> Vec<FunctionOp> {
     let mut functions = Vec::new();
     functions.append(&mut binomial::register_binomial());

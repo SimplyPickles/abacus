@@ -11,12 +11,14 @@ pub struct Hash {
 // Implementation functions for Hash
 impl Hash {
     // Default constructor for the Hash
+    #[must_use]
     pub fn new() -> Self {
         Self {
             values: HashMap::new(),
         }
     }
 
+    #[must_use]
     pub fn from(values: HashMap<String, Value>) -> Self {
         Self { values }
     }
@@ -25,6 +27,7 @@ impl Hash {
         self.values.insert(key.into(), value);
     }
 
+    #[must_use]
     pub fn get(&self, key: &str) -> Option<&Value> {
         self.values.get(key)
     }
@@ -38,6 +41,7 @@ impl Hash {
         }
     }
 
+    #[must_use]
     pub fn to_display(&self) -> String {
         let mut entries: Vec<_> = self.values.iter().collect();
         entries.sort_by_key(|&(k, _)| k);

@@ -1,10 +1,12 @@
 
 
 /// Computes n! as f64. Returns 1.0 for n=0.
+#[must_use]
 pub fn factorial(n: u64) -> f64 {
     (1..=n).fold(1.0, |acc, x| acc * (x as f64))
 }
 
+#[must_use]
 pub fn erfinv(x: f64) -> f64 {
     if x <= -1.0 {
         return f64::NEG_INFINITY;
@@ -20,6 +22,7 @@ pub fn erfinv(x: f64) -> f64 {
     sign * (inner.sqrt() - term1).sqrt()
 }
 
+#[must_use]
 pub fn n_cr(n: u64, k: u64) -> f64 {
     if k > n {
         return 0.0;
@@ -35,6 +38,7 @@ pub fn n_cr(n: u64, k: u64) -> f64 {
     c
 }
 
+#[must_use]
 pub fn lgamma(x: f64) -> f64 {
     if x <= 0.0 {
         return 0.0;
@@ -62,7 +66,8 @@ pub fn lgamma(x: f64) -> f64 {
     }
 }
 
-/// Incomplete gamma function P(a, x) = lower_gamma(a, x) / gamma(a)
+/// Incomplete gamma function P(a, x) = `lower_gamma(a`, x) / gamma(a)
+#[must_use]
 pub fn gamma_p(a: f64, x: f64) -> f64 {
     if x <= 0.0 {
         return 0.0;
@@ -86,7 +91,7 @@ pub fn gamma_p(a: f64, x: f64) -> f64 {
         let mut d = 1.0 / b;
         let mut h = d;
         for i in 1..200 {
-            let an = -(i as f64) * (i as f64 - a);
+            let an = -f64::from(i) * (f64::from(i) - a);
             b += 2.0;
             d = an * d + b;
             if d.abs() < 1e-30 {
@@ -108,7 +113,8 @@ pub fn gamma_p(a: f64, x: f64) -> f64 {
     }
 }
 
-/// Regularized incomplete beta function I_x(a, b)
+/// Regularized incomplete beta function `I_x(a`, b)
+#[must_use]
 pub fn beta_inc(a: f64, b: f64, x: f64) -> f64 {
     if x <= 0.0 {
         return 0.0;
@@ -132,7 +138,7 @@ pub fn beta_inc(a: f64, b: f64, x: f64) -> f64 {
     let mut h = d;
 
     for m in 1..200 {
-        let m_f = m as f64;
+        let m_f = f64::from(m);
         let numerator = m_f * (b - m_f) * x / ((a + 2.0 * m_f - 1.0) * (a + 2.0 * m_f));
         d = 1.0 + numerator * d;
         if d.abs() < 1e-30 {

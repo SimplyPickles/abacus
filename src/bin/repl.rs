@@ -53,7 +53,7 @@ fn highlight_syntax(line: &str) -> String {
                     break;
                 }
             }
-            let end = chars.peek().map(|&(idx, _)| idx).unwrap_or(line.len());
+            let end = chars.peek().map_or(line.len(), |&(idx, _)| idx);
             let num = &line[start..end];
             // Numbers in Yellow/Gold
             result.push_str("\x1b[38;2;241;196;15m");
@@ -68,7 +68,7 @@ fn highlight_syntax(line: &str) -> String {
                     break;
                 }
             }
-            let end = chars.peek().map(|&(idx, _)| idx).unwrap_or(line.len());
+            let end = chars.peek().map_or(line.len(), |&(idx, _)| idx);
             let word = &line[start..end];
 
             if word.starts_with('.') {

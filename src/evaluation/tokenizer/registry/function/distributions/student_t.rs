@@ -8,12 +8,13 @@ use crate::{
 };
 
 fn compute_tpdf(df: f64, t: f64) -> f64 {
-    let num_log = lgamma((df + 1.0) / 2.0);
+    let num_log = lgamma(f64::midpoint(df, 1.0));
     let den_log = (df * std::f64::consts::PI).ln() * 0.5 + lgamma(df / 2.0);
-    let power = -((df + 1.0) / 2.0) * (1.0 + (t * t) / df).ln();
+    let power = -f64::midpoint(df, 1.0) * (1.0 + (t * t) / df).ln();
     (num_log - den_log + power).exp()
 }
 
+#[must_use]
 pub fn compute_tcdf(df: f64, t: f64) -> f64 {
     let x = df / (df + t * t);
     let ibeta = beta_inc(df / 2.0, 0.5, x);
@@ -52,6 +53,7 @@ fn tcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
     Ok(Value::dimensionless(compute_tcdf(df, t)))
 }
 
+#[must_use]
 pub fn compute_invt(p: f64, df: f64) -> f64 {
     if p <= 0.0 || p >= 1.0 || df <= 0.0 {
         return f64::NAN;

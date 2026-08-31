@@ -113,12 +113,12 @@ fn try_parse_relative_date_keyword(s: &str) -> Option<(crate::Date, usize)> {
                 let target_dow_num = target_dow as u32;
                 let days_offset: i64 = match modifier {
                     RelModifier::Last => {
-                        -(((today_dow as i32 - target_dow_num as i32 + 6).rem_euclid(7) + 1) as i64)
+                        -i64::from((today_dow as i32 - target_dow_num as i32 + 6).rem_euclid(7) + 1)
                     }
                     RelModifier::Next => {
-                        ((target_dow_num as i32 - today_dow as i32 + 6).rem_euclid(7) + 1) as i64
+                        i64::from((target_dow_num as i32 - today_dow as i32 + 6).rem_euclid(7) + 1)
                     }
-                    RelModifier::This => (target_dow_num as i32 - today_dow as i32) as i64,
+                    RelModifier::This => i64::from(target_dow_num as i32 - today_dow as i32),
                 };
                 let date = ref_date.add_days(days_offset);
                 return Some((date, mod_len + ws_len + sub_len));
@@ -166,7 +166,7 @@ fn try_parse_relative_date_keyword(s: &str) -> Option<(crate::Date, usize)> {
             0
         } else {
             let add = (target_dow_num as i32 - today_dow as i32).rem_euclid(7);
-            (if add == 0 { 7 } else { add }) as i64
+            i64::from((if add == 0 { 7 } else { add }))
         };
         let date = ref_date.add_days(days_offset);
         return Some((date, sub_len));
@@ -687,7 +687,7 @@ pub fn tokenize_string<'a>(
             {
                 let mut unit_end = unit_start;
                 let mut unit_chars = chars.clone();
-                while let Some((idx, sym_c)) = unit_chars.peek().cloned() {
+                while let Some((idx, sym_c)) = unit_chars.peek().copied() {
                     if sym_c.is_alphanumeric()
                         || sym_c == '_'
                         || sym_c == '°'
@@ -700,13 +700,13 @@ pub fn tokenize_string<'a>(
                     } else if sym_c == '^' {
                         unit_end = idx + sym_c.len_utf8();
                         unit_chars.next();
-                        if let Some((sign_idx, sign_c)) = unit_chars.peek().cloned()
+                        if let Some((sign_idx, sign_c)) = unit_chars.peek().copied()
                             && (sign_c == '+' || sign_c == '-')
                         {
                             unit_end = sign_idx + sign_c.len_utf8();
                             unit_chars.next();
                         }
-                        while let Some((digit_idx, digit_c)) = unit_chars.peek().cloned() {
+                        while let Some((digit_idx, digit_c)) = unit_chars.peek().copied() {
                             if digit_c.is_ascii_digit() || digit_c == '.' {
                                 unit_end = digit_idx + digit_c.len_utf8();
                                 unit_chars.next();

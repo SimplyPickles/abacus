@@ -22,6 +22,7 @@ pub enum DayOfWeek {
 }
 
 impl DayOfWeek {
+    #[must_use]
     pub fn from_iso_number(n: u32) -> Option<Self> {
         match n {
             1 => Some(Self::Monday),
@@ -35,6 +36,7 @@ impl DayOfWeek {
         }
     }
 
+    #[must_use]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Monday => "Monday",
@@ -54,7 +56,7 @@ impl fmt::Display for DayOfWeek {
     }
 }
 
-/// Structure representing a TimeZone with offset in minutes relative to UTC.
+/// Structure representing a `TimeZone` with offset in minutes relative to UTC.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TimeZone {
@@ -70,6 +72,7 @@ impl TimeZone {
         }
     }
 
+    #[must_use]
     pub fn utc() -> Self {
         Self::new("UTC", 0)
     }
@@ -146,6 +149,7 @@ impl TimeZone {
         Err(AbacusError::InvalidDate(format!("unknown timezone: '{s}'")))
     }
 
+    #[must_use]
     pub fn format_offset(&self) -> String {
         let sign = if self.offset_minutes >= 0 { '+' } else { '-' };
         let abs_mins = self.offset_minutes.abs();
@@ -176,6 +180,7 @@ pub struct Time {
 }
 
 impl Time {
+    #[must_use]
     pub fn new(hour: u32, minute: u32, second: u32, millisecond: u32) -> Self {
         Self {
             hour,
@@ -205,19 +210,23 @@ impl Time {
         Ok(Self::new(hour_24, minute, second, 0))
     }
 
+    #[must_use]
     pub fn from_hms(hour: u32, minute: u32, second: u32) -> Self {
         Self::new(hour, minute, second, 0)
     }
 
+    #[must_use]
     pub fn is_valid(&self) -> bool {
         self.hour < 24 && self.minute < 60 && self.second < 60 && self.millisecond < 1000
     }
 
+    #[must_use]
     pub fn to_total_milliseconds(&self) -> u64 {
-        ((self.hour as u64 * 3600 + self.minute as u64 * 60 + self.second as u64) * 1000)
-            + self.millisecond as u64
+        ((u64::from(self.hour) * 3600 + u64::from(self.minute) * 60 + u64::from(self.second)) * 1000)
+            + u64::from(self.millisecond)
     }
 
+    #[must_use]
     pub fn from_total_milliseconds(ms: u64) -> (Self, u64) {
         let ms_per_day = 86_400_000u64;
         let days_overflow = ms / ms_per_day;
@@ -241,6 +250,7 @@ impl Time {
         )
     }
 
+    #[must_use]
     pub fn parse_time_spec(s: &str, has_at: bool) -> Option<(Time, usize)> {
         if s.is_empty() {
             return None;
@@ -386,6 +396,7 @@ impl Time {
         }
     }
 
+    #[must_use]
     pub fn format(&self) -> String {
         if self.millisecond == 0 {
             format!("{:02}:{:02}:{:02}", self.hour, self.minute, self.second)
@@ -397,6 +408,7 @@ impl Time {
         }
     }
 
+    #[must_use]
     pub fn format_12h(&self) -> String {
         let (h12, is_pm) = match self.hour {
             0 => (12, false),
@@ -439,11 +451,13 @@ impl FromStr for Time {
 }
 
 /// Helper function to check if a year is a leap year in the Gregorian calendar.
+#[must_use]
 pub fn is_leap_year(year: i32) -> bool {
     (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
 }
 
 /// Helper function to return the number of days in a given month of a year.
+#[must_use]
 pub fn days_in_month(year: i32, month: u32) -> u32 {
     match month {
         1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
@@ -460,6 +474,7 @@ pub fn days_in_month(year: i32, month: u32) -> u32 {
 }
 
 /// Check if year, month, day form a valid calendar date.
+#[must_use]
 pub fn is_valid_date(year: i32, month: u32, day: u32) -> bool {
     if !(1..=12).contains(&month) || day < 1 {
         return false;
@@ -468,25 +483,27 @@ pub fn is_valid_date(year: i32, month: u32, day: u32) -> bool {
 }
 
 /// Convert (year, month, day) to days since Unix epoch 1970-01-01 (Proleptic Gregorian algorithm).
+#[must_use]
 pub fn date_to_epoch_days(year: i32, month: u32, day: u32) -> i64 {
     let y = if month <= 2 {
-        year as i64 - 1
+        i64::from(year) - 1
     } else {
-        year as i64
+        i64::from(year)
     };
     let m = if month <= 2 {
-        month as i64 + 12
+        i64::from(month) + 12
     } else {
-        month as i64
+        i64::from(month)
     };
     let era = if y >= 0 { y / 400 } else { (y - 399) / 400 };
     let yoe = y - era * 400;
-    let doy = (153 * (m - 3) + 2) / 5 + day as i64 - 1;
+    let doy = (153 * (m - 3) + 2) / 5 + i64::from(day) - 1;
     let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
     era * 146097 + doe - 719468
 }
 
 /// Convert days since Unix epoch 1970-01-01 to (year, month, day).
+#[must_use]
 pub fn epoch_days_to_date(epoch_days: i64) -> (i32, u32, u32) {
     let z = epoch_days + 719468;
     let era = if z >= 0 {
@@ -505,7 +522,7 @@ pub fn epoch_days_to_date(epoch_days: i64) -> (i32, u32, u32) {
     (year as i32, m as u32, d as u32)
 }
 
-/// Structure representing a calendar Date with Time and optional TimeZone.
+/// Structure representing a calendar Date with Time and optional `TimeZone`.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Date {
@@ -560,6 +577,7 @@ impl std::hash::Hash for Date {
 use std::time::{SystemTime, UNIX_EPOCH};
 
 impl Date {
+    #[must_use]
     pub fn now() -> Self {
         let start = SystemTime::now();
         let since_epoch = start.duration_since(UNIX_EPOCH).unwrap_or_default();
@@ -567,19 +585,23 @@ impl Date {
         Self::from_epoch_milliseconds(total_ms)
     }
 
+    #[must_use]
     pub fn today() -> Self {
         let now = Self::now();
         Self::new(now.year, now.month, now.day)
     }
 
+    #[must_use]
     pub fn tomorrow() -> Self {
         Self::today().add_days(1)
     }
 
+    #[must_use]
     pub fn yesterday() -> Self {
         Self::today().add_days(-1)
     }
 
+    #[must_use]
     pub fn new(year: i32, month: u32, day: u32) -> Self {
         Self {
             year,
@@ -591,6 +613,7 @@ impl Date {
         }
     }
 
+    #[must_use]
     pub fn with_time(year: i32, month: u32, day: u32, time: Time) -> Self {
         Self {
             year,
@@ -602,16 +625,19 @@ impl Date {
         }
     }
 
+    #[must_use]
     pub fn with_timezone(mut self, tz: TimeZone) -> Self {
         self.timezone = Some(tz);
         self
     }
 
+    #[must_use]
     pub fn with_format(mut self, format: DateFormat) -> Self {
         self.format = format;
         self
     }
 
+    #[must_use]
     pub fn parse_ymd_components(s: &str) -> Option<(i32, u32, u32, usize)> {
         let trimmed = s.trim_start();
         if trimmed.is_empty() || !trimmed.chars().next()?.is_ascii_digit() {
@@ -685,28 +711,30 @@ impl Date {
     }
 
     /// Retrieves a numerical property value from this Date by property name.
+    #[must_use]
     pub fn get_property(&self, prop: &str) -> Option<f64> {
         match prop {
-            "year" => Some(self.year as f64),
-            "month" => Some(self.month as f64),
-            "day" => Some(self.day as f64),
-            "hour" => Some(self.time.hour as f64),
-            "minute" => Some(self.time.minute as f64),
-            "second" => Some(self.time.second as f64),
-            "millisecond" | "ms" => Some(self.time.millisecond as f64),
-            "day_of_week" | "weekday" => Some(self.day_of_week() as u32 as f64),
-            "day_of_year" => Some(self.day_of_year() as f64),
+            "year" => Some(f64::from(self.year)),
+            "month" => Some(f64::from(self.month)),
+            "day" => Some(f64::from(self.day)),
+            "hour" => Some(f64::from(self.time.hour)),
+            "minute" => Some(f64::from(self.time.minute)),
+            "second" => Some(f64::from(self.time.second)),
+            "millisecond" | "ms" => Some(f64::from(self.time.millisecond)),
+            "day_of_week" | "weekday" => Some(f64::from(self.day_of_week() as u32)),
+            "day_of_year" => Some(f64::from(self.day_of_year())),
             "is_weekend" => Some(if self.is_weekend() { 1.0 } else { 0.0 }),
             "is_workday" | "is_business_day" => {
                 Some(if self.is_business_day() { 1.0 } else { 0.0 })
             }
             "offset" | "offset_minutes" => {
-                Some(self.timezone.as_ref().map_or(0.0, |tz| tz.offset_minutes as f64))
+                Some(self.timezone.as_ref().map_or(0.0, |tz| f64::from(tz.offset_minutes)))
             }
             _ => None,
         }
     }
 
+    #[must_use]
     pub fn new_with_hms(
         year: i32,
         month: u32,
@@ -725,6 +753,7 @@ impl Date {
         }
     }
 
+    #[must_use]
     pub fn new_full(
         year: i32,
         month: u32,
@@ -744,42 +773,49 @@ impl Date {
         }
     }
 
+    #[must_use]
     pub fn is_valid(&self) -> bool {
         is_valid_date(self.year, self.month, self.day) && self.time.is_valid()
     }
 
+    #[must_use]
     pub fn day_of_week(&self) -> DayOfWeek {
         let epoch_days = self.to_epoch_days();
         let dow = (epoch_days + 3).rem_euclid(7) + 1;
         DayOfWeek::from_iso_number(dow as u32).unwrap_or(DayOfWeek::Thursday)
     }
 
+    #[must_use]
     pub fn day_of_year(&self) -> u32 {
         let start_of_year = date_to_epoch_days(self.year, 1, 1);
         (self.to_epoch_days() - start_of_year + 1) as u32
     }
 
+    #[must_use]
     pub fn to_epoch_days(&self) -> i64 {
         date_to_epoch_days(self.year, self.month, self.day)
     }
 
+    #[must_use]
     pub fn from_epoch_days(days: i64) -> Self {
         let (year, month, day) = epoch_days_to_date(days);
         Self::new(year, month, day)
     }
 
+    #[must_use]
     pub fn to_epoch_milliseconds(&self) -> i64 {
         let local_days_ms = self.to_epoch_days() * 86_400_000;
         let local_time_ms = self.time.to_total_milliseconds() as i64;
         let local_ms = local_days_ms + local_time_ms;
 
         if let Some(ref tz) = self.timezone {
-            local_ms - (tz.offset_minutes as i64 * 60_000)
+            local_ms - (i64::from(tz.offset_minutes) * 60_000)
         } else {
             local_ms
         }
     }
 
+    #[must_use]
     pub fn from_epoch_milliseconds(total_ms: i64) -> Self {
         let ms_per_day = 86_400_000i64;
         let days = total_ms.div_euclid(ms_per_day);
@@ -799,6 +835,7 @@ impl Date {
     }
 
     // TimeZone conversions
+    #[must_use]
     pub fn to_utc(&self) -> Date {
         if let Some(ref tz) = self.timezone {
             if tz.offset_minutes == 0 {
@@ -814,9 +851,10 @@ impl Date {
         }
     }
 
+    #[must_use]
     pub fn to_timezone(&self, target_tz: &TimeZone) -> Date {
         let utc_ms = self.to_epoch_milliseconds();
-        let target_ms = utc_ms + (target_tz.offset_minutes as i64 * 60_000);
+        let target_ms = utc_ms + (i64::from(target_tz.offset_minutes) * 60_000);
         let mut d = Self::from_epoch_milliseconds(target_ms);
         d.timezone = Some(target_tz.clone());
         d.format = self.format;
@@ -824,10 +862,11 @@ impl Date {
     }
 
     // Arithmetic methods
+    #[must_use]
     pub fn add_milliseconds(&self, ms: i64) -> Self {
         if let Some(ref tz) = self.timezone {
             let utc_ms = self.to_epoch_milliseconds() + ms;
-            let target_ms = utc_ms + (tz.offset_minutes as i64 * 60_000);
+            let target_ms = utc_ms + (i64::from(tz.offset_minutes) * 60_000);
             let mut d = Self::from_epoch_milliseconds(target_ms);
             d.timezone = Some(tz.clone());
             d.format = self.format;
@@ -839,28 +878,34 @@ impl Date {
         }
     }
 
+    #[must_use]
     pub fn add_seconds(&self, seconds: i64) -> Self {
         self.add_milliseconds(seconds * 1000)
     }
 
+    #[must_use]
     pub fn add_minutes(&self, minutes: i64) -> Self {
         self.add_milliseconds(minutes * 60_000)
     }
 
+    #[must_use]
     pub fn add_hours(&self, hours: i64) -> Self {
         self.add_milliseconds(hours * 3_600_000)
     }
 
+    #[must_use]
     pub fn add_days(&self, days: i64) -> Self {
         self.add_milliseconds(days * 86_400_000)
     }
 
+    #[must_use]
     pub fn sub_days(&self, days: i64) -> Self {
         self.add_days(-days)
     }
 
+    #[must_use]
     pub fn add_months(&self, months: i32) -> Self {
-        let total_months = (self.year as i64) * 12 + (self.month as i64 - 1) + (months as i64);
+        let total_months = i64::from(self.year) * 12 + (i64::from(self.month) - 1) + i64::from(months);
         let new_year = total_months.div_euclid(12) as i32;
         let new_month = (total_months.rem_euclid(12) + 1) as u32;
 
@@ -877,23 +922,28 @@ impl Date {
         }
     }
 
+    #[must_use]
     pub fn add_years(&self, years: i32) -> Self {
         self.add_months(years * 12)
     }
 
+    #[must_use]
     pub fn days_between(&self, other: &Self) -> i64 {
         self.seconds_between(other) / 86_400
     }
 
+    #[must_use]
     pub fn seconds_between(&self, other: &Self) -> i64 {
         (other.to_epoch_milliseconds() - self.to_epoch_milliseconds()) / 1000
     }
 
+    #[must_use]
     pub fn milliseconds_between(&self, other: &Self) -> i64 {
         other.to_epoch_milliseconds() - self.to_epoch_milliseconds()
     }
 
     // Formatting methods
+    #[must_use]
     pub fn format_with_style(&self, style: DateFormat) -> String {
         let tz_suffix = if let Some(ref tz) = self.timezone {
             format!(" {}", tz.name)
@@ -917,21 +967,26 @@ impl Date {
         }
     }
 
+    #[must_use]
     pub fn format(&self) -> String {
         self.format_with_style(self.format)
     }
 
+    #[must_use]
     pub fn format_iso(&self) -> String {
         self.format_with_style(DateFormat::YYYYMMDD)
     }
+    #[must_use]
     pub fn is_weekend(&self) -> bool {
         matches!(self.day_of_week(), DayOfWeek::Saturday | DayOfWeek::Sunday)
     }
 
+    #[must_use]
     pub fn is_business_day(&self) -> bool {
         !self.is_weekend()
     }
 
+    #[must_use]
     pub fn add_business_days(&self, n: i64) -> Self {
         if n == 0 {
             return self.clone();
@@ -949,6 +1004,7 @@ impl Date {
         cur
     }
 
+    #[must_use]
     pub fn business_days_between(&self, other: &Self) -> i64 {
         let self_days = self.to_epoch_days();
         let other_days = other.to_epoch_days();

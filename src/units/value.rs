@@ -23,6 +23,7 @@ impl PartialEq for Value {
 
 #[allow(dead_code)]
 impl Value {
+    #[must_use]
     pub fn new(value: f64, unit: Arc<Unit>) -> Self {
         Self {
             canonical: value * unit.scalar + unit.offset,
@@ -31,6 +32,7 @@ impl Value {
     }
 
     /// Creates a dimensionless `Value` with the given scalar.
+    #[must_use]
     pub fn dimensionless(val: f64) -> Self {
         Self {
             canonical: val,
@@ -40,12 +42,14 @@ impl Value {
 
     /// Returns the display-unit amount: `(canonical − offset) / scalar`.
     #[inline]
+    #[must_use]
     pub fn amount(&self) -> f64 {
         (self.canonical - self.unit.offset) / self.unit.scalar
     }
 
     /// Constructs a `Value` directly from a pre-computed canonical value.
     #[inline]
+    #[must_use]
     pub fn from_canonical(canonical: f64, unit: Arc<Unit>) -> Self {
         Self { canonical, unit }
     }
@@ -81,6 +85,7 @@ impl Value {
         }
     }
 
+    #[must_use]
     pub fn to_display(&self) -> String {
         let value = self.amount();
         let nearest_integer = value.round();
@@ -100,6 +105,7 @@ impl Value {
         }
     }
 
+    #[must_use]
     pub fn to_units_display(&self) -> String {
         self.unit.display.render()
     }
@@ -111,6 +117,7 @@ impl Value {
         self.unit = Arc::new(unit);
     }
 
+    #[must_use]
     pub fn to_human_display(&self) -> String {
         if self.unit.dimensions == crate::units::dimensions::Dimensions::TIME {
             format_human_duration(self.canonical)
@@ -120,6 +127,7 @@ impl Value {
     }
 }
 
+#[must_use]
 pub fn format_human_duration(seconds_f64: f64) -> String {
     let is_negative = seconds_f64 < 0.0;
     let mut total = seconds_f64.abs().round() as i64;

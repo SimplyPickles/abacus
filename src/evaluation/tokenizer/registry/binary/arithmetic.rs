@@ -56,6 +56,7 @@ fn percent_of(a: Value, b: Value) -> Result<Value, AbacusError> {
     a * b
 }
 
+#[must_use]
 pub fn register_arithmetic() -> Vec<BinaryOp> {
     vec![
         BinaryOp {

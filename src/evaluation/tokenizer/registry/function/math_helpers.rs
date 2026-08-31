@@ -83,7 +83,7 @@ fn lcm_fn(args: &[Value]) -> Result<Value, AbacusError> {
     Ok(Value::dimensionless(lcm_u64(a, b) as f64))
 }
 
-/// modulo_fn(a, b) — Unit-aware modulo calculation
+/// `modulo_fn(a`, b) — Unit-aware modulo calculation
 pub fn compute_modulo(a: &Value, b: &Value) -> Result<Value, AbacusError> {
     if a.unit.is_affine() || b.unit.is_affine() {
         return Err(AbacusError::AffineUnitOperation("modulo"));

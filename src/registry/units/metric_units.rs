@@ -87,6 +87,7 @@ pub static BASE_METRIC_UNITS: &[MetricBaseUnit] = generate_base_units! {
 const CELSIUS_ALIASES: &[&str] = &["celsius", "degC", "°C"];
 
 // Declares a public function that returns a map of base and prefixed metric units.
+#[must_use]
 pub fn register_metric_units() -> HashMap<String, Arc<Unit>> {
     let mut map: HashMap<String, Arc<Unit>> = HashMap::new();
 

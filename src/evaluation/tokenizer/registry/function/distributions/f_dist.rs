@@ -20,8 +20,8 @@ fn fpdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
     }
 
     let log_num = (df1 / 2.0) * (df1 * x).ln() + (df2 / 2.0) * df2.ln();
-    let log_den = lgamma(df1 / 2.0) + lgamma(df2 / 2.0) - lgamma((df1 + df2) / 2.0)
-        + ((df1 + df2) / 2.0) * (df1 * x + df2).ln()
+    let log_den = lgamma(df1 / 2.0) + lgamma(df2 / 2.0) - lgamma(f64::midpoint(df1, df2))
+        + f64::midpoint(df1, df2) * (df1 * x + df2).ln()
         + x.ln();
 
     let pdf = (log_num - log_den).exp();

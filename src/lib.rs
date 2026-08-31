@@ -38,6 +38,7 @@ pub struct Abacus {
 
 impl Abacus {
     // Initialize a new `Abacus` instance with default units and tokens
+    #[must_use]
     pub fn new() -> Self {
         Self {
             units: UnitRegistry::new(),
@@ -56,6 +57,7 @@ impl Abacus {
     }
 
     // Initialize a new `Abacus` instance with standard units and tokens
+    #[must_use]
     pub fn standard() -> Self {
         Self {
             units: UnitRegistry::standard(),
@@ -131,6 +133,7 @@ impl Abacus {
     }
 
     /// Returns a reference to the globally shared standard `Abacus` instance.
+    #[must_use]
     pub fn shared() -> &'static Self {
         &STANDARD
     }

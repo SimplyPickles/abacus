@@ -8,13 +8,13 @@ use crate::{
 };
 use std::sync::Arc;
 
-/// Parse x_data and y_data arrays from arguments by delegating to parse_paired_data.
+/// Parse `x_data` and `y_data` arrays from arguments by delegating to `parse_paired_data`.
 fn parse_regression_inputs(args: &[Value]) -> Result<(&[Value], &[Value]), AbacusError> {
     let (x, y, _) = parse_paired_data(args)?;
     Ok((x, y))
 }
 
-/// Computes basic regression statistics (mean_x, mean_y, Sxx, Syy, Sxy, n)
+/// Computes basic regression statistics (`mean_x`, `mean_y`, Sxx, Syy, Sxy, n)
 struct RegStats {
     n: f64,
     mean_x: f64,

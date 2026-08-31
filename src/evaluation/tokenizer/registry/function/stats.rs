@@ -88,7 +88,7 @@ fn median_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
     let len = values.len();
     let median_val = if len.is_multiple_of(2) {
-        (values[len / 2 - 1] + values[len / 2]) / 2.0
+        f64::midpoint(values[len / 2 - 1], values[len / 2])
     } else {
         values[len / 2]
     };
@@ -140,12 +140,14 @@ pub fn parse_paired_data(args: &[Value]) -> Result<(&[Value], &[Value], usize), 
     Ok((x_data, y_data, n))
 }
 
+#[must_use]
 pub fn compute_mean(args: &[Value]) -> f64 {
     args.iter().map(|v| v.canonical).sum::<f64>() / (args.len() as f64)
 }
 
 /// Computes the (co)variance of a single dataset with delta-degrees-of-freedom `ddof`.
 /// `ddof = 1` → sample variance, `ddof = 0` → population variance.
+#[must_use]
 pub fn compute_variance(args: &[Value], ddof: f64) -> f64 {
     let n = args.len() as f64;
     let mean = compute_mean(args);
@@ -345,7 +347,7 @@ fn iqr_fn(args: &[Value]) -> Result<Value, AbacusError> {
     })
 }
 
-/// corr(x_range, y_range) or corr(x1..xN, y1..yN)
+/// `corr(x_range`, `y_range`) or corr(x1..xN, y1..yN)
 fn corr_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let (x_data, y_data, _) = parse_paired_data(args)?;
     let r = compute_pearson_r(x_data, y_data)?;

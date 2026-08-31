@@ -36,6 +36,7 @@ impl Dimensions {
     pub const AREA: Self = Self([2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
     pub const VOLUME: Self = Self([3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
 
+    #[must_use]
     pub fn is_dimensionless(self) -> bool {
         self == Self::DIMENSIONLESS
     }

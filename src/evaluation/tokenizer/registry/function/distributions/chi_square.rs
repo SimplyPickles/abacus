@@ -16,6 +16,7 @@ fn compute_chisqpdf(df: f64, x: f64) -> f64 {
     log_pdf.exp()
 }
 
+#[must_use]
 pub fn compute_chisqcdf(df: f64, x: f64) -> f64 {
     if x <= 0.0 {
         return 0.0;

@@ -22,6 +22,7 @@ pub struct UnitRegistry {
 }
 
 impl UnitRegistry {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             units: HashMap::new(),
@@ -30,6 +31,7 @@ impl UnitRegistry {
         }
     }
 
+    #[must_use]
     pub fn standard() -> Self {
         #[cfg(feature = "units")]
         let units = register_metric_units();

@@ -126,6 +126,7 @@ impl EvalResult {
     }
 
     /// Render to display string.
+    #[must_use]
     pub fn to_display(&self) -> String {
         match self {
             EvalResult::Scalar(v) => v.to_display(),
@@ -182,6 +183,7 @@ impl EvalResult {
     }
 
     /// Get the unit from the result (for intervals, uses the `lo` endpoint's unit).
+    #[must_use]
     pub fn unit(&self) -> &Arc<Unit> {
         match self {
             EvalResult::Scalar(v) => &v.unit,

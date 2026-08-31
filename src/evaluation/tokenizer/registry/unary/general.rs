@@ -41,7 +41,7 @@ fn sqrt(a: Value) -> Result<Value, AbacusError> {
         let current = a.unit.display.render();
         new_display.numerator.clear();
         new_display.denominator.clear();
-        new_display.numerator.push(format!("({})^0.5", current));
+        new_display.numerator.push(format!("({current})^0.5"));
     }
 
     let new_unit = Arc::new(Unit {
@@ -91,6 +91,7 @@ fn decrement(a: Value) -> Result<Value, AbacusError> {
     })
 }
 
+#[must_use]
 pub fn register_general() -> Vec<UnaryOp> {
     vec![
         // Negation shares precedence 2 with sqrt so that `sqrt -9` correctly

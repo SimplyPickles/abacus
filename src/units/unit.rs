@@ -17,6 +17,7 @@ pub struct UnitExpr {
 }
 
 impl UnitExpr {
+    #[must_use]
     pub fn dimensionless() -> Self {
         Self {
             numerator: Vec::new(),
@@ -31,6 +32,7 @@ impl UnitExpr {
         }
     }
 
+    #[must_use]
     pub fn multiply(&self, rhs: &Self) -> Self {
         let mut numerator = self.numerator.clone();
         numerator.extend(rhs.numerator.iter().cloned());
@@ -44,6 +46,7 @@ impl UnitExpr {
         }
     }
 
+    #[must_use]
     pub fn divide(&self, rhs: &Self) -> Self {
         let mut numerator = self.numerator.clone();
         numerator.extend(rhs.denominator.iter().cloned());
@@ -57,6 +60,7 @@ impl UnitExpr {
         }
     }
 
+    #[must_use]
     pub fn simplified(mut self) -> Self {
         let mut numerator_index = 0;
 
@@ -76,6 +80,7 @@ impl UnitExpr {
         self
     }
 
+    #[must_use]
     pub fn render(&self) -> String {
         match (self.numerator.is_empty(), self.denominator.is_empty()) {
             (true, true) => String::new(),
@@ -85,10 +90,12 @@ impl UnitExpr {
         }
     }
 
+    #[must_use]
     pub fn render_numerator(&self) -> String {
         render_units(&self.numerator)
     }
 
+    #[must_use]
     pub fn render_denominator(&self) -> String {
         render_units(&self.denominator)
     }
@@ -173,14 +180,17 @@ impl Unit {
         }
     }
 
+    #[must_use]
     pub fn is_compatible_with(&self, other: &Self) -> bool {
         self.dimensions == other.dimensions
     }
 
+    #[must_use]
     pub fn is_affine(&self) -> bool {
         self.offset != 0.0
     }
 
+    #[must_use]
     pub fn dimensionless() -> Self {
         Self {
             dimensions: Dimensions::DIMENSIONLESS,
@@ -195,14 +205,17 @@ impl Unit {
         DIMENSIONLESS.get_or_init(|| Arc::new(Self::dimensionless()))
     }
 
+    #[must_use]
     pub fn dimensionless_arc() -> Arc<Self> {
         Arc::clone(Self::dimensionless_arc_ref())
     }
 
+    #[must_use]
     pub fn is_dimensionless(&self) -> bool {
         self.dimensions == Dimensions::DIMENSIONLESS
     }
 
+    #[must_use]
     pub fn is_percent(&self) -> bool {
         self.is_dimensionless()
             && self.display.denominator.is_empty()
@@ -210,6 +223,7 @@ impl Unit {
             && self.display.numerator[0] == "%"
     }
 
+    #[must_use]
     pub fn is_business_day_unit(&self) -> bool {
         self.dimensions == Dimensions::TIME
             && self.display.denominator.is_empty()
@@ -235,6 +249,7 @@ impl Unit {
             )
     }
 
+    #[must_use]
     pub fn is_standard_duration_unit(&self) -> bool {
         self.dimensions == Dimensions::TIME
             && self.display.denominator.is_empty()

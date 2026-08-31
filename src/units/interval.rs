@@ -66,11 +66,13 @@ impl Interval {
     }
 
     /// Promote a single scalar `Value` to a degenerate interval `[v, v]`.
+    #[must_use]
     pub fn from_value(v: Value) -> Self {
         Self::from_value_with_style(v, IntervalStyle::Bracket)
     }
 
     /// Promote a single scalar `Value` to a degenerate interval with an explicit style.
+    #[must_use]
     pub fn from_value_with_style(v: Value, style: IntervalStyle) -> Self {
         Self {
             lo: v.clone(),
@@ -217,6 +219,7 @@ impl Interval {
     }
 
     /// Render the interval as `[lo, hi]` or `lo..hi` depending on style.
+    #[must_use]
     pub fn to_display(&self) -> String {
         match self.style {
             IntervalStyle::Bracket => {

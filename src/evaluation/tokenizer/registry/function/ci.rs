@@ -48,7 +48,7 @@ fn z_critical(confidence: f64) -> Result<f64, AbacusError> {
     if confidence <= 0.0 || confidence >= 1.0 {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
-    let p = (1.0 + confidence) / 2.0;
+    let p = f64::midpoint(1.0, confidence);
     Ok(std::f64::consts::SQRT_2 * erfinv(2.0 * p - 1.0))
 }
 
@@ -57,7 +57,7 @@ fn t_critical(confidence: f64, df: f64) -> Result<f64, AbacusError> {
     if confidence <= 0.0 || confidence >= 1.0 || df <= 0.0 {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
-    let p = (1.0 + confidence) / 2.0;
+    let p = f64::midpoint(1.0, confidence);
     let t = compute_invt(p, df);
     if t.is_nan() || t.is_infinite() {
         Err(AbacusError::IncompatibleFunctionArguments)

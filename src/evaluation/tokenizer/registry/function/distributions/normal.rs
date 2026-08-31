@@ -7,6 +7,7 @@ use crate::{
 };
 use std::f64::consts::TAU;
 
+#[must_use]
 pub fn std_normal_cdf(z: f64) -> f64 {
     0.5 * (1.0 + erf(z / std::f64::consts::SQRT_2))
 }
