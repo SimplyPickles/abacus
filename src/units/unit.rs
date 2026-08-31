@@ -198,6 +198,44 @@ impl Unit {
             && self.display.numerator.len() == 1
             && self.display.numerator[0] == "%"
     }
+
+    pub fn is_business_day_unit(&self) -> bool {
+        self.dimensions == Dimensions::TIME
+            && self.display.denominator.is_empty()
+            && self.display.numerator.len() == 1
+            && matches!(
+                self.display.numerator[0].as_str(),
+                "business_days"
+                    | "bdays"
+                    | "workdays"
+                    | "business_day"
+                    | "business day"
+                    | "business days"
+                    | "workday"
+                    | "work day"
+                    | "work days"
+                    | "work_day"
+                    | "work_days"
+                    | "working day"
+                    | "working days"
+                    | "working_day"
+                    | "working_days"
+                    | "bday"
+            )
+    }
+
+    pub fn is_standard_duration_unit(&self) -> bool {
+        self.dimensions == Dimensions::TIME
+            && self.display.denominator.is_empty()
+            && match self.display.numerator.as_slice() {
+                [] => true,
+                [s] => matches!(
+                    s.as_str(),
+                    "s" | "h" | "min" | "d" | "minute" | "hour" | "second" | "day"
+                ),
+                _ => false,
+            }
+    }
 }
 
 #[cfg(test)]

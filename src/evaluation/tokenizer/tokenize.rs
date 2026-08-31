@@ -612,7 +612,7 @@ pub fn tokenize_string<'a>(
                 &input_text[start..chars.peek().map_or(input_text.len(), |&(idx, _)| idx)];
             let val = num_str
                 .parse::<f64>()
-                .map_err(|_| AbacusError::UnknownUnit(num_str.to_string()))?;
+                .map_err(|_| AbacusError::InvalidNumber(num_str.to_string()))?;
 
             // Check if immediately followed by an unspaced unit identifier (e.g. 5km, 10m, 1s^-1)
             if let Some(&(unit_start, unit_c)) = chars.peek()
@@ -865,7 +865,7 @@ mod tests {
         // sin(45 deg)
         let sin_op = &token_reg.function_operators["sin"];
         let angle = unit_reg.value(45.0, "deg").unwrap();
-        let sin_res = sin_op.apply(&[angle]).unwrap();
+        let sin_res = sin_op.apply_scalar(&[angle]).unwrap();
         assert!(
             (sin_res.into_scalar().unwrap().canonical - (std::f64::consts::FRAC_1_SQRT_2)).abs()
                 < 1e-10
@@ -876,7 +876,7 @@ mod tests {
         let v1 = unit_reg.value(10.0, "m").unwrap();
         let v2 = unit_reg.value(20.0, "m").unwrap();
         let v3 = unit_reg.value(30.0, "m").unwrap();
-        let mean_res = mean_op.apply(&[v1, v2, v3]).unwrap();
+        let mean_res = mean_op.apply_scalar(&[v1, v2, v3]).unwrap();
         assert_eq!(mean_res.to_display(), "20 m");
     }
 

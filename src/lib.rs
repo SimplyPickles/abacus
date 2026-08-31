@@ -13,7 +13,7 @@ pub use units::{
     dimensions::Dimensions,
     eval_result::EvalResult,
     hash::Hash,
-    interval::Interval,
+    interval::{Interval, IntervalStyle},
     unit::Unit,
     value::Value,
 };

@@ -86,11 +86,6 @@ pub static BASE_METRIC_UNITS: &[MetricBaseUnit] = generate_base_units! {
 
 const CELSIUS_ALIASES: &[&str] = &["celsius", "degC", "°C"];
 
-const TIMEZONE_NAMES: &[&str] = &[
-    "UTC", "GMT", "Z", "EST", "EDT", "CST", "CDT", "MST", "MDT", "PST", "PDT", "AKST", "AKDT",
-    "HST", "CET", "CEST", "BST", "EET", "EEST", "MSK", "IST", "JST", "KST", "AEST", "NZST",
-];
-
 // Declares a public function that returns a map of base and prefixed metric units.
 pub fn register_metric_units() -> HashMap<String, Arc<Unit>> {
     let mut map: HashMap<String, Arc<Unit>> = HashMap::new();
@@ -117,7 +112,7 @@ pub fn register_metric_units() -> HashMap<String, Arc<Unit>> {
     map.insert("percent".to_string(), Arc::clone(&percent));
     map.insert("pct".to_string(), Arc::clone(&percent));
 
-    for &tz_name in TIMEZONE_NAMES {
+    for &(tz_name, _) in crate::TimeZone::SUPPORTED_TIMEZONES {
         let tz_unit = Arc::new(Unit {
             scalar: 1.0,
             offset: 0.0,

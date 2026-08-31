@@ -5,7 +5,7 @@ pub const DIMENSION_COUNT: usize = 8;
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Dimensions(pub [f64; DIMENSION_COUNT]);
 
-// PartialEq implementation for `Dimensions`
+// PartialEq implementation for `Dimensions` using an epsilon threshold for float comparison.
 impl PartialEq for Dimensions {
     fn eq(&self, other: &Self) -> bool {
         self.0
@@ -14,9 +14,6 @@ impl PartialEq for Dimensions {
             .all(|(a, b)| (a - b).abs() < 1e-9)
     }
 }
-
-// Since we implement PartialEq with epsilon, we can safely implement Eq for use in existing structs (like Unit).
-impl Eq for Dimensions {}
 
 /// Dimension constants for common unit systems & dimensionless units.
 /// Each dimension is represented by a power of the base units in the `Dimensions` vector

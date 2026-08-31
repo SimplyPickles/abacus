@@ -72,32 +72,42 @@ impl TimeZone {
         Self::new("UTC", 0)
     }
 
+    pub const SUPPORTED_TIMEZONES: &'static [(&'static str, i32)] = &[
+        ("UTC", 0),
+        ("GMT", 0),
+        ("Z", 0),
+        ("EST", -300),
+        ("EDT", -240),
+        ("CST", -360),
+        ("CDT", -300),
+        ("MST", -420),
+        ("MDT", -360),
+        ("PST", -480),
+        ("PDT", -420),
+        ("AKST", -540),
+        ("AKDT", -480),
+        ("HST", -600),
+        ("CET", 60),
+        ("BST", 60),
+        ("CEST", 120),
+        ("EET", 120),
+        ("EEST", 180),
+        ("MSK", 180),
+        ("IST", 330), // +05:30
+        ("JST", 540), // +09:00
+        ("KST", 540),
+        ("AEST", 600), // +10:00
+        ("NZST", 720), // +12:00
+    ];
+
     pub fn parse(s: &str) -> Result<Self, AbacusError> {
         let s = s.trim();
         let upper = s.to_ascii_uppercase();
 
-        let offset = match upper.as_str() {
-            "UTC" | "GMT" | "Z" => Some(0),
-            "EST" => Some(-300),
-            "EDT" => Some(-240),
-            "CST" => Some(-360),
-            "CDT" => Some(-300),
-            "MST" => Some(-420),
-            "MDT" => Some(-360),
-            "PST" => Some(-480),
-            "PDT" => Some(-420),
-            "AKST" => Some(-540),
-            "AKDT" => Some(-480),
-            "HST" => Some(-600),
-            "CET" | "BST" => Some(60),
-            "CEST" | "EET" => Some(120),
-            "EEST" | "MSK" => Some(180),
-            "IST" => Some(330),         // +05:30
-            "JST" | "KST" => Some(540), // +09:00
-            "AEST" => Some(600),        // +10:00
-            "NZST" => Some(720),        // +12:00
-            _ => None,
-        };
+        let offset = Self::SUPPORTED_TIMEZONES
+            .iter()
+            .find(|(name, _)| *name == upper.as_str())
+            .map(|(_, off)| *off);
 
         if let Some(off) = offset {
             return Ok(Self::new(upper, off));
@@ -661,13 +671,35 @@ impl Date {
         if rhs.unit.dimensions != Dimensions::TIME {
             return Err(AbacusError::IncompatibleDimensions);
         }
-        let sym = rhs.unit.display.render().to_ascii_lowercase();
-        if sym.contains("business") || sym.contains("work") || sym == "bday" || sym == "bdays" {
+        if rhs.unit.is_business_day_unit() {
             let count = (rhs.canonical / 86400.0).round() as i64;
             Ok(self.add_business_days(sign * count))
         } else {
             let ms = (rhs.canonical * 1000.0).round() as i64;
             Ok(self.add_milliseconds(sign * ms))
+        }
+    }
+
+    /// Retrieves a numerical property value from this Date by property name.
+    pub fn get_property(&self, prop: &str) -> Option<f64> {
+        match prop {
+            "year" => Some(self.year as f64),
+            "month" => Some(self.month as f64),
+            "day" => Some(self.day as f64),
+            "hour" => Some(self.time.hour as f64),
+            "minute" => Some(self.time.minute as f64),
+            "second" => Some(self.time.second as f64),
+            "millisecond" | "ms" => Some(self.time.millisecond as f64),
+            "day_of_week" | "weekday" => Some(self.day_of_week() as u32 as f64),
+            "day_of_year" => Some(self.day_of_year() as f64),
+            "is_weekend" => Some(if self.is_weekend() { 1.0 } else { 0.0 }),
+            "is_workday" | "is_business_day" => {
+                Some(if self.is_business_day() { 1.0 } else { 0.0 })
+            }
+            "offset" | "offset_minutes" => {
+                Some(self.timezone.as_ref().map_or(0.0, |tz| tz.offset_minutes as f64))
+            }
+            _ => None,
         }
     }
 

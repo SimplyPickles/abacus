@@ -2,7 +2,7 @@ use crate::{
     AbacusError, UnitRegistry, Value,
     evaluation::tokenizer::{registry::token_registry::TokenRegistry, tokens::Token},
     units::eval_result::EvalResult,
-    units::interval::Interval,
+    units::interval::{Interval, IntervalStyle},
 };
 
 /// A Pratt parser that consumes a `Vec<Token>` produced by the tokenizer
@@ -22,6 +22,7 @@ pub struct Parser<'a> {
     token_registry: &'a TokenRegistry,
     unit_registry: &'a UnitRegistry,
     pub has_explicit_conversion: bool,
+    function_arg_depth: usize,
 }
 
 impl<'a> Parser<'a> {
@@ -36,6 +37,7 @@ impl<'a> Parser<'a> {
             token_registry,
             unit_registry,
             has_explicit_conversion: false,
+            function_arg_depth: 0,
         }
     }
 
@@ -135,6 +137,33 @@ impl<'a> Parser<'a> {
                     .get(name)
                     .ok_or_else(|| AbacusError::UnexpectedToken(name.to_string()))?;
                 lhs = lhs.apply_binary(op, rhs)?;
+                continue;
+            }
+
+            // Check for range operator `..` (constructing an Interval) outside function arguments
+            if self.function_arg_depth == 0 && self.peek() == Some(&Token::Range) {
+                let l_bp = 10;
+                let r_bp = 11;
+                if l_bp < min_bp {
+                    break;
+                }
+                self.advance();
+                let rhs_res = self.parse_expr(r_bp)?;
+                let lo = lhs.into_scalar().map_err(|_| {
+                    AbacusError::UnexpectedToken(
+                        "range endpoints must be scalar values".to_string(),
+                    )
+                })?;
+                let hi = rhs_res.into_scalar().map_err(|_| {
+                    AbacusError::UnexpectedToken(
+                        "range endpoints must be scalar values".to_string(),
+                    )
+                })?;
+                lhs = EvalResult::Interval(Interval::new_with_style(
+                    lo,
+                    hi,
+                    IntervalStyle::Range,
+                )?);
                 continue;
             }
 
@@ -331,38 +360,13 @@ impl<'a> Parser<'a> {
                         EvalResult::Scalar(val.clone())
                     }
                     EvalResult::Date(d) => {
-                        use crate::units::{
-                            dimensions::Dimensions,
-                            unit::{Unit, UnitExpr},
-                        };
-                        let num = match prop.as_str() {
-                            "year" => d.year as f64,
-                            "month" => d.month as f64,
-                            "day" => d.day as f64,
-                            "hour" => d.time.hour as f64,
-                            "minute" => d.time.minute as f64,
-                            "second" => d.time.second as f64,
-                            "millisecond" | "ms" => d.time.millisecond as f64,
-                            "day_of_week" | "weekday" => d.day_of_week() as u32 as f64,
-                            "day_of_year" => d.day_of_year() as f64,
-                            "offset" | "offset_minutes" => d
-                                .timezone
-                                .as_ref()
-                                .map_or(0.0, |tz| tz.offset_minutes as f64),
-                            _ => {
-                                return Err(AbacusError::UnexpectedToken(format!(
-                                    "unknown property '.{}' on Date",
-                                    prop
-                                )));
-                            }
-                        };
-                        let unit = std::sync::Arc::new(Unit {
-                            scalar: 1.0,
-                            offset: 0.0,
-                            dimensions: Dimensions::DIMENSIONLESS,
-                            display: UnitExpr::dimensionless(),
-                        });
-                        EvalResult::Scalar(Value::new(num, unit))
+                        let num = d.get_property(&prop).ok_or_else(|| {
+                            AbacusError::UnexpectedToken(format!(
+                                "unknown property '.{}' on Date",
+                                prop
+                            ))
+                        })?;
+                        EvalResult::Scalar(Value::dimensionless(num))
                     }
                     _ => {
                         return Err(AbacusError::UnexpectedToken(format!(
@@ -446,7 +450,11 @@ impl<'a> Parser<'a> {
 
             // Grouped expression: ( expr )
             Some(Token::OpenParen) => {
-                let val = self.parse_expr(0)?;
+                let prev_depth = self.function_arg_depth;
+                self.function_arg_depth = 0;
+                let val = self.parse_expr(0);
+                self.function_arg_depth = prev_depth;
+                let val = val?;
                 self.expect(&Token::CloseParen)
                     .map_err(|_| AbacusError::UnclosedParen)?;
                 Ok(val)
@@ -517,44 +525,50 @@ impl<'a> Parser<'a> {
                 if self.peek() == Some(&Token::OpenParen) {
                     self.advance(); // consume '('
 
-                    // Handle empty argument list: func()
-                    if self.peek() != Some(&Token::CloseParen) {
-                        loop {
-                            let arg_result = self.parse_expr(0)?;
+                    self.function_arg_depth += 1;
+                    let parse_args = (|| -> Result<(), AbacusError> {
+                        // Handle empty argument list: func()
+                        if self.peek() != Some(&Token::CloseParen) {
+                            loop {
+                                let arg_result = self.parse_expr(0)?;
 
-                            if self.peek() == Some(&Token::Range) {
-                                let arg = arg_result
-                                    .into_scalar()
-                                    .map_err(|_| AbacusError::IntervalInFunction)?;
-                                self.advance(); // consume `..`
-                                let end_result = self.parse_expr(0)?;
-                                let end = end_result
-                                    .into_scalar()
-                                    .map_err(|_| AbacusError::IntervalInFunction)?;
-                                let custom_step = if self.peek() == Some(&Token::Range) {
-                                    self.advance(); // consume second `..`
-                                    let step_result = self.parse_expr(0)?;
-                                    Some(
-                                        step_result
-                                            .into_scalar()
-                                            .map_err(|_| AbacusError::IntervalInFunction)?,
-                                    )
+                                if self.peek() == Some(&Token::Range) {
+                                    let arg = arg_result
+                                        .into_scalar()
+                                        .map_err(|_| AbacusError::IntervalInFunction)?;
+                                    self.advance(); // consume `..`
+                                    let end_result = self.parse_expr(0)?;
+                                    let end = end_result
+                                        .into_scalar()
+                                        .map_err(|_| AbacusError::IntervalInFunction)?;
+                                    let custom_step = if self.peek() == Some(&Token::Range) {
+                                        self.advance(); // consume second `..`
+                                        let step_result = self.parse_expr(0)?;
+                                        Some(
+                                            step_result
+                                                .into_scalar()
+                                                .map_err(|_| AbacusError::IntervalInFunction)?,
+                                        )
+                                    } else {
+                                        None
+                                    };
+                                    let seq = RangeSeq::new(arg, end, custom_step)?;
+                                    raw_args.extend(seq.iter().map(EvalResult::Scalar));
                                 } else {
-                                    None
-                                };
-                                let seq = RangeSeq::new(arg, end, custom_step)?;
-                                raw_args.extend(seq.iter().map(EvalResult::Scalar));
-                            } else {
-                                raw_args.push(arg_result);
-                            }
+                                    raw_args.push(arg_result);
+                                }
 
-                            if self.peek() == Some(&Token::Comma) {
-                                self.advance(); // consume ','
-                            } else {
-                                break;
+                                if self.peek() == Some(&Token::Comma) {
+                                    self.advance(); // consume ','
+                                } else {
+                                    break;
+                                }
                             }
                         }
-                    }
+                        Ok(())
+                    })();
+                    self.function_arg_depth -= 1;
+                    parse_args?;
 
                     self.expect(&Token::CloseParen)
                         .map_err(|_| AbacusError::UnclosedParen)?;
@@ -565,92 +579,7 @@ impl<'a> Parser<'a> {
                     raw_args.push(arg_result);
                 }
 
-                // Check for Date property function call
-                if raw_args.len() == 1
-                    && let EvalResult::Date(ref d) = raw_args[0]
-                {
-                    use crate::units::{
-                        dimensions::Dimensions,
-                        unit::{Unit, UnitExpr},
-                    };
-                    let num = match name {
-                        "year" => Some(d.year as f64),
-                        "month" => Some(d.month as f64),
-                        "day" => Some(d.day as f64),
-                        "hour" => Some(d.time.hour as f64),
-                        "minute" => Some(d.time.minute as f64),
-                        "second" => Some(d.time.second as f64),
-                        "millisecond" | "ms" => Some(d.time.millisecond as f64),
-                        "day_of_week" | "weekday" => Some(d.day_of_week() as u32 as f64),
-                        "day_of_year" => Some(d.day_of_year() as f64),
-                        "is_weekend" => Some(if d.is_weekend() { 1.0 } else { 0.0 }),
-                        "is_workday" | "is_business_day" => {
-                            Some(if d.is_business_day() { 1.0 } else { 0.0 })
-                        }
-                        _ => None,
-                    };
-                    if let Some(n) = num {
-                        let unit = std::sync::Arc::new(Unit {
-                            scalar: 1.0,
-                            offset: 0.0,
-                            dimensions: Dimensions::DIMENSIONLESS,
-                            display: UnitExpr::dimensionless(),
-                        });
-                        return Ok(EvalResult::Scalar(Value::new(n, unit)));
-                    }
-                }
-
-                if name == "format_date"
-                    && let Some(EvalResult::Date(d)) = raw_args.first()
-                {
-                    let style = if raw_args.len() == 2 {
-                        let fmt_str = match &raw_args[1] {
-                            EvalResult::Scalar(v) => v.to_units_display().to_ascii_uppercase(),
-                            other => other.to_display().to_ascii_uppercase(),
-                        };
-                        if fmt_str.contains("YYYY") && fmt_str.starts_with("Y") {
-                            crate::units::date::DateFormat::YYYYMMDD
-                        } else if fmt_str.starts_with("M") {
-                            crate::units::date::DateFormat::MMDDYYYY
-                        } else {
-                            crate::units::date::DateFormat::DDMMYYYY
-                        }
-                    } else {
-                        crate::units::date::DateFormat::DDMMYYYY
-                    };
-                    let mut formatted_d = d.clone();
-                    formatted_d.format = style;
-                    return Ok(EvalResult::Date(formatted_d));
-                }
-
-                if raw_args.len() == 2
-                    && (name == "workdays" || name == "business_days")
-                    && let (EvalResult::Date(d1), EvalResult::Date(d2)) =
-                        (&raw_args[0], &raw_args[1])
-                {
-                    use crate::units::{
-                        dimensions::Dimensions,
-                        unit::{Unit, UnitExpr},
-                    };
-                    let bdays = d1.business_days_between(d2) as f64;
-                    let unit = std::sync::Arc::new(Unit {
-                        scalar: 86400.0,
-                        offset: 0.0,
-                        dimensions: Dimensions::TIME,
-                        display: UnitExpr::single("workdays"),
-                    });
-                    return Ok(EvalResult::Scalar(Value::new(bdays, unit)));
-                }
-
-                let mut scalar_args = Vec::with_capacity(raw_args.len());
-                for arg_res in raw_args {
-                    let scalar = arg_res
-                        .into_scalar()
-                        .map_err(|_| AbacusError::IntervalInFunction)?;
-                    scalar_args.push(scalar);
-                }
-
-                func.apply(&scalar_args)
+                func.apply(&raw_args)
             }
 
             Some(tok) => Err(AbacusError::UnexpectedToken(format!("{:?}", tok))),

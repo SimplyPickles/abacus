@@ -14,6 +14,7 @@ pub enum AbacusError {
     IntervalInFunction,
     HashAsResult,
     InvalidDate(String),
+    InvalidNumber(String),
     IncompatibleOperatorType(String),
     IncompatibleWithConversion(String),
 }
@@ -41,6 +42,7 @@ impl fmt::Display for AbacusError {
                 write!(f, "hash cannot be used as a result")
             }
             Self::InvalidDate(msg) => write!(f, "invalid date: {msg}"),
+            Self::InvalidNumber(num) => write!(f, "invalid number format: {num}"),
             Self::IncompatibleOperatorType(msg) => write!(f, "{msg}"),
             Self::IncompatibleWithConversion(ty) => {
                 write!(f, "values of type {ty} cannot be converted")

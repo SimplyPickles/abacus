@@ -246,3 +246,45 @@ fn test_interval_missing_comma_error() {
     // [1 3] without comma should error
     assert!(eval("[1 3]").is_err());
 }
+
+#[test]
+fn test_range_syntax_intervals() {
+    // 1..10 + 5 = 6..15
+    let res = eval("1..10 + 5").unwrap();
+    assert_eq!(res.to_display(), "6..15");
+
+    // 1..10 - 5 = -4..5
+    let res = eval("1..10 - 5").unwrap();
+    assert_eq!(res.to_display(), "-4..5");
+
+    // 5 + 1..10 = 6..15
+    let res = eval("5 + 1..10").unwrap();
+    assert_eq!(res.to_display(), "6..15");
+
+    // 5 - 1..10 = -5..4
+    let res = eval("5 - 1..10").unwrap();
+    assert_eq!(res.to_display(), "-5..4");
+
+    // Adding two intervals: 1..10 + 2..5 = 3..15
+    let res = eval("1..10 + 2..5").unwrap();
+    assert_eq!(res.to_display(), "3..15");
+
+    // Subtracting two intervals: 1..10 - 2..5 = -4..8
+    let res = eval("1..10 - 2..5").unwrap();
+    assert_eq!(res.to_display(), "-4..8");
+
+    // Multiplication with scalar: 1..10 * 2 = 2..20
+    let res = eval("1..10 * 2").unwrap();
+    assert_eq!(res.to_display(), "2..20");
+
+    // Standalone range interval: 1..10 = 1..10
+    let res = eval("1..10").unwrap();
+    assert_eq!(res.to_display(), "1..10");
+
+    // Range intervals with physical units
+    let res = eval("1 m .. 10 m + 5 m").unwrap();
+    assert_eq!(res.to_display(), "6 m..15 m");
+
+    let res = eval("1..10 m + 5 m").unwrap();
+    assert_eq!(res.to_display(), "6 m..15 m");
+}

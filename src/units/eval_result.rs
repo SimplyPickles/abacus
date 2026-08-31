@@ -25,11 +25,11 @@ impl EvalResult {
                 Ok(EvalResult::Interval(l.apply_binary(op, &r)?))
             }
             (EvalResult::Scalar(l), EvalResult::Interval(r)) => {
-                let l = Interval::from_value(l);
+                let l = Interval::from_value_with_style(l, r.style);
                 Ok(EvalResult::Interval(l.apply_binary(op, &r)?))
             }
             (EvalResult::Interval(l), EvalResult::Scalar(r)) => {
-                let r = Interval::from_value(r);
+                let r = Interval::from_value_with_style(r, l.style);
                 Ok(EvalResult::Interval(l.apply_binary(op, &r)?))
             }
             (EvalResult::Date(l), EvalResult::Date(r)) => {
@@ -131,6 +131,20 @@ impl EvalResult {
             EvalResult::Interval(i) => i.to_display(),
             EvalResult::Hash(h) => h.to_display(),
             EvalResult::Date(d) => d.to_string(),
+        }
+    }
+
+    /// Borrow the scalar Value, or error if this is not a scalar.
+    pub fn as_scalar(&self) -> Result<&Value, AbacusError> {
+        match self {
+            EvalResult::Scalar(v) => Ok(v),
+            EvalResult::Interval(_) => Err(AbacusError::IntervalInFunction),
+            EvalResult::Hash(_) => Err(AbacusError::UnexpectedToken(
+                "hash result where scalar expected".to_string(),
+            )),
+            EvalResult::Date(_) => Err(AbacusError::UnexpectedToken(
+                "date result where scalar expected".to_string(),
+            )),
         }
     }
 

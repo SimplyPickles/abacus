@@ -12,32 +12,68 @@ use crate::evaluation::tokenizer::registry::unary::operators::UnaryOp;
 /// endpoints carry physical units. Used for worst-case/best-case analysis in
 /// engineering and safety-critical computations.
 ///
-/// Ex. `[-25, 25] + 10 = [-15, 35]`
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum IntervalStyle {
+    #[default]
+    Bracket,
+    Range,
+}
+
+/// A physical interval representing a guaranteed range `[lo, hi]` or `lo..hi` where both
+/// endpoints carry physical units. Used for worst-case/best-case analysis in
+/// engineering and safety-critical computations.
+///
+/// Ex. `[-25, 25] + 10 = [-15, 35]` or `1..10 + 5 = 6..15`
 #[derive(Debug, Clone)]
 pub struct Interval {
     pub lo: Value,
     pub hi: Value,
+    pub style: IntervalStyle,
 }
 
 impl Interval {
     /// Create a new interval from two `Value` endpoints.
     /// Validates dimension compatibility and normalizes so `lo.canonical <= hi.canonical`.
     pub fn new(a: Value, b: Value) -> Result<Self, AbacusError> {
+        Self::new_with_style(a, b, IntervalStyle::Bracket)
+    }
+
+    /// Create a new interval with an explicit display style (Bracket or Range).
+    pub fn new_with_style(
+        a: Value,
+        b: Value,
+        style: IntervalStyle,
+    ) -> Result<Self, AbacusError> {
+        let (a, b) = if a.unit.is_dimensionless() && !b.unit.is_dimensionless() {
+            (Value::new(a.canonical, Arc::clone(&b.unit)), b)
+        } else if !a.unit.is_dimensionless() && b.unit.is_dimensionless() {
+            let unit = Arc::clone(&a.unit);
+            (a, Value::new(b.canonical, unit))
+        } else {
+            (a, b)
+        };
+
         if !a.unit.is_compatible_with(&b.unit) {
             return Err(AbacusError::IncompatibleDimensions);
         }
         if a.canonical <= b.canonical {
-            Ok(Self { lo: a, hi: b })
+            Ok(Self { lo: a, hi: b, style })
         } else {
-            Ok(Self { lo: b, hi: a })
+            Ok(Self { lo: b, hi: a, style })
         }
     }
 
     /// Promote a single scalar `Value` to a degenerate interval `[v, v]`.
     pub fn from_value(v: Value) -> Self {
+        Self::from_value_with_style(v, IntervalStyle::Bracket)
+    }
+
+    /// Promote a single scalar `Value` to a degenerate interval with an explicit style.
+    pub fn from_value_with_style(v: Value, style: IntervalStyle) -> Self {
         Self {
             lo: v.clone(),
             hi: v,
+            style,
         }
     }
 
@@ -74,7 +110,13 @@ impl Interval {
             .unwrap()
             .clone();
 
-        Ok(Interval { lo, hi })
+        let style = if self.style == IntervalStyle::Range || other.style == IntervalStyle::Range {
+            IntervalStyle::Range
+        } else {
+            IntervalStyle::Bracket
+        };
+
+        Ok(Interval { lo, hi, style })
     }
 
     /// Apply a unary operator to an interval by evaluating both endpoints
@@ -84,9 +126,17 @@ impl Interval {
         let b = op.apply(self.hi.clone())?;
 
         if a.canonical <= b.canonical {
-            Ok(Interval { lo: a, hi: b })
+            Ok(Interval {
+                lo: a,
+                hi: b,
+                style: self.style,
+            })
         } else {
-            Ok(Interval { lo: b, hi: a })
+            Ok(Interval {
+                lo: b,
+                hi: a,
+                style: self.style,
+            })
         }
     }
 
@@ -95,9 +145,17 @@ impl Interval {
         let lo = self.lo.convert_to(Arc::clone(&unit))?;
         let hi = self.hi.convert_to(unit)?;
         if lo.canonical <= hi.canonical {
-            Ok(Interval { lo, hi })
+            Ok(Interval {
+                lo,
+                hi,
+                style: self.style,
+            })
         } else {
-            Ok(Interval { lo: hi, hi: lo })
+            Ok(Interval {
+                lo: hi,
+                hi: lo,
+                style: self.style,
+            })
         }
     }
 
@@ -105,7 +163,11 @@ impl Interval {
     pub fn to_derived(&self, registry: &UnitRegistry) -> Result<Interval, AbacusError> {
         let lo = self.lo.to_derived(registry)?;
         let hi = self.hi.to_derived(registry)?;
-        Ok(Interval { lo, hi })
+        Ok(Interval {
+            lo,
+            hi,
+            style: self.style,
+        })
     }
 
     /// Simplify the unit display on both endpoints.
@@ -114,9 +176,16 @@ impl Interval {
         self.hi.simplify_unit_display(registry);
     }
 
-    /// Render the interval as `[lo_display, hi_display]`.
+    /// Render the interval as `[lo, hi]` or `lo..hi` depending on style.
     pub fn to_display(&self) -> String {
-        format!("[{}, {}]", self.lo.to_display(), self.hi.to_display())
+        match self.style {
+            IntervalStyle::Bracket => {
+                format!("[{}, {}]", self.lo.to_display(), self.hi.to_display())
+            }
+            IntervalStyle::Range => {
+                format!("{}..{}", self.lo.to_display(), self.hi.to_display())
+            }
+        }
     }
 }
 

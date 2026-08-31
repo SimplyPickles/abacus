@@ -238,17 +238,7 @@ fn main() {
 fn format_repl_result(result: &abacus::units::eval_result::EvalResult) -> String {
     match result {
         abacus::units::eval_result::EvalResult::Scalar(v) => {
-            if v.unit.dimensions == abacus::units::dimensions::Dimensions::TIME
-                && (v.unit.display.render() == "s"
-                    || v.unit.display.render() == "h"
-                    || v.unit.display.render() == "min"
-                    || v.unit.display.render() == "d"
-                    || v.unit.display.render() == "minute"
-                    || v.unit.display.render() == "hour"
-                    || v.unit.display.render() == "second"
-                    || v.unit.display.render() == "day"
-                    || v.unit.display.render().is_empty())
-            {
+            if v.unit.is_standard_duration_unit() {
                 abacus::units::value::format_human_duration(v.canonical)
             } else {
                 v.to_display()
