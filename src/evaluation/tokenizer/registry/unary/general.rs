@@ -24,10 +24,7 @@ fn sqrt(a: Value) -> Result<Value, AbacusError> {
     }
 
     // Divide all dimensions by 2.0
-    let mut new_dims = [0.0; 8];
-    for (i, &dim) in a.unit.dimensions.0.iter().enumerate() {
-        new_dims[i] = dim / 2.0;
-    }
+    let new_dims = a.unit.dimensions * 0.5;
 
     let mut new_display = a.unit.display.clone();
 
@@ -48,7 +45,7 @@ fn sqrt(a: Value) -> Result<Value, AbacusError> {
     let new_unit = Arc::new(Unit {
         scalar: a.unit.scalar.sqrt(),
         offset: 0.0,
-        dimensions: Dimensions(new_dims),
+        dimensions: Dimensions(new_dims.0),
         display: new_display,
     });
 

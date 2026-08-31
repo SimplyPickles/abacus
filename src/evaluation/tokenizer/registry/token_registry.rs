@@ -1,13 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::evaluation::tokenizer::registry::{
-    binary::{arithmetic::register_arithmetic, operators::BinaryOp},
-    function::{
-        combinatorics::register_combinatorics, distributions::register_distributions,
-        financial::register_financial, math::register_math, math_helpers::register_math_helpers,
-        operators::FunctionOp, stats::register_stats, trig::register_trig,
-    },
-    unary::{general::register_general, operators::UnaryOp},
+    binary::{arithmetic::register_arithmetic, operators::BinaryOp}, function::{
+        ci::register_ci, combinatorics::register_combinatorics, date::register_date_functions, distributions::register_distributions, financial::register_financial, hypothesis::register_hypothesis, math::register_math, math_helpers::register_math_helpers, operators::FunctionOp, regression::register_regression, stats::register_stats, trig::register_trig,
+    }, unary::{general::register_general, operators::UnaryOp},
 };
 
 #[derive(Debug, Default)]
@@ -36,22 +32,19 @@ impl TokenRegistry {
         let mut unary: Vec<UnaryOp> = Vec::new();
         unary.append(&mut register_general());
 
-        let mut functions: Vec<FunctionOp> = Vec::new();
-        functions.append(&mut register_trig());
-        functions.append(&mut register_math());
-        functions.append(&mut register_combinatorics());
-        functions.append(&mut register_math_helpers());
-        functions.append(&mut register_financial());
-        functions.append(&mut register_stats());
-        functions.append(&mut register_distributions());
-        use crate::evaluation::tokenizer::registry::function::{
-            ci::register_ci, date::register_date_functions, hypothesis::register_hypothesis,
-            regression::register_regression,
-        };
-        functions.append(&mut register_ci());
-        functions.append(&mut register_regression());
-        functions.append(&mut register_hypothesis());
-        functions.append(&mut register_date_functions());
+        let functions = [
+            register_trig(),
+            register_math(),
+            register_combinatorics(),
+            register_math_helpers(),
+            register_financial(),
+            register_stats(),
+            register_distributions(),
+            register_ci(),
+            register_regression(),
+            register_hypothesis(),
+            register_date_functions(),
+        ].concat();
 
         Self {
             binary_operators: binary
