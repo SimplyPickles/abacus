@@ -11,11 +11,11 @@ fn test_default_date_format_is_dd_mm_yyyy() {
 
 #[test]
 fn test_configurable_date_format() {
-    let abacus_iso = Abacus::standard().with_date_format(DateFormat::YYYYMMDD);
+    let abacus_iso = Abacus::standard().set_date_format(DateFormat::YYYYMMDD);
     let d = abacus_iso.eval_date("07-08-2026").unwrap();
     assert_eq!(d.format_with_style(abacus_iso.date_format), "2026-08-07");
 
-    let abacus_us = Abacus::standard().with_date_format(DateFormat::MMDDYYYY);
+    let abacus_us = Abacus::standard().set_date_format(DateFormat::MMDDYYYY);
     let d2 = abacus_us.eval_date("07-08-2026").unwrap();
     assert_eq!(d2.format_with_style(abacus_us.date_format), "08-07-2026");
 }
