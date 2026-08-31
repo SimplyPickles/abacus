@@ -95,8 +95,8 @@ impl<'a> Parser<'a> {
             // Check for postfix operators (e.g. `!`)
             if let Some(Token::UnaryOp(name)) = self.peek() {
                 let name = *name;
-                if let Some(op) = self.token_registry.unary_operators.get(name) {
-                    if !op.prefix || op.alias == "++" || op.alias == "--" {
+                if let Some(op) = self.token_registry.unary_operators.get(name)
+                    && (!op.prefix || op.alias == "++" || op.alias == "--") {
                         let bp = self.postfix_bp(name);
                         if bp < min_bp {
                             break;
@@ -105,7 +105,6 @@ impl<'a> Parser<'a> {
                         lhs = lhs.apply_unary(op)?;
                         continue;
                     }
-                }
             }
 
             // Check for infix binary operators
@@ -162,11 +161,10 @@ impl<'a> Parser<'a> {
                             self.advance();
 
                             // Infer 12-hour clock rollover if d2.time < d1.time on same date (e.g. 12:00 to 1:00 -> 12:00 to 13:00)
-                            if d2.year == d1.year && d2.month == d1.month && d2.day == d1.day {
-                                if d2.time.hour < d1.time.hour && d2.time.hour < 12 {
+                            if d2.year == d1.year && d2.month == d1.month && d2.day == d1.day
+                                && d2.time.hour < d1.time.hour && d2.time.hour < 12 {
                                     d2.time.hour += 12;
                                 }
-                            }
 
                             let unit_h = self
                                 .unit_registry
@@ -406,7 +404,7 @@ impl<'a> Parser<'a> {
             }
 
             Some(Token::Unit(unit_sym)) => {
-                let unit = self.unit_registry.unit(&unit_sym)?;
+                let unit = self.unit_registry.unit(unit_sym)?;
                 Ok(EvalResult::Scalar(Value::new(1.0, unit)))
             }
 
@@ -551,8 +549,8 @@ impl<'a> Parser<'a> {
                 }
 
                 // Check for Date property function call
-                if raw_args.len() == 1 {
-                    if let EvalResult::Date(ref d) = raw_args[0] {
+                if raw_args.len() == 1
+                    && let EvalResult::Date(ref d) = raw_args[0] {
                         use crate::units::{
                             dimensions::Dimensions,
                             unit::{Unit, UnitExpr},
@@ -583,10 +581,9 @@ impl<'a> Parser<'a> {
                             return Ok(EvalResult::Scalar(Value::new(n, unit)));
                         }
                     }
-                }
 
-                if name == "format_date" {
-                    if let Some(EvalResult::Date(d)) = raw_args.first() {
+                if name == "format_date"
+                    && let Some(EvalResult::Date(d)) = raw_args.first() {
                         let style = if raw_args.len() == 2 {
                             let fmt_str = match &raw_args[1] {
                                 EvalResult::Scalar(v) => v.to_units_display().to_ascii_uppercase(),
@@ -606,10 +603,9 @@ impl<'a> Parser<'a> {
                         formatted_d.format = style;
                         return Ok(EvalResult::Date(formatted_d));
                     }
-                }
 
-                if raw_args.len() == 2 && (name == "workdays" || name == "business_days") {
-                    if let (EvalResult::Date(d1), EvalResult::Date(d2)) =
+                if raw_args.len() == 2 && (name == "workdays" || name == "business_days")
+                    && let (EvalResult::Date(d1), EvalResult::Date(d2)) =
                         (&raw_args[0], &raw_args[1])
                     {
                         use crate::units::{
@@ -625,7 +621,6 @@ impl<'a> Parser<'a> {
                         });
                         return Ok(EvalResult::Scalar(Value::new(bdays, unit)));
                     }
-                }
 
                 let mut scalar_args = Vec::with_capacity(raw_args.len());
                 for arg_res in raw_args {

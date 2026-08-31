@@ -178,7 +178,7 @@ impl Time {
         second: u32,
         is_pm: bool,
     ) -> Result<Self, AbacusError> {
-        if hour_12 < 1 || hour_12 > 12 {
+        if !(1..=12).contains(&hour_12) {
             return Err(AbacusError::InvalidDate(format!(
                 "invalid 12-hour value: {hour_12}"
             )));
@@ -293,7 +293,7 @@ pub fn days_in_month(year: i32, month: u32) -> u32 {
 
 /// Check if year, month, day form a valid calendar date.
 pub fn is_valid_date(year: i32, month: u32, day: u32) -> bool {
-    if month < 1 || month > 12 || day < 1 {
+    if !(1..=12).contains(&month) || day < 1 {
         return false;
     }
     day <= days_in_month(year, month)
@@ -874,11 +874,10 @@ impl FromStr for Date {
             }
 
             let tz_word = remaining_words.trim();
-            if !tz_word.is_empty() {
-                if let Ok(tz) = TimeZone::parse(tz_word) {
+            if !tz_word.is_empty()
+                && let Ok(tz) = TimeZone::parse(tz_word) {
                     timezone = Some(tz);
                 }
-            }
         }
 
         let mut date = Date::with_time(year, month, day, time);

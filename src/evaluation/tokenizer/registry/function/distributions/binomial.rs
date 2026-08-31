@@ -18,7 +18,7 @@ fn binompdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let p_val = args[1].canonical;
     let k_val = args[2].canonical;
 
-    if n_val < 0.0 || p_val < 0.0 || p_val > 1.0 || k_val < 0.0 || k_val > n_val {
+    if n_val < 0.0 || !(0.0..=1.0).contains(&p_val) || k_val < 0.0 || k_val > n_val {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
 
@@ -41,7 +41,7 @@ fn binomcdf_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let p_val = args[1].canonical;
     let k_val = args[2].canonical;
 
-    if n_val < 0.0 || p_val < 0.0 || p_val > 1.0 || k_val < 0.0 || k_val > n_val {
+    if n_val < 0.0 || !(0.0..=1.0).contains(&p_val) || k_val < 0.0 || k_val > n_val {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
 

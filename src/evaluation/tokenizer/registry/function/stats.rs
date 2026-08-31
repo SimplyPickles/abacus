@@ -5,7 +5,7 @@ use crate::{
 };
 use std::sync::Arc;
 
-fn check_compatible_units<'a>(args: &'a [Value]) -> Result<&'a Arc<Unit>, AbacusError> {
+fn check_compatible_units(args: &[Value]) -> Result<&Arc<Unit>, AbacusError> {
     if args.is_empty() {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
@@ -87,7 +87,7 @@ fn median_fn(args: &[Value]) -> Result<Value, AbacusError> {
     values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
     let len = values.len();
-    let median_val = if len % 2 == 0 {
+    let median_val = if len.is_multiple_of(2) {
         (values[len / 2 - 1] + values[len / 2]) / 2.0
     } else {
         values[len / 2]
@@ -129,7 +129,7 @@ fn mode_fn(args: &[Value]) -> Result<Value, AbacusError> {
 /// Splits interleaved args into two equal halves: `(x_data, y_data, n)`.
 /// Returns an error if `args` has fewer than 4 elements or an odd count.
 fn parse_paired_data(args: &[Value]) -> Result<(&[Value], &[Value], usize), AbacusError> {
-    if args.len() < 4 || args.len() % 2 != 0 {
+    if args.len() < 4 || !args.len().is_multiple_of(2) {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
     let n = args.len() / 2;
@@ -252,7 +252,7 @@ fn quantile_fn(args: &[Value]) -> Result<Value, AbacusError> {
     }
 
     let q = q_arg.canonical;
-    if q < 0.0 || q > 1.0 {
+    if !(0.0..=1.0).contains(&q) {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
 
@@ -278,7 +278,7 @@ fn percentile_fn(args: &[Value]) -> Result<Value, AbacusError> {
     }
 
     let p = p_arg.canonical;
-    if p < 0.0 || p > 100.0 {
+    if !(0.0..=100.0).contains(&p) {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
 

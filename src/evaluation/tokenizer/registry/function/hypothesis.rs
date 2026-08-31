@@ -314,7 +314,7 @@ fn two_prop_z_test_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
 // Forms:
 // Chi2Test(obs1, exp1, obs2, exp2, ...) -> paired args
 fn chi2_test_fn(args: &[Value]) -> Result<EvalResult, AbacusError> {
-    if args.len() < 4 || args.len() % 2 != 0 {
+    if args.len() < 4 || !args.len().is_multiple_of(2) {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
 

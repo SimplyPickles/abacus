@@ -11,7 +11,7 @@ use std::sync::Arc;
 /// Parse x_data and y_data arrays from arguments.
 /// Split arguments into two equal halves or by checking element count.
 fn parse_regression_inputs(args: &[Value]) -> Result<(Vec<Value>, Vec<Value>), AbacusError> {
-    if args.len() < 4 || args.len() % 2 != 0 {
+    if args.len() < 4 || !args.len().is_multiple_of(2) {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
 
@@ -242,7 +242,7 @@ fn linreg_se_fn(args: &[Value]) -> Result<AbacusValue, AbacusError> {
 
 // ── linreg_predict(x_target, x_data..., y_data...) or linreg_predict(x_data..., y_data..., x_target) ──
 fn linreg_predict_fn(args: &[Value]) -> Result<AbacusValue, AbacusError> {
-    if args.len() < 5 || (args.len() - 1) % 2 != 0 {
+    if args.len() < 5 || !(args.len() - 1).is_multiple_of(2) {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
 

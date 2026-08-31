@@ -55,11 +55,10 @@ impl UnitRegistry {
         ];
 
         for &sym in &priority_symbols {
-            if let Some(unit) = self.units.get(sym) {
-                if &unit.dimensions == dimensions {
+            if let Some(unit) = self.units.get(sym)
+                && &unit.dimensions == dimensions {
                     return Some(Arc::clone(unit));
                 }
-            }
         }
 
         None
@@ -73,15 +72,14 @@ impl UnitRegistry {
     }
 
     fn parse_exponent_unit(&self, symbol: &str) -> Result<Arc<Unit>, AbacusError> {
-        if let Ok(guard) = self.cache.read() {
-            if let Some(cached) = guard.get(symbol) {
+        if let Ok(guard) = self.cache.read()
+            && let Some(cached) = guard.get(symbol) {
                 return Ok(Arc::clone(cached));
             }
-        }
 
-        if let Some((base_sym, exp_str)) = symbol.rsplit_once('^') {
-            if let Ok(exp) = exp_str.parse::<f64>() {
-                if let Some(base_unit) = self.units.get(base_sym) {
+        if let Some((base_sym, exp_str)) = symbol.rsplit_once('^')
+            && let Ok(exp) = exp_str.parse::<f64>()
+                && let Some(base_unit) = self.units.get(base_sym) {
                     let scalar = base_unit.scalar.powf(exp);
                     let dimensions = base_unit.dimensions * exp;
 
@@ -127,8 +125,6 @@ impl UnitRegistry {
 
                     return Ok(unit);
                 }
-            }
-        }
         Err(AbacusError::UnknownUnit(symbol.to_string()))
     }
 

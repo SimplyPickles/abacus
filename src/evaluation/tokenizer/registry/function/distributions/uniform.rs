@@ -66,7 +66,7 @@ fn invunif_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let a = args[1].canonical;
     let b = args[2].canonical;
 
-    if p < 0.0 || p > 1.0 || a >= b {
+    if !(0.0..=1.0).contains(&p) || a >= b {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
 
