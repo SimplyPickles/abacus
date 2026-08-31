@@ -157,7 +157,13 @@ use rustyline::ColorMode;
 fn main() {
     let calc = Abacus::standard();
     let config = Config::builder().color_mode(ColorMode::Forced).build();
-    let mut rl = Editor::with_config(config).unwrap();
+    let mut rl = match Editor::with_config(config) {
+        Ok(rl) => rl,
+        Err(e) => {
+            eprintln!("Failed to initialize interactive editor: {e}");
+            return;
+        }
+    };
     rl.set_helper(Some(AbacusHelper));
 
     let history_path = get_history_path();
@@ -192,18 +198,18 @@ fn main() {
                     break;
                 }
 
-                if trimmed == ".clear" || trimmed == "clear" {
+                if trimmed == "clear" {
                     print!("\x1b[2J\x1b[1;1H");
                     let _ = std::io::stdout().flush();
                     print_welcome_banner();
                     continue;
                 }
 
-                if trimmed == ".help" || trimmed == "help" {
+                if trimmed == "help" {
                     println!("\x1b[38;2;189;147;249m  Abacus REPL Commands & Syntax:\x1b[0m");
-                    println!("    .help       Show this help summary");
-                    println!("    .clear      Clear the terminal screen");
-                    println!("    :q / exit   Exit the REPL\n");
+                    println!("    help       Show this help summary");
+                    println!("    clear      Clear the terminal screen");
+                    println!("    :q / exit  Exit the REPL\n");
                     continue;
                 }
 

@@ -16,6 +16,7 @@ pub enum AbacusError {
     InvalidNumber(String),
     IncompatibleOperatorType(String),
     IncompatibleWithConversion(String),
+    RecursionLimitExceeded,
 }
 
 // Display implementation for `AbacusError`
@@ -42,6 +43,9 @@ impl fmt::Display for AbacusError {
             Self::IncompatibleOperatorType(msg) => write!(f, "{msg}"),
             Self::IncompatibleWithConversion(ty) => {
                 write!(f, "values of type {ty} cannot be converted")
+            }
+            Self::RecursionLimitExceeded => {
+                write!(f, "maximum recursion depth exceeded")
             }
         }
     }

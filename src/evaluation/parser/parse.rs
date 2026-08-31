@@ -16,6 +16,8 @@ use crate::{
 ///   4 — Unary prefix (`-`, `sqrt`)
 ///   5 — Exponentiation (`^`, right-associative)
 ///   6 — Postfix (`!`)
+pub const MAX_RECURSION_DEPTH: usize = 64;
+
 pub struct Parser<'a> {
     tokens: Vec<Option<Token<'a>>>,
     pos: usize,
@@ -23,6 +25,7 @@ pub struct Parser<'a> {
     unit_registry: &'a UnitRegistry,
     pub has_explicit_conversion: bool,
     function_arg_depth: usize,
+    recursion_depth: usize,
 }
 
 impl<'a> Parser<'a> {
@@ -38,6 +41,7 @@ impl<'a> Parser<'a> {
             unit_registry,
             has_explicit_conversion: false,
             function_arg_depth: 0,
+            recursion_depth: 0,
         }
     }
 
@@ -101,6 +105,16 @@ impl<'a> Parser<'a> {
     /// `min_bp` is the minimum binding power — the parser will keep consuming
     /// infix operators whose left binding power is ≥ `min_bp`.
     fn parse_expr(&mut self, min_bp: u8) -> Result<EvalResult, AbacusError> {
+        if self.recursion_depth >= MAX_RECURSION_DEPTH {
+            return Err(AbacusError::RecursionLimitExceeded);
+        }
+        self.recursion_depth += 1;
+        let res = self.parse_expr_inner(min_bp);
+        self.recursion_depth -= 1;
+        res
+    }
+
+    fn parse_expr_inner(&mut self, min_bp: u8) -> Result<EvalResult, AbacusError> {
         // ── NUD (prefix / atom) ──
         let mut lhs = self.parse_prefix()?;
 

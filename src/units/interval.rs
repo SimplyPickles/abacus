@@ -141,8 +141,8 @@ impl Interval {
                     .partial_cmp(&b.canonical)
                     .unwrap_or(std::cmp::Ordering::Equal)
             })
-            .unwrap()
-            .clone();
+            .cloned()
+            .ok_or(AbacusError::IncompatibleDimensions)?;
 
         let hi = corners
             .iter()
@@ -151,8 +151,8 @@ impl Interval {
                     .partial_cmp(&b.canonical)
                     .unwrap_or(std::cmp::Ordering::Equal)
             })
-            .unwrap()
-            .clone();
+            .cloned()
+            .ok_or(AbacusError::IncompatibleDimensions)?;
 
         Ok(Interval { lo, hi, style })
     }

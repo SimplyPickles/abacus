@@ -212,9 +212,8 @@ fn try_parse_date_literal(remaining: &str) -> Option<(crate::Date, usize)> {
             let after_tz = remaining[end_idx..].trim_start();
             let after_tz_skipped = remaining[end_idx..].len() - after_tz.len();
             if let Some(next_word) = after_tz.split_whitespace().next()
-                && crate::units::date::TimeZone::parse(next_word).is_ok()
+                && let Ok(tz) = crate::units::date::TimeZone::parse(next_word)
             {
-                let tz = crate::units::date::TimeZone::parse(next_word).unwrap();
                 date.timezone = Some(tz);
                 end_idx += after_tz_skipped + next_word.len();
             }
@@ -231,9 +230,8 @@ fn try_parse_date_literal(remaining: &str) -> Option<(crate::Date, usize)> {
         let after_tz = remaining[end_idx..].trim_start();
         let after_tz_skipped = remaining[end_idx..].len() - after_tz.len();
         if let Some(next_word) = after_tz.split_whitespace().next()
-            && crate::units::date::TimeZone::parse(next_word).is_ok()
+            && let Ok(tz) = crate::units::date::TimeZone::parse(next_word)
         {
-            let tz = crate::units::date::TimeZone::parse(next_word).unwrap();
             date.timezone = Some(tz);
             end_idx += after_tz_skipped + next_word.len();
         }
@@ -502,11 +500,11 @@ pub fn tokenize_string<'a>(
                 chars.next();
                 chars.next();
                 continue;
-            } else if let Some(&(_, next_c)) = dot_lookahead.peek()
+            } else if let Some(&(next_idx, next_c)) = dot_lookahead.peek()
                 && (next_c.is_alphabetic() || next_c == '_')
             {
                 chars.next(); // consume '.'
-                let start = chars.peek().unwrap().0;
+                let start = next_idx;
                 let mut end = start;
                 while let Some(&(idx, sym_c)) = chars.peek() {
                     if sym_c.is_alphanumeric() || sym_c == '_' {
