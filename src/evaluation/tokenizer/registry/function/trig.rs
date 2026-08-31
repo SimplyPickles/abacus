@@ -108,83 +108,18 @@ fn atanh_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
 pub fn register_trig() -> Vec<FunctionOp> {
     vec![
-        FunctionOp {
-            name: "sin",
-            min_args: 1,
-            max_args: 1,
-            func: FunctionTarget::Scalar(sin_fn),
-        },
-        FunctionOp {
-            name: "cos",
-            min_args: 1,
-            max_args: 1,
-            func: FunctionTarget::Scalar(cos_fn),
-        },
-        FunctionOp {
-            name: "tan",
-            min_args: 1,
-            max_args: 1,
-            func: FunctionTarget::Scalar(tan_fn),
-        },
-        FunctionOp {
-            name: "asin",
-            min_args: 1,
-            max_args: 1,
-            func: FunctionTarget::Scalar(asin_fn),
-        },
-        FunctionOp {
-            name: "acos",
-            min_args: 1,
-            max_args: 1,
-            func: FunctionTarget::Scalar(acos_fn),
-        },
-        FunctionOp {
-            name: "atan",
-            min_args: 1,
-            max_args: 1,
-            func: FunctionTarget::Scalar(atan_fn),
-        },
-        FunctionOp {
-            name: "atan2",
-            min_args: 2,
-            max_args: 2,
-            func: FunctionTarget::Scalar(atan2_fn),
-        },
-        FunctionOp {
-            name: "sinh",
-            min_args: 1,
-            max_args: 1,
-            func: FunctionTarget::Scalar(sinh_fn),
-        },
-        FunctionOp {
-            name: "cosh",
-            min_args: 1,
-            max_args: 1,
-            func: FunctionTarget::Scalar(cosh_fn),
-        },
-        FunctionOp {
-            name: "tanh",
-            min_args: 1,
-            max_args: 1,
-            func: FunctionTarget::Scalar(tanh_fn),
-        },
-        FunctionOp {
-            name: "asinh",
-            min_args: 1,
-            max_args: 1,
-            func: FunctionTarget::Scalar(asinh_fn),
-        },
-        FunctionOp {
-            name: "acosh",
-            min_args: 1,
-            max_args: 1,
-            func: FunctionTarget::Scalar(acosh_fn),
-        },
-        FunctionOp {
-            name: "atanh",
-            min_args: 1,
-            max_args: 1,
-            func: FunctionTarget::Scalar(atanh_fn),
-        },
+        FunctionOp::scalar("sin", 1, 1, sin_fn),
+        FunctionOp::scalar("cos", 1, 1, cos_fn),
+        FunctionOp::scalar("tan", 1, 1, tan_fn),
+        FunctionOp::scalar("asin", 1, 1, asin_fn),
+        FunctionOp::scalar("acos", 1, 1, acos_fn),
+        FunctionOp::scalar("atan", 1, 1, atan_fn),
+        FunctionOp::scalar("atan2", 2, 2, atan2_fn),
+        FunctionOp::scalar("sinh", 1, 1, sinh_fn),
+        FunctionOp::scalar("cosh", 1, 1, cosh_fn),
+        FunctionOp::scalar("tanh", 1, 1, tanh_fn),
+        FunctionOp::scalar("asinh", 1, 1, asinh_fn),
+        FunctionOp::scalar("acosh", 1, 1, acosh_fn),
+        FunctionOp::scalar("atanh", 1, 1, atanh_fn),
     ]
 }
