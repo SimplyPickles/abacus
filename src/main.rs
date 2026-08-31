@@ -1,8 +1,10 @@
 use abacus::{Abacus, AbacusError};
 
 fn main() -> Result<(), AbacusError> {
+    // Standard Abacus setup examples
     let calc = Abacus::standard();
 
+    // Physical unit arithmetic examples
     println!("1. Physical Unit Arithmetic");
     println!("10 N * 5 m = {}", calc.eval("10 N * 5 m")?.to_display());
     println!(
@@ -14,6 +16,7 @@ fn main() -> Result<(), AbacusError> {
         calc.eval("500 J / 10 s")?.to_display()
     );
 
+    // Guaranteed physical interval arithmetic examples
     println!("2. Guaranteed Physical Interval Arithmetic");
     println!(
         "[9.8 m, 10.2 m] / [1.9 s, 2.1 s] = {}",
@@ -32,6 +35,7 @@ fn main() -> Result<(), AbacusError> {
         calc.eval("[10 N, 20 N] * [2 m, 5 m]")?.to_display()
     );
 
+    // Inferential statistics & confidence intervals examples
     println!("3. Inferential Statistics & Confidence Intervals");
     println!(
         "TInterval(10 m, 12 m, 11 m, 14 m) = {}",
@@ -51,6 +55,7 @@ fn main() -> Result<(), AbacusError> {
             .to_display()
     );
 
+    // Hypothesis testing examples
     println!("4. Hypothesis Testing");
     println!(
         "ZTest(100 m, 105 m, 15 m, 50) = {}",
@@ -97,6 +102,7 @@ fn main() -> Result<(), AbacusError> {
             .to_display()
     );
 
+    // Date arithmetic and timezone conversion examples
     println!("6. Date Functionality, Literals, AM/PM, and TimeZone Conversions");
     println!(
         "07-08-2026 + 5 days = {}",

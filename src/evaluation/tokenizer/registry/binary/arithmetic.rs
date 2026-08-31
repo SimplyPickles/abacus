@@ -16,7 +16,7 @@ fn div(a: Value, b: Value) -> Result<Value, AbacusError> {
     a / b
 }
 
-fn exp(a: Value, b: Value) -> Result<Value, AbacusError> {
+fn pow(a: Value, b: Value) -> Result<Value, AbacusError> {
     if a.unit.is_affine() || b.unit.is_affine() {
         return Err(AbacusError::AffineUnitOperation("multiply"));
     }
@@ -98,7 +98,7 @@ pub fn register_arithmetic() -> Vec<BinaryOp> {
         // right-associative: 2^3^2 = 2^(3^2) = 512, not (2^3)^2 = 64.
         BinaryOp {
             alias: "^",
-            func: exp,
+            func: pow,
             precedence: 3,
             right_associative: true,
         },
