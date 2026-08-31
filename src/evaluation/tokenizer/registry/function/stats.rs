@@ -126,30 +126,67 @@ fn mode_fn(args: &[Value]) -> Result<Value, AbacusError> {
     })
 }
 
+/// Splits interleaved args into two equal halves: `(x_data, y_data, n)`.
+/// Returns an error if `args` has fewer than 4 elements or an odd count.
+fn parse_paired_data(args: &[Value]) -> Result<(&[Value], &[Value], usize), AbacusError> {
+    if args.len() < 4 || args.len() % 2 != 0 {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+    let n = args.len() / 2;
+    Ok((&args[..n], &args[n..], n))
+}
+
+/// Computes the (co)variance of a single dataset with delta-degrees-of-freedom `ddof`.
+/// `ddof = 1` → sample variance, `ddof = 0` → population variance.
+fn compute_variance(args: &[Value], ddof: f64) -> f64 {
+    let n = args.len() as f64;
+    let mean = args.iter().map(|v| v.canonical).sum::<f64>() / n;
+    args.iter()
+        .map(|v| (v.canonical - mean).powi(2))
+        .sum::<f64>()
+        / (n - ddof)
+}
+
+/// Computes the cross-covariance sum and the xy-unit for a paired dataset.
+fn compute_covariance(
+    x_data: &[Value],
+    y_data: &[Value],
+    n: usize,
+    ddof: f64,
+) -> (f64, Arc<Unit>) {
+    let x_unit = &x_data[0].unit;
+    let y_unit = &y_data[0].unit;
+
+    let x_mean = x_data.iter().map(|v| v.canonical).sum::<f64>() / (n as f64);
+    let y_mean = y_data.iter().map(|v| v.canonical).sum::<f64>() / (n as f64);
+
+    let cov_sum: f64 = (0..n)
+        .map(|i| (x_data[i].canonical - x_mean) * (y_data[i].canonical - y_mean))
+        .sum();
+
+    let product_unit = Arc::new(Unit {
+        scalar: x_unit.scalar * y_unit.scalar,
+        offset: 0.0,
+        dimensions: x_unit.dimensions + y_unit.dimensions,
+        display: x_unit.display.multiply(&y_unit.display),
+    });
+
+    (cov_sum / (n as f64 - ddof), product_unit)
+}
+
 fn var_fn(args: &[Value]) -> Result<Value, AbacusError> {
     let first_unit = check_compatible_units(args)?;
     if args.len() < 2 {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
-
-    let mean = args.iter().map(|v| v.canonical).sum::<f64>() / (args.len() as f64);
-    let variance = args
-        .iter()
-        .map(|v| (v.canonical - mean).powi(2))
-        .sum::<f64>()
-        / ((args.len() - 1) as f64);
-
+    let variance = compute_variance(args, 1.0);
     let squared_unit = Arc::new(Unit {
         scalar: first_unit.scalar * first_unit.scalar,
         offset: 0.0,
         dimensions: first_unit.dimensions * 2.0,
         display: first_unit.display.multiply(&first_unit.display),
     });
-
-    Ok(Value {
-        canonical: variance,
-        unit: squared_unit,
-    })
+    Ok(Value { canonical: variance, unit: squared_unit })
 }
 
 fn std_fn(args: &[Value]) -> Result<Value, AbacusError> {
@@ -157,19 +194,30 @@ fn std_fn(args: &[Value]) -> Result<Value, AbacusError> {
     if args.len() < 2 {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
+    Ok(Value { canonical: compute_variance(args, 1.0).sqrt(), unit: Arc::clone(first_unit) })
+}
 
-    let mean = args.iter().map(|v| v.canonical).sum::<f64>() / (args.len() as f64);
-    let variance = args
-        .iter()
-        .map(|v| (v.canonical - mean).powi(2))
-        .sum::<f64>()
-        / ((args.len() - 1) as f64);
-    let stdev = variance.sqrt();
+fn var_p_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    let first_unit = check_compatible_units(args)?;
+    if args.is_empty() {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+    let variance = compute_variance(args, 0.0);
+    let squared_unit = Arc::new(Unit {
+        scalar: first_unit.scalar * first_unit.scalar,
+        offset: 0.0,
+        dimensions: first_unit.dimensions * 2.0,
+        display: first_unit.display.multiply(&first_unit.display),
+    });
+    Ok(Value { canonical: variance, unit: squared_unit })
+}
 
-    Ok(Value {
-        canonical: stdev,
-        unit: Arc::clone(first_unit),
-    })
+fn std_p_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    let first_unit = check_compatible_units(args)?;
+    if args.is_empty() {
+        return Err(AbacusError::IncompatibleFunctionArguments);
+    }
+    Ok(Value { canonical: compute_variance(args, 0.0).sqrt(), unit: Arc::clone(first_unit) })
 }
 
 /// Helper for linear interpolation quantile calculation
@@ -258,16 +306,9 @@ fn iqr_fn(args: &[Value]) -> Result<Value, AbacusError> {
 
 /// corr(x_range, y_range) or corr(x1..xN, y1..yN)
 fn corr_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    if args.len() < 4 || args.len() % 2 != 0 {
-        return Err(AbacusError::IncompatibleFunctionArguments);
-    }
-
-    let n = args.len() / 2;
-    let x_data = &args[..n];
-    let y_data = &args[n..];
-
-    let _x_unit = check_compatible_units(x_data)?;
-    let _y_unit = check_compatible_units(y_data)?;
+    let (x_data, y_data, n) = parse_paired_data(args)?;
+    check_compatible_units(x_data)?;
+    check_compatible_units(y_data)?;
 
     let x_mean = x_data.iter().map(|v| v.canonical).sum::<f64>() / (n as f64);
     let y_mean = y_data.iter().map(|v| v.canonical).sum::<f64>() / (n as f64);
@@ -289,54 +330,23 @@ fn corr_fn(args: &[Value]) -> Result<Value, AbacusError> {
         return Err(AbacusError::IncompatibleFunctionArguments);
     }
 
-    let r = cov_sum / denom;
-    Ok(Value::dimensionless(r))
+    Ok(Value::dimensionless(cov_sum / denom))
 }
 
-fn var_p_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    let first_unit = check_compatible_units(args)?;
-    if args.is_empty() {
-        return Err(AbacusError::IncompatibleFunctionArguments);
-    }
-
-    let mean = args.iter().map(|v| v.canonical).sum::<f64>() / (args.len() as f64);
-    let variance = args
-        .iter()
-        .map(|v| (v.canonical - mean).powi(2))
-        .sum::<f64>()
-        / (args.len() as f64);
-
-    let squared_unit = Arc::new(Unit {
-        scalar: first_unit.scalar * first_unit.scalar,
-        offset: 0.0,
-        dimensions: first_unit.dimensions * 2.0,
-        display: first_unit.display.multiply(&first_unit.display),
-    });
-
-    Ok(Value {
-        canonical: variance,
-        unit: squared_unit,
-    })
+fn cov_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    let (x_data, y_data, n) = parse_paired_data(args)?;
+    check_compatible_units(x_data)?;
+    check_compatible_units(y_data)?;
+    let (cov, unit) = compute_covariance(x_data, y_data, n, 1.0);
+    Ok(Value { canonical: cov, unit })
 }
 
-fn std_p_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    let first_unit = check_compatible_units(args)?;
-    if args.is_empty() {
-        return Err(AbacusError::IncompatibleFunctionArguments);
-    }
-
-    let mean = args.iter().map(|v| v.canonical).sum::<f64>() / (args.len() as f64);
-    let variance = args
-        .iter()
-        .map(|v| (v.canonical - mean).powi(2))
-        .sum::<f64>()
-        / (args.len() as f64);
-    let stdev = variance.sqrt();
-
-    Ok(Value {
-        canonical: stdev,
-        unit: Arc::clone(first_unit),
-    })
+fn cov_p_fn(args: &[Value]) -> Result<Value, AbacusError> {
+    let (x_data, y_data, n) = parse_paired_data(args)?;
+    check_compatible_units(x_data)?;
+    check_compatible_units(y_data)?;
+    let (cov, unit) = compute_covariance(x_data, y_data, n, 0.0);
+    Ok(Value { canonical: cov, unit })
 }
 
 fn geomean_fn(args: &[Value]) -> Result<Value, AbacusError> {
@@ -372,78 +382,6 @@ fn harmean_fn(args: &[Value]) -> Result<Value, AbacusError> {
     Ok(Value {
         canonical: hm,
         unit: Arc::clone(first_unit),
-    })
-}
-
-fn cov_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    if args.len() < 4 || args.len() % 2 != 0 {
-        return Err(AbacusError::IncompatibleFunctionArguments);
-    }
-
-    let n = args.len() / 2;
-    let x_data = &args[..n];
-    let y_data = &args[n..];
-
-    let x_unit = check_compatible_units(x_data)?;
-    let y_unit = check_compatible_units(y_data)?;
-
-    let x_mean = x_data.iter().map(|v| v.canonical).sum::<f64>() / (n as f64);
-    let y_mean = y_data.iter().map(|v| v.canonical).sum::<f64>() / (n as f64);
-
-    let mut cov_sum = 0.0;
-    for i in 0..n {
-        let dx = x_data[i].canonical - x_mean;
-        let dy = y_data[i].canonical - y_mean;
-        cov_sum += dx * dy;
-    }
-
-    let sample_cov = cov_sum / ((n - 1) as f64);
-    let product_unit = Arc::new(Unit {
-        scalar: x_unit.scalar * y_unit.scalar,
-        offset: 0.0,
-        dimensions: x_unit.dimensions + y_unit.dimensions,
-        display: x_unit.display.multiply(&y_unit.display),
-    });
-
-    Ok(Value {
-        canonical: sample_cov,
-        unit: product_unit,
-    })
-}
-
-fn cov_p_fn(args: &[Value]) -> Result<Value, AbacusError> {
-    if args.len() < 4 || args.len() % 2 != 0 {
-        return Err(AbacusError::IncompatibleFunctionArguments);
-    }
-
-    let n = args.len() / 2;
-    let x_data = &args[..n];
-    let y_data = &args[n..];
-
-    let x_unit = check_compatible_units(x_data)?;
-    let y_unit = check_compatible_units(y_data)?;
-
-    let x_mean = x_data.iter().map(|v| v.canonical).sum::<f64>() / (n as f64);
-    let y_mean = y_data.iter().map(|v| v.canonical).sum::<f64>() / (n as f64);
-
-    let mut cov_sum = 0.0;
-    for i in 0..n {
-        let dx = x_data[i].canonical - x_mean;
-        let dy = y_data[i].canonical - y_mean;
-        cov_sum += dx * dy;
-    }
-
-    let pop_cov = cov_sum / (n as f64);
-    let product_unit = Arc::new(Unit {
-        scalar: x_unit.scalar * y_unit.scalar,
-        offset: 0.0,
-        dimensions: x_unit.dimensions + y_unit.dimensions,
-        display: x_unit.display.multiply(&y_unit.display),
-    });
-
-    Ok(Value {
-        canonical: pop_cov,
-        unit: product_unit,
     })
 }
 

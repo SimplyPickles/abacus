@@ -5,7 +5,6 @@ edition = "2024"
 authors = ["dylanfraser"]
 readme = "README.md"
 
-
 [profile.release]
 opt-level = "z"
 strip = "symbols"

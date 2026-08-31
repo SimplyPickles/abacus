@@ -5,33 +5,45 @@ use crate::{
 
 const CONVERSION_KEYWORDS: [&str; 3] = ["as", "to", "in"];
 
+/// If `haystack` (already lowercased) starts with the literal word `word` and is followed
+/// by a non-alphanumeric character (or end-of-string), returns the word length; otherwise
+/// returns `None`.
+#[inline]
+fn strip_word_prefix(haystack: &str, word: &str) -> Option<usize> {
+    let len = word.len();
+    if haystack.starts_with(word)
+        && (haystack.len() == len || !haystack.as_bytes()[len].is_ascii_alphanumeric())
+    {
+        Some(len)
+    } else {
+        None
+    }
+}
+
 fn parse_weekday(s: &str) -> Option<(crate::units::date::DayOfWeek, usize)> {
     let lower = s.to_ascii_lowercase();
     let matches = [
         ("wednesday", crate::units::date::DayOfWeek::Wednesday),
-        ("thursday", crate::units::date::DayOfWeek::Thursday),
-        ("saturday", crate::units::date::DayOfWeek::Saturday),
-        ("tuesday", crate::units::date::DayOfWeek::Tuesday),
-        ("monday", crate::units::date::DayOfWeek::Monday),
-        ("friday", crate::units::date::DayOfWeek::Friday),
-        ("sunday", crate::units::date::DayOfWeek::Sunday),
-        ("thurs", crate::units::date::DayOfWeek::Thursday),
-        ("tues", crate::units::date::DayOfWeek::Tuesday),
-        ("tue", crate::units::date::DayOfWeek::Tuesday),
-        ("wed", crate::units::date::DayOfWeek::Wednesday),
-        ("thu", crate::units::date::DayOfWeek::Thursday),
-        ("fri", crate::units::date::DayOfWeek::Friday),
-        ("sat", crate::units::date::DayOfWeek::Saturday),
-        ("sun", crate::units::date::DayOfWeek::Sunday),
-        ("mon", crate::units::date::DayOfWeek::Monday),
+        ("thursday",  crate::units::date::DayOfWeek::Thursday),
+        ("saturday",  crate::units::date::DayOfWeek::Saturday),
+        ("tuesday",   crate::units::date::DayOfWeek::Tuesday),
+        ("monday",    crate::units::date::DayOfWeek::Monday),
+        ("friday",    crate::units::date::DayOfWeek::Friday),
+        ("sunday",    crate::units::date::DayOfWeek::Sunday),
+        ("thurs",     crate::units::date::DayOfWeek::Thursday),
+        ("tues",      crate::units::date::DayOfWeek::Tuesday),
+        ("tue",       crate::units::date::DayOfWeek::Tuesday),
+        ("wed",       crate::units::date::DayOfWeek::Wednesday),
+        ("thu",       crate::units::date::DayOfWeek::Thursday),
+        ("fri",       crate::units::date::DayOfWeek::Friday),
+        ("sat",       crate::units::date::DayOfWeek::Saturday),
+        ("sun",       crate::units::date::DayOfWeek::Sunday),
+        ("mon",       crate::units::date::DayOfWeek::Monday),
     ];
 
     for (name, dow) in matches {
-        if lower.starts_with(name) {
-            let len = name.len();
-            if s.len() == len || !s.as_bytes()[len].is_ascii_alphanumeric() {
-                return Some((dow, len));
-            }
+        if let Some(len) = strip_word_prefix(&lower, name) {
+            return Some((dow, len));
         }
     }
     None
@@ -47,19 +59,16 @@ fn parse_rel_unit(s: &str) -> Option<(RelUnit, usize)> {
     let lower = s.to_ascii_lowercase();
     let matches = [
         ("months", RelUnit::Month),
-        ("month", RelUnit::Month),
-        ("weeks", RelUnit::Week),
-        ("week", RelUnit::Week),
-        ("years", RelUnit::Year),
-        ("year", RelUnit::Year),
+        ("month",  RelUnit::Month),
+        ("weeks",  RelUnit::Week),
+        ("week",   RelUnit::Week),
+        ("years",  RelUnit::Year),
+        ("year",   RelUnit::Year),
     ];
 
     for (name, u) in matches {
-        if lower.starts_with(name) {
-            let len = name.len();
-            if s.len() == len || !s.as_bytes()[len].is_ascii_alphanumeric() {
-                return Some((u, len));
-            }
+        if let Some(len) = strip_word_prefix(&lower, name) {
+            return Some((u, len));
         }
     }
     None
@@ -76,18 +85,15 @@ fn parse_rel_modifier(s: &str) -> Option<(RelModifier, usize)> {
     let lower = s.to_ascii_lowercase();
     let matches = [
         ("previous", RelModifier::Last),
-        ("last", RelModifier::Last),
-        ("past", RelModifier::Last),
-        ("next", RelModifier::Next),
-        ("this", RelModifier::This),
+        ("last",     RelModifier::Last),
+        ("past",     RelModifier::Last),
+        ("next",     RelModifier::Next),
+        ("this",     RelModifier::This),
     ];
 
     for (name, m) in matches {
-        if lower.starts_with(name) {
-            let len = name.len();
-            if s.len() == len || !s.as_bytes()[len].is_ascii_alphanumeric() {
-                return Some((m, len));
-            }
+        if let Some(len) = strip_word_prefix(&lower, name) {
+            return Some((m, len));
         }
     }
     None
@@ -134,25 +140,12 @@ fn try_parse_relative_date_keyword(s: &str) -> Option<(crate::Date, usize)> {
 
     // 2. Standalone relative keywords
     let lower = s.to_ascii_lowercase();
-    if lower.starts_with("today") && (s.len() == 5 || !s.as_bytes()[5].is_ascii_alphanumeric()) {
-        return Some((crate::Date::today(), 5));
-    }
-    if lower.starts_with("tdy") && (s.len() == 3 || !s.as_bytes()[3].is_ascii_alphanumeric()) {
-        return Some((crate::Date::today(), 3));
-    }
-    if lower.starts_with("tomorrow") && (s.len() == 8 || !s.as_bytes()[8].is_ascii_alphanumeric()) {
-        return Some((crate::Date::tomorrow(), 8));
-    }
-    if lower.starts_with("tmr") && (s.len() == 3 || !s.as_bytes()[3].is_ascii_alphanumeric()) {
-        return Some((crate::Date::tomorrow(), 3));
-    }
-    if lower.starts_with("yesterday") && (s.len() == 9 || !s.as_bytes()[9].is_ascii_alphanumeric())
-    {
-        return Some((crate::Date::yesterday(), 9));
-    }
-    if lower.starts_with("now") && (s.len() == 3 || !s.as_bytes()[3].is_ascii_alphanumeric()) {
-        return Some((crate::Date::now(), 3));
-    }
+    if let Some(len) = strip_word_prefix(&lower, "today") { return Some((crate::Date::today(),     len)); }
+    if let Some(len) = strip_word_prefix(&lower, "tdy")   { return Some((crate::Date::today(),     len)); }
+    if let Some(len) = strip_word_prefix(&lower, "tomorrow") { return Some((crate::Date::tomorrow(), len)); }
+    if let Some(len) = strip_word_prefix(&lower, "tmr")   { return Some((crate::Date::tomorrow(),  len)); }
+    if let Some(len) = strip_word_prefix(&lower, "yesterday") { return Some((crate::Date::yesterday(), len)); }
+    if let Some(len) = strip_word_prefix(&lower, "now")   { return Some((crate::Date::now(),       len)); }
 
     // 3. Bare weekday
     if let Some((target_dow, sub_len)) = parse_weekday(s) {
