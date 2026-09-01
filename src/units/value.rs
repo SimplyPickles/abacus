@@ -33,6 +33,9 @@ impl PartialEq for Value {
     }
 }
 
+pub static DIMENSIONLESS_UNIT: std::sync::LazyLock<Arc<Unit>> =
+    std::sync::LazyLock::new(Unit::dimensionless_arc);
+
 #[allow(dead_code)]
 impl Value {
     #[must_use]
@@ -48,7 +51,7 @@ impl Value {
     pub fn dimensionless(val: f64) -> Self {
         Self {
             canonical: val,
-            unit: Unit::dimensionless_arc(),
+            unit: Arc::clone(&DIMENSIONLESS_UNIT),
         }
     }
 
@@ -99,22 +102,7 @@ impl Value {
 
     #[must_use]
     pub fn to_display(&self) -> String {
-        let value = self.amount();
-        let nearest_integer = value.round();
-        let display_value = if value.is_finite()
-            && (value - nearest_integer).abs() <= 1e-12 * value.abs().max(1.0)
-        {
-            nearest_integer
-        } else {
-            value
-        };
-
-        let unit_str = self.unit.display.render();
-        if unit_str.is_empty() {
-            display_value.to_string()
-        } else {
-            format!("{display_value} {unit_str}")
-        }
+        self.to_string()
     }
 
     #[must_use]
@@ -177,7 +165,22 @@ pub fn format_human_duration(seconds_f64: f64) -> String {
 
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.to_display())
+        let value = self.amount();
+        let nearest_integer = value.round();
+        let display_value = if value.is_finite()
+            && (value - nearest_integer).abs() <= 1e-12 * value.abs().max(1.0)
+        {
+            nearest_integer
+        } else {
+            value
+        };
+
+        let unit_str = self.unit.display.render();
+        if unit_str.is_empty() {
+            write!(f, "{display_value}")
+        } else {
+            write!(f, "{display_value} {unit_str}")
+        }
     }
 }
 

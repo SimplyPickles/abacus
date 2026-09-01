@@ -246,20 +246,16 @@ impl Interval {
     /// Render the interval as `[lo, hi]` or `lo..hi` depending on style.
     #[must_use]
     pub fn to_display(&self) -> String {
-        match self.style {
-            IntervalStyle::Bracket => {
-                format!("[{}, {}]", self.lo.to_display(), self.hi.to_display())
-            }
-            IntervalStyle::Range => {
-                format!("{}..{}", self.lo.to_display(), self.hi.to_display())
-            }
-        }
+        self.to_string()
     }
 }
 
 impl std::fmt::Display for Interval {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_display())
+        match self.style {
+            IntervalStyle::Bracket => write!(f, "[{}, {}]", self.lo, self.hi),
+            IntervalStyle::Range => write!(f, "{}..{}", self.lo, self.hi),
+        }
     }
 }
 

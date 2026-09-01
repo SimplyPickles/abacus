@@ -996,14 +996,30 @@ impl Date {
         if n == 0 {
             return self.clone();
         }
-        let mut cur = self.clone();
         let step = if n > 0 { 1 } else { -1 };
+        let mut cur = self.clone();
         let mut remaining = n.abs();
 
-        while remaining > 0 {
+        // If starting on weekend, advance to the first business day
+        while !cur.is_business_day() {
             cur = cur.add_days(step);
             if cur.is_business_day() {
                 remaining -= 1;
+                break;
+            }
+        }
+
+        let weeks = remaining / 5;
+        remaining %= 5;
+
+        if weeks > 0 {
+            cur = cur.add_days(weeks * 7 * step);
+        }
+
+        for _ in 0..remaining {
+            cur = cur.add_days(step);
+            while !cur.is_business_day() {
+                cur = cur.add_days(step);
             }
         }
         cur
@@ -1024,14 +1040,17 @@ impl Date {
             (other_days, self_days, -1i64)
         };
 
-        let mut count = 0i64;
-        let mut cur = start + 1;
-        while cur <= end {
-            let d = Date::from_epoch_days(cur);
-            if d.is_business_day() {
+        let diff = end - start;
+        let weeks = diff / 7;
+        let rem = diff % 7;
+
+        let mut count = weeks * 5;
+        for i in 1..=rem {
+            let day = start + weeks * 7 + i;
+            let dow = (day + 3).rem_euclid(7) + 1;
+            if dow <= 5 {
                 count += 1;
             }
-            cur += 1;
         }
 
         count * sign

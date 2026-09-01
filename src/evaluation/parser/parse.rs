@@ -575,33 +575,51 @@ impl<'a> Parser<'a> {
     /// For left-associative operators, `right_bp` = `left_bp` + 1.
     /// For right-associative operators (e.g. `^`), `right_bp` = `left_bp`.
     fn infix_bp(&self, name: &str) -> (u8, u8) {
-        if let Some(op) = self.token_registry.binary_operators.get(name) {
-            let base = (op.precedence * 2) + 2;
-            if op.right_associative {
-                (base + 1, base)
-            } else {
-                (base, base + 1)
+        match name {
+            "+" | "-" => (2, 3),
+            "*" | "/" | "%" | "of" => (4, 5),
+            "^" => (9, 8),
+            _ => {
+                if let Some(op) = self.token_registry.binary_operators.get(name) {
+                    let base = (op.precedence * 2) + 2;
+                    if op.right_associative {
+                        (base + 1, base)
+                    } else {
+                        (base, base + 1)
+                    }
+                } else {
+                    (0, 0)
+                }
             }
-        } else {
-            (0, 0)
         }
     }
 
     /// Returns the binding power for a prefix unary operator.
     fn prefix_bp(&self, name: &str) -> u8 {
-        if let Some(op) = self.token_registry.unary_operators.get(name) {
-            (op.precedence * 2) + 2
-        } else {
-            10 // high default
+        match name {
+            "-" | "sqrt" => 6,
+            "++" | "--" => 2,
+            _ => {
+                if let Some(op) = self.token_registry.unary_operators.get(name) {
+                    (op.precedence * 2) + 2
+                } else {
+                    10 // high default
+                }
+            }
         }
     }
 
     /// Returns the binding power for a postfix unary operator.
     fn postfix_bp(&self, name: &str) -> u8 {
-        if let Some(op) = self.token_registry.unary_operators.get(name) {
-            (op.precedence * 2) + 2
-        } else {
-            10
+        match name {
+            "!" => 10,
+            _ => {
+                if let Some(op) = self.token_registry.unary_operators.get(name) {
+                    (op.precedence * 2) + 2
+                } else {
+                    10
+                }
+            }
         }
     }
 

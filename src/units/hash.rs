@@ -43,13 +43,7 @@ impl Hash {
 
     #[must_use]
     pub fn to_display(&self) -> String {
-        let mut entries: Vec<_> = self.values.iter().collect();
-        entries.sort_by_key(|&(k, _)| k);
-        let formatted: Vec<String> = entries
-            .into_iter()
-            .map(|(k, v)| format!("{}: {}", k, v.to_display()))
-            .collect();
-        format!("{{ {} }}", formatted.join(", "))
+        self.to_string()
     }
 }
 
@@ -63,6 +57,15 @@ impl Default for Hash {
 /// Formats the `Hash` as a human-readable string
 impl std::fmt::Display for Hash {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_display())
+        write!(f, "{{ ")?;
+        let mut entries: Vec<_> = self.values.iter().collect();
+        entries.sort_by_key(|&(k, _)| k);
+        for (i, (k, v)) in entries.into_iter().enumerate() {
+            if i > 0 {
+                write!(f, ", ")?;
+            }
+            write!(f, "{k}: {v}")?;
+        }
+        write!(f, " }}")
     }
 }

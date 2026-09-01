@@ -70,8 +70,8 @@ impl UnitExpr {
                 .iter()
                 .position(|unit| unit == &self.numerator[numerator_index])
             {
-                self.numerator.remove(numerator_index);
-                self.denominator.remove(denominator_index);
+                self.numerator.swap_remove(numerator_index);
+                self.denominator.swap_remove(denominator_index);
             } else {
                 numerator_index += 1;
             }
@@ -81,13 +81,13 @@ impl UnitExpr {
     }
 
     #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.numerator.is_empty() && self.denominator.is_empty()
+    }
+
+    #[must_use]
     pub fn render(&self) -> String {
-        match (self.numerator.is_empty(), self.denominator.is_empty()) {
-            (true, true) => String::new(),
-            (false, true) => self.render_numerator(),
-            (true, false) => format!("1/{}", self.render_denominator()),
-            (false, false) => format!("{}/{}", self.render_numerator(), self.render_denominator()),
-        }
+        self.to_string()
     }
 
     #[must_use]
@@ -101,9 +101,27 @@ impl UnitExpr {
     }
 }
 
-fn render_units(units: &[String]) -> String {
+impl std::fmt::Display for UnitExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match (self.numerator.is_empty(), self.denominator.is_empty()) {
+            (true, true) => Ok(()),
+            (false, true) => write_units(f, &self.numerator),
+            (true, false) => {
+                write!(f, "1/")?;
+                write_units(f, &self.denominator)
+            }
+            (false, false) => {
+                write_units(f, &self.numerator)?;
+                write!(f, "/")?;
+                write_units(f, &self.denominator)
+            }
+        }
+    }
+}
+
+fn write_units(f: &mut std::fmt::Formatter<'_>, units: &[String]) -> std::fmt::Result {
     if units.is_empty() {
-        return String::new();
+        return Ok(());
     }
 
     let mut counts = std::collections::HashMap::with_capacity(units.len());
@@ -117,17 +135,50 @@ fn render_units(units: &[String]) -> String {
         *entry += 1;
     }
 
-    let mut parts = Vec::with_capacity(order.len());
-    for unit in order {
+    for (i, unit) in order.into_iter().enumerate() {
+        if i > 0 {
+            write!(f, "*")?;
+        }
         let count = counts[unit];
         if count == 1 {
-            parts.push(unit.to_string());
+            write!(f, "{unit}")?;
         } else {
-            parts.push(format!("{unit}^{count}"));
+            write!(f, "{unit}^{count}")?;
         }
     }
+    Ok(())
+}
 
-    parts.join("*")
+fn render_units(units: &[String]) -> String {
+    use std::fmt::Write;
+    let mut s = String::new();
+    if units.is_empty() {
+        return s;
+    }
+
+    let mut counts = std::collections::HashMap::with_capacity(units.len());
+    let mut order = Vec::with_capacity(units.len());
+
+    for unit in units {
+        let entry = counts.entry(unit.as_str()).or_insert(0usize);
+        if *entry == 0 {
+            order.push(unit.as_str());
+        }
+        *entry += 1;
+    }
+
+    for (i, unit) in order.into_iter().enumerate() {
+        if i > 0 {
+            let _ = write!(s, "*");
+        }
+        let count = counts[unit];
+        if count == 1 {
+            let _ = write!(s, "{unit}");
+        } else {
+            let _ = write!(s, "{unit}^{count}");
+        }
+    }
+    s
 }
 
 use std::sync::Arc;
@@ -158,8 +209,8 @@ impl Unit {
                         && un1.dimensions == un2.dimensions
                     {
                         scalar *= un2.scalar / un1.scalar;
-                        display.numerator.remove(num_idx);
-                        display.denominator.remove(den_idx);
+                        display.numerator.swap_remove(num_idx);
+                        display.denominator.swap_remove(den_idx);
                         matched = true;
                         break;
                     }
