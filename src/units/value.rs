@@ -93,6 +93,9 @@ impl Value {
     }
 
     pub fn to_derived(&self, registry: &UnitRegistry) -> Result<Self, AbacusError> {
+        if self.unit.is_dimensionless() {
+            return Ok(self.clone());
+        }
         if let Some(derived_unit) = registry.find_unit_by_dimensions(&self.unit.dimensions) {
             self.convert_to(derived_unit)
         } else {
@@ -111,6 +114,9 @@ impl Value {
     }
 
     pub fn simplify_unit_display(&mut self, unit_registry: &UnitRegistry) {
+        if self.unit.is_dimensionless() && self.unit.display.is_empty() {
+            return;
+        }
         let unit = self
             .unit
             .simplify_display_with(|sym| unit_registry.get(sym));
