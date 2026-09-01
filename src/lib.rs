@@ -152,6 +152,7 @@ impl Abacus {
 pub static STANDARD_ABACUS: std::sync::LazyLock<Abacus> =
     std::sync::LazyLock::new(Abacus::standard);
 pub use STANDARD_ABACUS as STANDARD;
+pub use STANDARD_ABACUS as STANDARD_CALC;
 
 impl Default for Abacus {
     fn default() -> Self {

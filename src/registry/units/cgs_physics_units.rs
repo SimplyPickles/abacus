@@ -27,7 +27,7 @@ const CGS_SIMPLE: &[UnitDefinition] = &[
         display: "atm",
         scalar: 1.013_25e8,
         offset: 0.0,
-        dimensions: Dimensions([-1.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        dimensions: Dimensions::from_f64([-1.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
     },
     // Torr / mmHg
     UnitDefinition {
@@ -35,7 +35,7 @@ const CGS_SIMPLE: &[UnitDefinition] = &[
         display: "torr",
         scalar: 101_325.0 * 1000.0 / 760.0,
         offset: 0.0,
-        dimensions: Dimensions([-1.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        dimensions: Dimensions::from_f64([-1.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
     },
     // Barn: 1e-28 m^2
     UnitDefinition {
@@ -61,7 +61,7 @@ const CGS_PREFIXABLE: &[PrefixableCgs] = &[
         keys: &["electronvolt", "eV"],
         display: "eV",
         scalar: 1.602_176_634e-16,
-        dimensions: Dimensions([2.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        dimensions: Dimensions::from_f64([2.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
     },
     // Dalton / amu: 1.6605390666e-24 g
     PrefixableCgs {
@@ -75,42 +75,42 @@ const CGS_PREFIXABLE: &[PrefixableCgs] = &[
         keys: &["bar"],
         display: "bar",
         scalar: 1e8,
-        dimensions: Dimensions([-1.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        dimensions: Dimensions::from_f64([-1.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
     },
     // Gauss: 1e-4 T = 0.1 g/(s^2*A)
     PrefixableCgs {
         keys: &["gauss", "G"],
         display: "G",
         scalar: 0.1,
-        dimensions: Dimensions([0.0, 1.0, -2.0, -1.0, 0.0, 0.0, 0.0, 0.0]),
+        dimensions: Dimensions::from_f64([0.0, 1.0, -2.0, -1.0, 0.0, 0.0, 0.0, 0.0]),
     },
     // Maxwell: 1e-8 Wb = 1e-5 g*m^2/(s^2*A)
     PrefixableCgs {
         keys: &["maxwell", "Mx"],
         display: "Mx",
         scalar: 1e-5,
-        dimensions: Dimensions([2.0, 1.0, -2.0, -1.0, 0.0, 0.0, 0.0, 0.0]),
+        dimensions: Dimensions::from_f64([2.0, 1.0, -2.0, -1.0, 0.0, 0.0, 0.0, 0.0]),
     },
     // Poise: 0.1 Pa*s = 100 g/(m*s)
     PrefixableCgs {
         keys: &["poise", "P"],
         display: "P",
         scalar: 100.0,
-        dimensions: Dimensions([-1.0, 1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        dimensions: Dimensions::from_f64([-1.0, 1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
     },
     // Stokes: 1e-4 m^2/s
     PrefixableCgs {
         keys: &["stokes", "St"],
         display: "St",
         scalar: 1e-4,
-        dimensions: Dimensions([2.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        dimensions: Dimensions::from_f64([2.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
     },
     // Galileo: 0.01 m/s^2
     PrefixableCgs {
         keys: &["galileo", "Gal"],
         display: "Gal",
         scalar: 0.01,
-        dimensions: Dimensions([1.0, 0.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        dimensions: Dimensions::from_f64([1.0, 0.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
     },
 ];
 

@@ -20,7 +20,7 @@ const NAUTICAL_UNITS: &[UnitDefinition] = &[
         display: "kt",
         scalar: 1852.0 / 3600.0,
         offset: 0.0,
-        dimensions: Dimensions([1.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        dimensions: Dimensions::from_f64([1.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
     },
     // Fathom: 6 feet = 1.8288 m
     UnitDefinition {

@@ -52,7 +52,7 @@ const TRADE_HISTORICAL_UNITS: &[UnitDefinition] = &[
         display: "pdl",
         scalar: 138.254_954_376,
         offset: 0.0,
-        dimensions: Dimensions([1.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        dimensions: Dimensions::from_f64([1.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
     },
 ];
 

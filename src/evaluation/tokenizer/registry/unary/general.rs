@@ -1,7 +1,7 @@
 use crate::{
     AbacusError, Unit, Value,
     evaluation::tokenizer::registry::function::distributions::special::factorial as fact_u64,
-    evaluation::tokenizer::registry::unary::operators::UnaryOp, units::dimensions::Dimensions,
+    evaluation::tokenizer::registry::unary::operators::UnaryOp,
 };
 use std::sync::Arc;
 
@@ -47,7 +47,7 @@ fn sqrt(a: Value) -> Result<Value, AbacusError> {
     let new_unit = Arc::new(Unit {
         scalar: a.unit.scalar.sqrt(),
         offset: 0.0,
-        dimensions: Dimensions(new_dims.0),
+        dimensions: new_dims,
         display: new_display,
     });
 

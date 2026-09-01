@@ -47,7 +47,7 @@ const ASTRO_UNITS: &[UnitDefinition] = &[
         display: "Jy",
         scalar: 1e-23,
         offset: 0.0,
-        dimensions: Dimensions([0.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        dimensions: Dimensions::from_f64([0.0, 1.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
     },
 ];
 

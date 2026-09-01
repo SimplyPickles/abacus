@@ -44,7 +44,7 @@ const HUMOROUS_UNITS: &[UnitDefinition] = &[
         display: "fur/fortnight",
         scalar: 201.168 / 1_209_600.0,
         offset: 0.0,
-        dimensions: Dimensions([1.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        dimensions: Dimensions::from_f64([1.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
     },
     // Barn-megaparsec: 1e-28 m^2 * 3.0856775814913673e22 m
     UnitDefinition {

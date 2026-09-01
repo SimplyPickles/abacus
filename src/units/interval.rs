@@ -141,6 +141,21 @@ impl Interval {
             return Ok(Interval { lo, hi, style });
         }
 
+        // Monotonic fast-paths:
+        // Addition: [a, b] + [c, d] = [a + c, b + d] (2 additions instead of 4)
+        if op.alias == "+" {
+            let lo = op.apply(self.lo.clone(), other.lo.clone())?;
+            let hi = op.apply(self.hi.clone(), other.hi.clone())?;
+            return Ok(Interval { lo, hi, style });
+        }
+
+        // Subtraction: [a, b] - [c, d] = [a - d, b - c] (2 subtractions instead of 4)
+        if op.alias == "-" {
+            let lo = op.apply(self.lo.clone(), other.hi.clone())?;
+            let hi = op.apply(self.hi.clone(), other.lo.clone())?;
+            return Ok(Interval { lo, hi, style });
+        }
+
         let corners = [
             op.apply(self.lo.clone(), other.lo.clone())?,
             op.apply(self.lo.clone(), other.hi.clone())?,

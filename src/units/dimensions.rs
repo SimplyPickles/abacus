@@ -1,44 +1,57 @@
 use std::ops::{Add, Mul, Sub};
 
 pub const DIMENSION_COUNT: usize = 8;
+pub const SCALE: i16 = 120;
 
-#[derive(Debug, Clone, Copy, Default)]
+/// Dimensions represented as fixed-point integers (scaled by 120) across 8 base physical dimensions:
+/// [length, mass, time, current, temperature, amount, luminous intensity, information].
+/// Shrunk from 64 bytes to 16 bytes, fitting in a single 128-bit SIMD register / two 64-bit registers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Dimensions(pub [f64; DIMENSION_COUNT]);
+pub struct Dimensions(pub [i16; DIMENSION_COUNT]);
 
-// PartialEq implementation for `Dimensions` using an epsilon threshold for float comparison.
-impl PartialEq for Dimensions {
-    fn eq(&self, other: &Self) -> bool {
-        self.0
-            .iter()
-            .zip(other.0.iter())
-            .all(|(a, b)| (a - b).abs() < 1e-9)
-    }
-}
-
-/// Dimension constants for common unit systems & dimensionless units.
-/// Each dimension is represented by a power of the base units in the `Dimensions` vector
-/// For example, `LENGTH` has a power of 1 in the length dimension and 0 in the other dimensions, being [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-/// The order of the dimensions is [length, mass, time, current, temperature, amount, luminous intensity, information]
 impl Dimensions {
+    /// Create a `Dimensions` instance from float exponents by converting to fixed-point (scale 120).
+    #[must_use]
+    pub const fn from_f64(arr: [f64; DIMENSION_COUNT]) -> Self {
+        let mut out = [0i16; DIMENSION_COUNT];
+        let mut i = 0;
+        while i < DIMENSION_COUNT {
+            out[i] = (arr[i] * SCALE as f64) as i16;
+            i += 1;
+        }
+        Self(out)
+    }
+
     /// Dimensionless unit (all dimensions are 0)
-    pub const DIMENSIONLESS: Self = Self([0.0; DIMENSION_COUNT]);
+    pub const DIMENSIONLESS: Self = Self([0; DIMENSION_COUNT]);
 
-    pub const LENGTH: Self = Self([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
-    pub const MASS: Self = Self([0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
-    pub const TIME: Self = Self([0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
-    pub const CURRENT: Self = Self([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0]);
-    pub const TEMPERATURE: Self = Self([0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]);
-    pub const AMOUNT: Self = Self([0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0]);
-    pub const LUMINOUS_INTENSITY: Self = Self([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0]);
-    pub const INFORMATION: Self = Self([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]);
+    pub const LENGTH: Self = Self::from_f64([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+    pub const MASS: Self = Self::from_f64([0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+    pub const TIME: Self = Self::from_f64([0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+    pub const CURRENT: Self = Self::from_f64([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0]);
+    pub const TEMPERATURE: Self = Self::from_f64([0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]);
+    pub const AMOUNT: Self = Self::from_f64([0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0]);
+    pub const LUMINOUS_INTENSITY: Self = Self::from_f64([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0]);
+    pub const INFORMATION: Self = Self::from_f64([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]);
 
-    pub const AREA: Self = Self([2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
-    pub const VOLUME: Self = Self([3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+    pub const AREA: Self = Self::from_f64([2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+    pub const VOLUME: Self = Self::from_f64([3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
 
     #[must_use]
     pub fn is_dimensionless(self) -> bool {
         self == Self::DIMENSIONLESS
+    }
+
+    #[must_use]
+    pub fn to_f64(self) -> [f64; DIMENSION_COUNT] {
+        std::array::from_fn(|i| self.0[i] as f64 / SCALE as f64)
+    }
+}
+
+impl From<[f64; DIMENSION_COUNT]> for Dimensions {
+    fn from(arr: [f64; DIMENSION_COUNT]) -> Self {
+        Self::from_f64(arr)
     }
 }
 
@@ -62,6 +75,6 @@ impl Mul<f64> for Dimensions {
     type Output = Self;
 
     fn mul(self, rhs: f64) -> Self::Output {
-        Self(std::array::from_fn(|i| self.0[i] * rhs))
+        Self(std::array::from_fn(|i| (self.0[i] as f64 * rhs).round() as i16))
     }
 }
