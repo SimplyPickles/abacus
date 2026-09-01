@@ -3,9 +3,10 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+#[cfg(feature = "units")]
+use crate::registry::units::metric_units::register_metric_units;
 use crate::{
     error::AbacusError,
-    registry::units::metric_units::register_metric_units,
     units::{unit::Unit, value::Value},
 };
 
@@ -18,7 +19,7 @@ const PRIORITY_DERIVED_SYMBOLS: [&str; 20] = [
 pub struct UnitRegistry {
     units: HashMap<String, Arc<Unit>>,
     cache: RwLock<HashMap<String, Arc<Unit>>>,
-    priority_derived_units: Vec<Arc<Unit>>,
+    priority_derived_units: Vec<(crate::units::dimensions::Dimensions, Arc<Unit>)>,
 }
 
 impl UnitRegistry {
@@ -40,7 +41,7 @@ impl UnitRegistry {
 
         let priority_derived_units = PRIORITY_DERIVED_SYMBOLS
             .iter()
-            .filter_map(|&s| units.get(s).cloned())
+            .filter_map(|&s| units.get(s).map(|u| (u.dimensions, Arc::clone(u))))
             .collect();
         Self {
             units,
@@ -70,8 +71,8 @@ impl UnitRegistry {
     ) -> Option<Arc<Unit>> {
         self.priority_derived_units
             .iter()
-            .find(|u| &u.dimensions == dimensions)
-            .cloned()
+            .find(|(dims, _)| dims == dimensions)
+            .map(|(_, u)| Arc::clone(u))
     }
 
     pub fn unit(&self, symbol: &str) -> Result<Arc<Unit>, AbacusError> {
@@ -147,10 +148,10 @@ impl UnitRegistry {
     pub fn insert_unit(&mut self, key: impl Into<String>, unit: Arc<Unit>) {
         let key = key.into();
         if PRIORITY_DERIVED_SYMBOLS.contains(&key.as_str()) {
-            if let Some(pos) = self.priority_derived_units.iter().position(|u| u.display.render() == key) {
-                self.priority_derived_units[pos] = Arc::clone(&unit);
+            if let Some(pos) = self.priority_derived_units.iter().position(|(_, u)| u.display.render() == key) {
+                self.priority_derived_units[pos] = (unit.dimensions, Arc::clone(&unit));
             } else {
-                self.priority_derived_units.push(Arc::clone(&unit));
+                self.priority_derived_units.push((unit.dimensions, Arc::clone(&unit)));
             }
         }
         self.units.insert(key, unit);

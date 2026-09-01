@@ -24,7 +24,17 @@ pub enum IntervalStyle {
 /// endpoints carry physical units. Used for worst-case/best-case analysis in
 /// engineering and safety-critical computations.
 ///
-/// Ex. `[-25, 25] + 10 = [-15, 35]` or `1..10 + 5 = 6..15`
+/// # Examples
+///
+/// ```rust
+/// use abacus::eval;
+///
+/// let res = eval("[1 m, 2 m] + 50 cm").unwrap();
+/// assert_eq!(res.to_display(), "[1.5 m, 2.5 m]");
+///
+/// let range = eval("1..10 + 5").unwrap();
+/// assert_eq!(range.to_display(), "6..15");
+/// ```
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Interval {

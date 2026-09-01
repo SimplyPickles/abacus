@@ -7,6 +7,18 @@ use std::{
     sync::Arc,
 };
 
+/// A dimensional quantity consisting of a canonical SI scalar and an associated physical unit.
+///
+/// # Examples
+///
+/// ```rust
+/// use abacus::Abacus;
+///
+/// let abacus = Abacus::standard();
+/// let length = abacus.units.value(5.0, "km").unwrap();
+/// assert_eq!(length.to_display(), "5 km");
+/// assert_eq!(length.canonical, 5000.0);
+/// ```
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Value {

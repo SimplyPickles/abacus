@@ -43,3 +43,10 @@ required-features = ["repl"]
 [[bin]]
 name = "abacus"
 path = "src/main.rs"
+
+[dev-dependencies]
+criterion = { version = "0.5", default-features = false }
+
+[[bench]]
+name = "eval_bench"
+harness = false

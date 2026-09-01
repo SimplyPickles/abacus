@@ -3,14 +3,23 @@ use std::{collections::HashMap, sync::Arc};
 use crate::evaluation::tokenizer::registry::{
     binary::{arithmetic::register_arithmetic, operators::BinaryOp},
     function::{
-        ci::register_ci, combinatorics::register_combinatorics, date::register_date_functions,
-        distributions::register_distributions, financial::register_financial,
-        hypothesis::register_hypothesis, math::register_math, math_helpers::register_math_helpers,
-        operators::FunctionOp, regression::register_regression, stats::register_stats,
-        trig::register_trig,
+        combinatorics::register_combinatorics, math::register_math,
+        math_helpers::register_math_helpers, operators::FunctionOp, trig::register_trig,
     },
     unary::{general::register_general, operators::UnaryOp},
 };
+
+#[cfg(feature = "stats")]
+use crate::evaluation::tokenizer::registry::function::{
+    ci::register_ci, hypothesis::register_hypothesis, regression::register_regression,
+    stats::register_stats,
+};
+#[cfg(feature = "distributions")]
+use crate::evaluation::tokenizer::registry::function::distributions::register_distributions;
+#[cfg(feature = "financial")]
+use crate::evaluation::tokenizer::registry::function::financial::register_financial;
+#[cfg(feature = "date")]
+use crate::evaluation::tokenizer::registry::function::date::register_date_functions;
 
 #[derive(Debug, Default)]
 pub struct TokenRegistry {
@@ -30,6 +39,7 @@ impl TokenRegistry {
     }
 
     #[must_use]
+    #[allow(unused_mut)]
     pub fn standard() -> Self {
         let binary = register_arithmetic();
 

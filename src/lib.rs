@@ -56,7 +56,17 @@ impl Abacus {
         }
     }
 
-    // Initialize a new `Abacus` instance with standard units and tokens
+    /// Initialize an `Abacus` instance populated with standard physical units and operator registries.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use abacus::Abacus;
+    ///
+    /// let abacus = Abacus::standard();
+    /// let val = abacus.eval_scalar("2 * 5 m").unwrap();
+    /// assert_eq!(val.to_display(), "10 m");
+    /// ```
     #[must_use]
     pub fn standard() -> Self {
         Self {
@@ -135,11 +145,13 @@ impl Abacus {
     /// Returns a reference to the globally shared standard `Abacus` instance.
     #[must_use]
     pub fn shared() -> &'static Self {
-        &STANDARD
+        &STANDARD_ABACUS
     }
 }
 
-pub static STANDARD: std::sync::LazyLock<Abacus> = std::sync::LazyLock::new(Abacus::standard);
+pub static STANDARD_ABACUS: std::sync::LazyLock<Abacus> =
+    std::sync::LazyLock::new(Abacus::standard);
+pub use STANDARD_ABACUS as STANDARD;
 
 impl Default for Abacus {
     fn default() -> Self {
@@ -147,9 +159,21 @@ impl Default for Abacus {
     }
 }
 
-// Convenience function for standard expression evaluation
+/// Evaluates a physical unit or mathematical expression using the standard unit and token registry.
+///
+/// # Examples
+///
+/// ```rust
+/// use abacus::eval;
+///
+/// let res = eval("10 N * 5 m").unwrap();
+/// assert_eq!(res.to_display(), "50 J");
+///
+/// let converted = eval("1 km in m").unwrap();
+/// assert_eq!(converted.to_display(), "1000 m");
+/// ```
 pub fn eval(expr: &str) -> Result<EvalResult, AbacusError> {
-    STANDARD.eval(expr)
+    STANDARD_ABACUS.eval(expr)
 }
 
 #[cfg(test)]
