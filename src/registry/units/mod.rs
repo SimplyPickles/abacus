@@ -7,6 +7,8 @@ pub mod humorous_units;
 pub mod imperial_units;
 pub mod metric_units;
 pub mod nautical_units;
+#[cfg(feature = "number-scales")]
+pub mod number_scale_units;
 pub mod storage_units;
 pub mod temporal_units;
 pub mod trade_historical_units;

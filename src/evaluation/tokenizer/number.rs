@@ -10,6 +10,7 @@ pub(crate) fn parse_number_token<'a>(
     start: usize,
     chars: &mut Peekable<CharIndices<'a>>,
     unit_registry: &UnitRegistry,
+    number_scales: bool,
 ) -> Result<Token<'a>, AbacusError> {
     let mut has_dot = false;
     let mut has_exp = false;
@@ -100,6 +101,13 @@ pub(crate) fn parse_number_token<'a>(
             }
         }
         let unit_candidate = &input_text[unit_start..unit_end];
+        if number_scales
+            && let Some(scale) =
+                crate::evaluation::tokenizer::implicit::number_scale_factor(unit_candidate)
+        {
+            *chars = unit_chars;
+            return Ok(Token::Float(val * scale));
+        }
         if let Ok(unit) = unit_registry.unit(unit_candidate) {
             *chars = unit_chars;
             return Ok(Token::Val(Value::new(val, unit)));

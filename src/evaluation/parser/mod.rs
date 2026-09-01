@@ -61,6 +61,7 @@ pub fn evaluate_with_variables(
         variables,
         input,
         config.implicit_multiplication,
+        config.number_scales,
     )?;
     let mut parser =
         Parser::new_with_variables(&tokens, token_registry, unit_registry, variables, config);

@@ -6,20 +6,58 @@ use crate::{
     UnitRegistry, Value,
 };
 
+/// Returns scale multiplier for natural number words (e.g. "million" -> 1e6).
+#[must_use]
+pub fn number_scale_factor(word: &str) -> Option<f64> {
+    match word {
+        "hundred" | "hundreds" => Some(100.0),
+        "thousand" | "thousands" => Some(1_000.0),
+        "million" | "millions" => Some(1_000_000.0),
+        "billion" | "billions" => Some(1_000_000_000.0),
+        "trillion" | "trillions" => Some(1_000_000_000_000.0),
+        "quadrillion" | "quadrillions" => Some(1e15),
+        "quintillion" | "quintillions" => Some(1e18),
+        "sextillion" | "sextillions" => Some(1e21),
+        "septillion" | "septillions" => Some(1e24),
+        "googol" | "googols" => Some(1e100),
+        "dozen" | "dozens" => Some(12.0),
+        "bakers_dozen" | "bakers_dozens" | "baker_dozen" => Some(13.0),
+        "gross" | "grosses" => Some(144.0),
+        "myriad" | "myriads" => Some(10_000.0),
+        _ => None,
+    }
+}
+
 /// Combines adjacent `Float + Unit` tokens and inserts implicit `BinaryOp("*")` between adjacent terms.
 pub(crate) fn resolve_tokens<'a>(
     tokens: Vec<Token<'a>>,
     unit_registry: &UnitRegistry,
     token_registry: &TokenRegistry,
     implicit_multiplication: bool,
+    number_scales: bool,
 ) -> Vec<Token<'a>> {
-    // 1. Combine adjacent Float + Unit into Val if separated by space (e.g. `5.0` + `km`)
+    // 1. Combine adjacent Float + Unit into Val if separated by space (e.g. `5.0` + `km`),
+    // and scale numbers with scale words (e.g. `3 million`, `3 million km`) if enabled.
     let mut resolved: Vec<Token<'a>> = Vec::with_capacity(tokens.len());
     let mut iter = tokens.into_iter().peekable();
     while let Some(tok) = iter.next() {
-        if let Token::Float(num) = tok {
+        if let Token::Float(mut num) = tok {
+            if number_scales {
+                // Fold chained number scale words: e.g. `3 million`, `100 thousand million`
+                while let Some(Token::Unit(unit_sym)) = iter.peek() {
+                    if let Some(scale) = number_scale_factor(unit_sym) {
+                        iter.next();
+                        num *= scale;
+                        continue;
+                    }
+                    break;
+                }
+            }
+
+            // Check if followed by a physical unit (e.g. `5.0 km`, or `3 million km`)
             if let Some(Token::Unit(unit_sym)) = iter.peek()
                 && let Ok(unit) = unit_registry.unit(unit_sym)
+                && (!number_scales || number_scale_factor(unit_sym).is_none())
             {
                 iter.next();
                 resolved.push(Token::Val(Value::new(num, unit)));

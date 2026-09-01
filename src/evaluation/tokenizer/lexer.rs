@@ -55,7 +55,14 @@ pub fn tokenize_string<'a>(
     unit_registry: &UnitRegistry,
     input_text: &'a str,
 ) -> Result<Vec<Token<'a>>, AbacusError> {
-    tokenize_string_full(token_registry, unit_registry, None, input_text, true)
+    tokenize_string_full(
+        token_registry,
+        unit_registry,
+        None,
+        input_text,
+        true,
+        cfg!(feature = "number-scales"),
+    )
 }
 
 /// Tokenize an expression string with configurable options.
@@ -71,6 +78,7 @@ pub fn tokenize_string_with_options<'a>(
         None,
         input_text,
         implicit_multiplication,
+        cfg!(feature = "number-scales"),
     )
 }
 
@@ -81,6 +89,7 @@ pub fn tokenize_string_full<'a>(
     variables: Option<&std::collections::HashMap<String, crate::units::eval_result::EvalResult>>,
     input_text: &'a str,
     implicit_multiplication: bool,
+    number_scales: bool,
 ) -> Result<Vec<Token<'a>>, AbacusError> {
     let mut tokens = Vec::new();
     let mut chars = input_text.char_indices().peekable();
@@ -403,7 +412,8 @@ pub fn tokenize_string_full<'a>(
                     .nth(1)
                     .is_some_and(|(_, next_c)| next_c.is_ascii_digit()))
         {
-            let num_token = parse_number_token(input_text, i, &mut chars, unit_registry)?;
+            let num_token =
+                parse_number_token(input_text, i, &mut chars, unit_registry, number_scales)?;
             tokens.push(num_token);
             continue;
         }
@@ -498,6 +508,7 @@ pub fn tokenize_string_full<'a>(
         unit_registry,
         token_registry,
         implicit_multiplication,
+        number_scales,
     ))
 }
 

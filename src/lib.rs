@@ -68,6 +68,7 @@ pub struct Abacus {
     pub weekend: WeekendDays,
     pub max_recursion_depth: usize,
     pub implicit_multiplication: bool,
+    pub number_scales: bool,
     pub variables: HashMap<String, EvalResult>,
 }
 
@@ -130,6 +131,7 @@ impl Abacus {
             weekend: WeekendDays::default(),
             max_recursion_depth: 64,
             implicit_multiplication: true,
+            number_scales: cfg!(feature = "number-scales"),
             variables: HashMap::new(),
         }
     }
@@ -152,6 +154,7 @@ impl Abacus {
             weekend: WeekendDays::default(),
             max_recursion_depth: 64,
             implicit_multiplication: true,
+            number_scales: cfg!(feature = "number-scales"),
             variables: HashMap::new(),
         }
     }
@@ -185,6 +188,7 @@ impl Abacus {
             weekend: WeekendDays::default(),
             max_recursion_depth: 64,
             implicit_multiplication: true,
+            number_scales: cfg!(feature = "number-scales"),
             variables: Self::standard_variables(),
         }
     }
@@ -424,6 +428,25 @@ impl Abacus {
         self.implicit_multiplication = enabled;
     }
 
+    /// Sets whether natural number scale words (e.g. `million`, `billion`, `thousand`, `dozen`) are recognized as scale multipliers.
+    #[must_use]
+    pub fn set_number_scales(mut self, enabled: bool) -> Self {
+        self.number_scales = enabled;
+        self
+    }
+
+    /// Builder method to toggle natural number scale words.
+    #[must_use]
+    pub fn with_number_scales(mut self, enabled: bool) -> Self {
+        self.number_scales = enabled;
+        self
+    }
+
+    /// In-place setter for natural number scale words.
+    pub fn set_scales(&mut self, enabled: bool) {
+        self.number_scales = enabled;
+    }
+
     // Tokenize an expression into a vector of `Token`s
     pub fn tokenize<'a>(&self, expr: &'a str) -> Result<Vec<Token<'a>>, AbacusError> {
         crate::evaluation::tokenizer::tokenize_string_full(
@@ -432,6 +455,7 @@ impl Abacus {
             Some(&self.variables),
             expr,
             self.implicit_multiplication,
+            self.number_scales,
         )
     }
 
@@ -523,6 +547,7 @@ impl Abacus {
             weekend: self.weekend,
             max_recursion_depth: self.max_recursion_depth,
             implicit_multiplication: self.implicit_multiplication,
+            number_scales: self.number_scales,
         };
         let mut res = crate::evaluation::parser::evaluate_with_variables(
             &self.tokens,

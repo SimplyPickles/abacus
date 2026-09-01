@@ -11,6 +11,7 @@ pub struct EvalConfig {
     pub weekend: WeekendDays,
     pub max_recursion_depth: usize,
     pub implicit_multiplication: bool,
+    pub number_scales: bool,
 }
 
 impl Default for EvalConfig {
@@ -24,6 +25,7 @@ impl Default for EvalConfig {
             weekend: WeekendDays::SaturdaySunday,
             max_recursion_depth: 64,
             implicit_multiplication: true,
+            number_scales: cfg!(feature = "number-scales"),
         }
     }
 }

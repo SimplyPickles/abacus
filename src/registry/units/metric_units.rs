@@ -22,6 +22,9 @@ use crate::{
     },
 };
 
+#[cfg(feature = "number-scales")]
+use crate::registry::units::number_scale_units::register_number_scale_units;
+
 pub static METRIC_PREFIXES: &[ScalarPrefix] = gen_prefixes! {
     "quetta",  "Q",  1e30;
     "ronna",   "R",  1e27;
@@ -136,6 +139,8 @@ pub fn register_metric_units() -> HashMap<String, Arc<Unit>> {
     register_computing_niche_units(&mut map);
     register_trade_historical_units(&mut map);
     register_humorous_units(&mut map);
+    #[cfg(feature = "number-scales")]
+    register_number_scale_units(&mut map);
 
     for base in BASE_METRIC_UNITS {
         let base_unit = Arc::new(Unit {
