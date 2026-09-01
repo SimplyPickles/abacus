@@ -467,11 +467,10 @@ impl<'a> Parser<'a> {
                     .token_registry
                     .unary_operators
                     .get("-")
-                    .ok_or_else(|| AbacusError::UnexpectedToken("-".to_string()))?
-                    .clone();
+                    .ok_or_else(|| AbacusError::UnexpectedToken("-".to_string()))?;
                 let bp = self.prefix_bp("-");
                 let operand = self.parse_expr(bp)?;
-                operand.apply_unary(&op)
+                operand.apply_unary(op)
             }
 
             Some(Token::UnaryOp(name)) => {
@@ -479,11 +478,10 @@ impl<'a> Parser<'a> {
                     .token_registry
                     .unary_operators
                     .get(name)
-                    .ok_or_else(|| AbacusError::UnexpectedToken(name.to_string()))?
-                    .clone();
+                    .ok_or_else(|| AbacusError::UnexpectedToken(name.to_string()))?;
                 let bp = self.prefix_bp(name);
                 let operand = self.parse_expr(bp)?;
-                operand.apply_unary(&op)
+                operand.apply_unary(op)
             }
 
             // Function call: name(arg1, arg2, ...) or unparenthesized single argument: name arg
@@ -492,8 +490,7 @@ impl<'a> Parser<'a> {
                     .token_registry
                     .function_operators
                     .get(name)
-                    .ok_or_else(|| AbacusError::UnexpectedToken(name.to_string()))?
-                    .clone();
+                    .ok_or_else(|| AbacusError::UnexpectedToken(name.to_string()))?;
 
                 let mut raw_args = Vec::new();
 

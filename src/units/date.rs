@@ -639,62 +639,67 @@ impl Date {
 
     #[must_use]
     pub fn parse_ymd_components(s: &str) -> Option<(i32, u32, u32, usize)> {
-        let trimmed = s.trim_start();
-        if trimmed.is_empty() || !trimmed.chars().next()?.is_ascii_digit() {
+        let bytes = s.as_bytes();
+        let mut start = 0;
+        while start < bytes.len() && (bytes[start] == b' ' || bytes[start] == b'\t') {
+            start += 1;
+        }
+        if start >= bytes.len() || !bytes[start].is_ascii_digit() {
             return None;
         }
 
-        // Find the date portion consisting strictly of digits and separators
-        let end_idx = trimmed
-            .find(|c: char| !c.is_ascii_digit() && c != '-' && c != '/')
-            .unwrap_or(trimmed.len());
-        let date_part = &trimmed[..end_idx];
-
-        let sep = if date_part.contains('-') {
-            '-'
-        } else if date_part.contains('/') {
-            '/'
+        let mut end = start;
+        while end < bytes.len()
+            && (bytes[end].is_ascii_digit() || bytes[end] == b'-' || bytes[end] == b'/')
+        {
+            end += 1;
+        }
+        let date_bytes = &bytes[start..end];
+        let sep = if date_bytes.contains(&b'-') {
+            b'-'
+        } else if date_bytes.contains(&b'/') {
+            b'/'
         } else {
             return None;
         };
 
-        let parts: Vec<&str> = date_part.split(sep).collect();
-        if parts.len() != 3 {
+        let mut split = date_bytes.split(|&b| b == sep);
+        let p1 = split.next()?;
+        let p2 = split.next()?;
+        let p3 = split.next()?;
+        if split.next().is_some() {
             return None;
         }
 
-        let (p1, p2, p3) = (parts[0], parts[1], parts[2]);
-        if !(p1.len() == 4 || p3.len() == 4) {
+        if !(p1.len() == 4 || p3.len() == 4) || p1.is_empty() || p2.is_empty() || p3.is_empty() {
             return None;
         }
-        if p1.is_empty() || p2.is_empty() || p3.is_empty() {
-            return None;
-        }
-        if !p1.chars().all(|c| c.is_ascii_digit())
-            || !p2.chars().all(|c| c.is_ascii_digit())
-            || !p3.chars().all(|c| c.is_ascii_digit())
+        if !p1.iter().all(u8::is_ascii_digit)
+            || !p2.iter().all(u8::is_ascii_digit)
+            || !p3.iter().all(u8::is_ascii_digit)
         {
             return None;
         }
 
-        let prefix_ws = s.len() - trimmed.len();
-        let consumed = prefix_ws + date_part.len();
+        let p1_str = std::str::from_utf8(p1).ok()?;
+        let p2_str = std::str::from_utf8(p2).ok()?;
+        let p3_str = std::str::from_utf8(p3).ok()?;
 
         let (year, month, day) = if p1.len() == 4 {
             (
-                p1.parse::<i32>().ok()?,
-                p2.parse::<u32>().ok()?,
-                p3.parse::<u32>().ok()?,
+                p1_str.parse::<i32>().ok()?,
+                p2_str.parse::<u32>().ok()?,
+                p3_str.parse::<u32>().ok()?,
             )
         } else {
             (
-                p3.parse::<i32>().ok()?,
-                p2.parse::<u32>().ok()?,
-                p1.parse::<u32>().ok()?,
+                p3_str.parse::<i32>().ok()?,
+                p2_str.parse::<u32>().ok()?,
+                p1_str.parse::<u32>().ok()?,
             )
         };
 
-        Some((year, month, day, consumed))
+        Some((year, month, day, end))
     }
 
     pub fn apply_time_value(&self, rhs: &Value, sign: i64) -> Result<Date, AbacusError> {
