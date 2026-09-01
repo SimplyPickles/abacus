@@ -483,6 +483,8 @@ pub fn tokenize_string_full<'a>(
                 } else {
                     tokens.push(Token::Unit(sym));
                 }
+            } else if sym.eq_ignore_ascii_case("per") {
+                tokens.push(Token::BinaryOp("/"));
             } else if let Some(op) = token_registry.binary_operators.get(sym) {
                 if sym == "%" {
                     let after = input_text[end..].trim_start();

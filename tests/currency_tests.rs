@@ -260,3 +260,37 @@ fn test_daily_currency_caching() {
     // Clean up
     let _ = std::fs::remove_file(&cache_file);
 }
+
+#[test]
+fn test_per_division_operator() {
+    // "a thousand dollars per day"
+    let daily_rate = eval("a thousand dollars per day").unwrap();
+    assert_eq!(daily_rate.to_display(), "1000 $/d");
+
+    // "a thousand dollars per day * 3 days"
+    let total = eval("(a thousand dollars per day) * 3 days").unwrap();
+    assert_eq!(total.to_display(), "$3000");
+
+    // "100 meters per second"
+    let speed = eval("100 meters per second").unwrap();
+    assert_eq!(speed.to_display(), "100 m/s");
+
+    // "60 miles per hour in km/h"
+    let speed_km = Abacus::standard()
+        .with_decimal_places(2)
+        .eval("60 miles per hour in km/h")
+        .unwrap();
+    assert_eq!(speed_km.to_display(), "96.56 km/h");
+
+    // "$50 per hour * 8 hours"
+    let wages = eval("$50 per hour * 8 hours").unwrap();
+    assert_eq!(wages.to_display(), "$400");
+
+    // Dimensionless: "100 per 4"
+    let ratio = eval("100 per 4").unwrap();
+    assert_eq!(ratio.to_display(), "25");
+
+    // Case-insensitivity: "10 meters PER second"
+    let cap_per = eval("10 meters PER second").unwrap();
+    assert_eq!(cap_per.to_display(), "10 m/s");
+}
