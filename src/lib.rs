@@ -28,12 +28,18 @@ pub use evaluation::tokenizer::registry::{
 
 pub use evaluation::tokenizer::tokens::Token;
 
-use crate::evaluation::{parser::parse::evaluate, tokenizer::tokenize::tokenize_string};
+use crate::evaluation::{
+    parser::parse::evaluate_with_options,
+    tokenizer::tokenize::{min_significant_figures_in_expr, tokenize_string},
+};
 
 pub struct Abacus {
     pub units: UnitRegistry,
     pub tokens: TokenRegistry,
     pub date_format: DateFormat,
+    pub significant_figures: Option<usize>,
+    pub follow_significant_figures: bool,
+    pub auto_derived_units: bool,
 }
 
 impl Abacus {
@@ -44,6 +50,9 @@ impl Abacus {
             units: UnitRegistry::new(),
             tokens: TokenRegistry::new(),
             date_format: DateFormat::default(),
+            significant_figures: None,
+            follow_significant_figures: false,
+            auto_derived_units: true,
         }
     }
 
@@ -53,6 +62,9 @@ impl Abacus {
             units,
             tokens,
             date_format: DateFormat::default(),
+            significant_figures: None,
+            follow_significant_figures: false,
+            auto_derived_units: true,
         }
     }
 
@@ -73,6 +85,9 @@ impl Abacus {
             units: UnitRegistry::standard(),
             tokens: TokenRegistry::standard(),
             date_format: DateFormat::default(),
+            significant_figures: None,
+            follow_significant_figures: false,
+            auto_derived_units: true,
         }
     }
 
@@ -80,6 +95,64 @@ impl Abacus {
     pub fn set_date_format(mut self, format: DateFormat) -> Self {
         self.date_format = format;
         self
+    }
+
+    /// Sets the significant figures for output rounding and formatting.
+    #[must_use]
+    pub fn set_significant_figures(mut self, sig_figs: Option<usize>) -> Self {
+        self.significant_figures = sig_figs;
+        self
+    }
+
+    /// Builder method to configure a specific number of significant figures.
+    #[must_use]
+    pub fn with_significant_figures(mut self, sig_figs: usize) -> Self {
+        self.significant_figures = Some(sig_figs);
+        self
+    }
+
+    /// Sets whether the evaluator should follow the minimum significant figures
+    /// of the input expression's numeric literals.
+    #[must_use]
+    pub fn set_follow_significant_figures(mut self, follow: bool) -> Self {
+        self.follow_significant_figures = follow;
+        self
+    }
+
+    /// Builder method to follow the expression's input significant figures.
+    #[must_use]
+    pub fn with_follow_significant_figures(mut self, follow: bool) -> Self {
+        self.follow_significant_figures = follow;
+        self
+    }
+
+    /// Sets whether automatic derived unit reduction (e.g. N*m -> J) is enabled.
+    #[must_use]
+    pub fn set_auto_derived_units(mut self, enabled: bool) -> Self {
+        self.auto_derived_units = enabled;
+        self
+    }
+
+    /// Builder method to enable or disable automatic derived unit reduction.
+    #[must_use]
+    pub fn with_auto_derived_units(mut self, enabled: bool) -> Self {
+        self.auto_derived_units = enabled;
+        self
+    }
+
+    /// In-place setter for significant figures.
+    pub fn set_sig_figs(&mut self, sig_figs: Option<usize>) {
+        self.significant_figures = sig_figs;
+    }
+
+    /// In-place setter for following input significant figures.
+    pub fn set_follow_sig_figs(&mut self, follow: bool) {
+        self.follow_significant_figures = follow;
+    }
+
+    /// In-place setter for automatic derived unit reduction.
+    pub fn set_auto_derive(&mut self, enabled: bool) {
+        self.auto_derived_units = enabled;
     }
 
     // Tokenize an expression into a vector of `Token`s
@@ -91,11 +164,40 @@ impl Abacus {
     // Evaluated dates are automatically formatted
     // Returns an error if the expression is invalid or cannot be evaluated.
     pub fn eval(&self, expr: &str) -> Result<EvalResult, AbacusError> {
-        let mut res = evaluate(&self.tokens, &self.units, expr)?;
+        let mut res = evaluate_with_options(
+            &self.tokens,
+            &self.units,
+            expr,
+            self.auto_derived_units,
+        )?;
         if let EvalResult::Date(ref mut d) = res {
             d.format = self.date_format;
         }
+
+        let effective_sig_figs = self.significant_figures.or_else(|| {
+            if self.follow_significant_figures {
+                min_significant_figures_in_expr(expr)
+            } else {
+                None
+            }
+        });
+
+        if let Some(sig) = effective_sig_figs {
+            res = res.round_to_sig_figs(sig);
+        }
+
         Ok(res)
+    }
+
+    /// Formats an `EvalResult` according to this `Abacus` instance's configuration
+    /// (date format, significant figures, etc.).
+    #[must_use]
+    pub fn format_result(&self, res: &EvalResult) -> String {
+        if let Some(sig_figs) = self.significant_figures {
+            res.to_display_with_sig_figs(sig_figs)
+        } else {
+            res.to_display()
+        }
     }
 
     /// Evaluate an expression, returning only scalar results.

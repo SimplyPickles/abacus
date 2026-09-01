@@ -870,6 +870,145 @@ pub fn tokenize_string<'a>(
     Ok(final_tokens)
 }
 
+/// Count the number of significant figures in a numeric string literal.
+///
+/// Rules applied:
+/// - Any non-zero digit is significant.
+/// - Any zero between non-zero digits is significant.
+/// - For numbers with a decimal point, leading zeros before the first non-zero digit are not significant,
+///   but all trailing zeros after non-zero digits are significant (e.g. "12.30" -> 4, "0.00450" -> 3).
+/// - For numbers without a decimal point, trailing zeros are considered not significant (e.g. "1200" -> 2).
+/// - Exponents in scientific notation (e.g. `e4`, `E-2`) do not affect significant figures.
+#[must_use]
+pub fn count_significant_figures(s: &str) -> Option<usize> {
+    let s = s.trim().trim_start_matches('+').trim_start_matches('-');
+    if s.is_empty() {
+        return None;
+    }
+
+    // Split mantissa from exponent if present (e.g. 1.23e4 -> 1.23)
+    let mantissa = s.split(['e', 'E']).next()?.trim();
+    if mantissa.is_empty() {
+        return None;
+    }
+
+    if let Some((int_part, frac_part)) = mantissa.split_once('.') {
+        let int_digits: Vec<char> = int_part.chars().filter(|c| c.is_ascii_digit()).collect();
+        let frac_digits: Vec<char> = frac_part.chars().filter(|c| c.is_ascii_digit()).collect();
+
+        if let Some(first_non_zero) = int_digits.iter().position(|&c| c != '0') {
+            let count = (int_digits.len() - first_non_zero) + frac_digits.len();
+            Some(count.max(1))
+        } else if let Some(first_non_zero) = frac_digits.iter().position(|&c| c != '0') {
+            let count = frac_digits.len() - first_non_zero;
+            Some(count.max(1))
+        } else {
+            // All zeros e.g. "0.0" -> 2 sig figs
+            Some((int_digits.len() + frac_digits.len()).max(1))
+        }
+    } else {
+        let digits: Vec<char> = mantissa.chars().filter(|c| c.is_ascii_digit()).collect();
+        if digits.is_empty() {
+            return None;
+        }
+        let first_non_zero = digits.iter().position(|&c| c != '0');
+        let last_non_zero = digits.iter().rposition(|&c| c != '0');
+
+        match (first_non_zero, last_non_zero) {
+            (Some(first), Some(last)) => {
+                let count = last - first + 1;
+                Some(count.max(1))
+            }
+            _ => Some(1),
+        }
+    }
+}
+
+/// Scans an expression string for numeric literals and returns the minimum number of significant figures
+/// across all numbers found.
+#[must_use]
+pub fn min_significant_figures_in_expr(expr: &str) -> Option<usize> {
+    let mut min_sig: Option<usize> = None;
+    let mut chars = expr.char_indices().peekable();
+
+    while let Some(&(i, c)) = chars.peek() {
+        // Skip date blocks between '@'
+        if c == '@' {
+            chars.next();
+            while let Some(&(_, ch)) = chars.peek() {
+                chars.next();
+                if ch == '@' {
+                    break;
+                }
+            }
+            continue;
+        }
+
+        // Detect number start (digit or leading dot followed by digit)
+        if c.is_ascii_digit()
+            || (c == '.'
+                && chars
+                    .clone()
+                    .nth(1)
+                    .is_some_and(|(_, next_c)| next_c.is_ascii_digit()))
+        {
+            let start = i;
+            let mut has_dot = false;
+            let mut has_exp = false;
+
+            while let Some(&(_, num_c)) = chars.peek() {
+                if num_c.is_ascii_digit() {
+                    chars.next();
+                } else if num_c == '.' && !has_dot && !has_exp {
+                    let mut lookahead = chars.clone();
+                    lookahead.next();
+                    if let Some(&(_, next_c)) = lookahead.peek()
+                        && next_c.is_ascii_digit()
+                    {
+                        has_dot = true;
+                        chars.next();
+                    } else {
+                        break;
+                    }
+                } else if (num_c == 'e' || num_c == 'E') && !has_exp {
+                    let mut lookahead = chars.clone();
+                    lookahead.next();
+                    if let Some(&(_, sign_c)) = lookahead.peek()
+                        && (sign_c == '+' || sign_c == '-')
+                    {
+                        lookahead.next();
+                    }
+                    if let Some(&(_, digit_c)) = lookahead.peek()
+                        && digit_c.is_ascii_digit()
+                    {
+                        has_exp = true;
+                        chars.next(); // 'e' or 'E'
+                        if let Some(&(_, sign_c)) = chars.peek()
+                            && (sign_c == '+' || sign_c == '-')
+                        {
+                            chars.next();
+                        }
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+
+            let num_str = &expr[start..chars.peek().map_or(expr.len(), |&(idx, _)| idx)];
+            if let Some(sig) = count_significant_figures(num_str) {
+                min_sig = Some(min_sig.map_or(sig, |m| m.min(sig)));
+            }
+            continue;
+        }
+
+        chars.next();
+    }
+
+    min_sig
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -949,5 +1088,24 @@ mod tests {
         let unit_reg = UnitRegistry::standard();
 
         assert!(tokenize_string(&token_reg, &unit_reg, "xyz").is_err());
+    }
+
+    #[test]
+    fn test_significant_figures_counting() {
+        assert_eq!(count_significant_figures("12.30"), Some(4));
+        assert_eq!(count_significant_figures("0.00450"), Some(3));
+        assert_eq!(count_significant_figures("100."), Some(3));
+        assert_eq!(count_significant_figures("1200"), Some(2));
+        assert_eq!(count_significant_figures("1205"), Some(4));
+        assert_eq!(count_significant_figures("1.23e4"), Some(3));
+        assert_eq!(count_significant_figures("0.0"), Some(2));
+        assert_eq!(count_significant_figures("5"), Some(1));
+    }
+
+    #[test]
+    fn test_min_significant_figures_scan() {
+        assert_eq!(min_significant_figures_in_expr("12.3 * 4.567"), Some(3));
+        assert_eq!(min_significant_figures_in_expr("100.0 m + 2.5 m"), Some(2));
+        assert_eq!(min_significant_figures_in_expr("sin(45 deg)"), Some(2));
     }
 }

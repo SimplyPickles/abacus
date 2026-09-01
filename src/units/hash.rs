@@ -45,6 +45,28 @@ impl Hash {
     pub fn to_display(&self) -> String {
         self.to_string()
     }
+
+    /// Returns a new `Hash` with all numeric values rounded to `sig_figs` significant figures.
+    #[must_use]
+    pub fn round_to_sig_figs(&self, sig_figs: usize) -> Self {
+        let mut new_values = HashMap::new();
+        for (k, v) in &self.values {
+            new_values.insert(k.clone(), v.round_to_sig_figs(sig_figs));
+        }
+        Self { values: new_values }
+    }
+
+    /// Formats all entries in the hash formatted to `sig_figs` significant figures.
+    #[must_use]
+    pub fn to_display_with_sig_figs(&self, sig_figs: usize) -> String {
+        let mut entries: Vec<_> = self.values.iter().collect();
+        entries.sort_by_key(|&(k, _)| k);
+        let formatted: Vec<String> = entries
+            .into_iter()
+            .map(|(k, v)| format!("{}: {}", k, v.to_display_with_sig_figs(sig_figs)))
+            .collect();
+        format!("{{ {} }}", formatted.join(", "))
+    }
 }
 
 impl Default for Hash {

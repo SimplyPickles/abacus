@@ -136,6 +136,28 @@ impl EvalResult {
         }
     }
 
+    /// Returns a new `EvalResult` with scalar and interval components rounded to `sig_figs` significant figures.
+    #[must_use]
+    pub fn round_to_sig_figs(self, sig_figs: usize) -> Self {
+        match self {
+            EvalResult::Scalar(v) => EvalResult::Scalar(v.round_to_sig_figs(sig_figs)),
+            EvalResult::Interval(i) => EvalResult::Interval(i.round_to_sig_figs(sig_figs)),
+            EvalResult::Hash(h) => EvalResult::Hash(h.round_to_sig_figs(sig_figs)),
+            EvalResult::Date(d) => EvalResult::Date(d),
+        }
+    }
+
+    /// Render to display string formatted to `sig_figs` significant figures.
+    #[must_use]
+    pub fn to_display_with_sig_figs(&self, sig_figs: usize) -> String {
+        match self {
+            EvalResult::Scalar(v) => v.to_display_with_sig_figs(sig_figs),
+            EvalResult::Interval(i) => i.to_display_with_sig_figs(sig_figs),
+            EvalResult::Hash(h) => h.to_display_with_sig_figs(sig_figs),
+            EvalResult::Date(d) => d.to_string(),
+        }
+    }
+
     /// Borrow the scalar Value, or error if this is not a scalar.
     pub fn as_scalar(&self) -> Result<&Value, AbacusError> {
         match self {

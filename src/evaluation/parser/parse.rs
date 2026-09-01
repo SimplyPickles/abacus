@@ -26,6 +26,7 @@ pub struct Parser<'a> {
     pub has_explicit_conversion: bool,
     function_arg_depth: usize,
     recursion_depth: usize,
+    now: crate::Date,
 }
 
 impl<'a> Parser<'a> {
@@ -42,6 +43,7 @@ impl<'a> Parser<'a> {
             has_explicit_conversion: false,
             function_arg_depth: 0,
             recursion_depth: 0,
+            now: crate::Date::now(),
         }
     }
 
@@ -282,11 +284,11 @@ impl<'a> Parser<'a> {
 
                 match op_name {
                     "ago" => {
-                        lhs = EvalResult::Date(crate::Date::now().add_milliseconds(-ms));
+                        lhs = EvalResult::Date(self.now.add_milliseconds(-ms));
                         continue;
                     }
                     "from_now" => {
-                        lhs = EvalResult::Date(crate::Date::now().add_milliseconds(ms));
+                        lhs = EvalResult::Date(self.now.add_milliseconds(ms));
                         continue;
                     }
                     "before" => {
@@ -294,10 +296,10 @@ impl<'a> Parser<'a> {
                             let rhs = self.parse_expr(5)?;
                             match rhs {
                                 EvalResult::Date(d) => d,
-                                _ => crate::Date::now(),
+                                _ => self.now.clone(),
                             }
                         } else {
-                            crate::Date::now()
+                            self.now.clone()
                         };
                         lhs = EvalResult::Date(ref_date.add_milliseconds(-ms));
                         continue;
@@ -307,10 +309,10 @@ impl<'a> Parser<'a> {
                             let rhs = self.parse_expr(5)?;
                             match rhs {
                                 EvalResult::Date(d) => d,
-                                _ => crate::Date::now(),
+                                _ => self.now.clone(),
                             }
                         } else {
-                            crate::Date::now()
+                            self.now.clone()
                         };
                         lhs = EvalResult::Date(ref_date.add_milliseconds(ms));
                         continue;
@@ -388,7 +390,7 @@ impl<'a> Parser<'a> {
                         if v.unit.dimensions == crate::units::dimensions::Dimensions::TIME =>
                     {
                         let ms = (v.canonical * 1000.0).round() as i64;
-                        Ok(EvalResult::Date(crate::Date::now().add_milliseconds(ms)))
+                        Ok(EvalResult::Date(self.now.add_milliseconds(ms)))
                     }
                     EvalResult::Date(d) => Ok(EvalResult::Date(d)),
                     other => Ok(other),
@@ -403,9 +405,9 @@ impl<'a> Parser<'a> {
                     {
                         let ms = (v.canonical * 1000.0).round() as i64;
                         if name == "before" || name == "ago" {
-                            Ok(EvalResult::Date(crate::Date::now().add_milliseconds(-ms)))
+                            Ok(EvalResult::Date(self.now.add_milliseconds(-ms)))
                         } else {
-                            Ok(EvalResult::Date(crate::Date::now().add_milliseconds(ms)))
+                            Ok(EvalResult::Date(self.now.add_milliseconds(ms)))
                         }
                     }
                     EvalResult::Date(d) => Ok(EvalResult::Date(d)),
@@ -715,6 +717,16 @@ pub fn evaluate(
     unit_registry: &UnitRegistry,
     input: &str,
 ) -> Result<EvalResult, AbacusError> {
+    evaluate_with_options(token_registry, unit_registry, input, true)
+}
+
+/// Tokenize and parse an expression string with configurable automatic derived unit conversion.
+pub fn evaluate_with_options(
+    token_registry: &TokenRegistry,
+    unit_registry: &UnitRegistry,
+    input: &str,
+    auto_derived: bool,
+) -> Result<EvalResult, AbacusError> {
     let tokens = crate::evaluation::tokenizer::tokenize::tokenize_string(
         token_registry,
         unit_registry,
@@ -722,7 +734,9 @@ pub fn evaluate(
     )?;
     let mut parser = Parser::new(tokens, token_registry, unit_registry);
     let result = parser.parse()?;
-    if parser.has_explicit_conversion {
+    if parser.has_explicit_conversion || !auto_derived {
+        let mut result = result;
+        result.simplify_unit_display(unit_registry);
         Ok(result)
     } else {
         let mut result = result.to_derived(unit_registry)?;

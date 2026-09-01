@@ -125,6 +125,78 @@ impl Value {
             self.to_display()
         }
     }
+
+    /// Returns a new `Value` with the displayed quantity rounded to `sig_figs` significant figures.
+    #[must_use]
+    pub fn round_to_sig_figs(&self, sig_figs: usize) -> Self {
+        let amt = self.amount();
+        let rounded_amt = round_f64_sig_figs(amt, sig_figs);
+        let new_canonical = rounded_amt * self.unit.scalar + self.unit.offset;
+        Self {
+            canonical: new_canonical,
+            unit: Arc::clone(&self.unit),
+        }
+    }
+
+    /// Renders this `Value` formatted to `sig_figs` significant figures.
+    #[must_use]
+    pub fn to_display_with_sig_figs(&self, sig_figs: usize) -> String {
+        let formatted_amt = format_f64_sig_figs(self.amount(), sig_figs);
+        let unit_str = self.unit.display.render();
+        if unit_str.is_empty() {
+            formatted_amt
+        } else {
+            format!("{formatted_amt} {unit_str}")
+        }
+    }
+}
+
+/// Rounds a floating-point number to a specified number of significant figures.
+#[must_use]
+pub fn round_f64_sig_figs(val: f64, sig_figs: usize) -> f64 {
+    if sig_figs == 0 || !val.is_finite() || val == 0.0 {
+        return val;
+    }
+    let magnitude = val.abs().log10().floor();
+    let scale = 10.0f64.powf(sig_figs as f64 - 1.0 - magnitude);
+    (val * scale).round() / scale
+}
+
+/// Formats a floating-point number to a specified number of significant figures,
+/// preserving trailing zeros.
+#[must_use]
+pub fn format_f64_sig_figs(val: f64, sig_figs: usize) -> String {
+    if sig_figs == 0 || !val.is_finite() {
+        return val.to_string();
+    }
+    if val == 0.0 {
+        if sig_figs > 1 {
+            return format!("0.{:0<width$}", "", width = sig_figs - 1);
+        }
+        return "0".to_string();
+    }
+
+    let magnitude = val.abs().log10().floor() as i32;
+    let sig_figs_i32 = sig_figs as i32;
+
+    if magnitude >= sig_figs_i32 - 1 {
+        let scale = 10.0f64.powi(magnitude - sig_figs_i32 + 1);
+        let rounded = (val / scale).round() * scale;
+        if rounded.abs() >= 1e15 {
+            format!("{:.precision$e}", rounded, precision = sig_figs - 1)
+        } else {
+            format!("{:.0}", rounded)
+        }
+    } else {
+        let decimals = (sig_figs_i32 - 1 - magnitude) as usize;
+        let scale = 10.0f64.powi(decimals as i32);
+        let rounded = (val * scale).round() / scale;
+        if rounded.abs() < 1e-4 {
+            format!("{:.precision$e}", rounded, precision = sig_figs - 1)
+        } else {
+            format!("{:.decimals$}", rounded, decimals = decimals)
+        }
+    }
 }
 
 #[must_use]

@@ -60,6 +60,29 @@ fn main() {
 }
 ```
 
+### Engine Configuration
+
+Configure significant figures and unit behaviors directly on the `Abacus` instance:
+
+```rust
+use abacus::Abacus;
+
+let mut calc = Abacus::standard();
+
+// 1. Configurable Significant Figures (rounding & formatting)
+let calc_sig = Abacus::standard().with_significant_figures(3);
+println!("{}", calc_sig.eval("12.3456 m").unwrap()); // 12.3 m
+println!("{}", calc_sig.eval("12345.6 m").unwrap()); // 12300 m
+
+// 2. Automatically follow input significant figures
+let calc_follow = Abacus::standard().with_follow_significant_figures(true);
+println!("{}", calc_follow.eval("12.3 * 4.567").unwrap()); // 56.2 (3 sig figs)
+
+// 3. Toggle Automatic Derived Unit Reduction
+let calc_raw = Abacus::standard().with_auto_derived_units(false);
+println!("{}", calc_raw.eval("10 N * 5 m").unwrap()); // 50 N*m (not reduced to J)
+```
+
 ---
 
 ## Examples

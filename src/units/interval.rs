@@ -248,6 +248,37 @@ impl Interval {
     pub fn to_display(&self) -> String {
         self.to_string()
     }
+
+    /// Returns a new `Interval` with both endpoints rounded to `sig_figs` significant figures.
+    #[must_use]
+    pub fn round_to_sig_figs(&self, sig_figs: usize) -> Self {
+        Self {
+            lo: self.lo.round_to_sig_figs(sig_figs),
+            hi: self.hi.round_to_sig_figs(sig_figs),
+            style: self.style,
+        }
+    }
+
+    /// Formats the interval with both endpoints rounded to `sig_figs` significant figures.
+    #[must_use]
+    pub fn to_display_with_sig_figs(&self, sig_figs: usize) -> String {
+        match self.style {
+            IntervalStyle::Bracket => {
+                format!(
+                    "[{}, {}]",
+                    self.lo.to_display_with_sig_figs(sig_figs),
+                    self.hi.to_display_with_sig_figs(sig_figs)
+                )
+            }
+            IntervalStyle::Range => {
+                format!(
+                    "{}..{}",
+                    self.lo.to_display_with_sig_figs(sig_figs),
+                    self.hi.to_display_with_sig_figs(sig_figs)
+                )
+            }
+        }
+    }
 }
 
 impl std::fmt::Display for Interval {
