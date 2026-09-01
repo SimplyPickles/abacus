@@ -72,6 +72,7 @@ pub struct Abacus {
     pub currencies: bool,
     pub live_rates: bool,
     pub currency_cache_path: Option<std::path::PathBuf>,
+    pub unit_display_overrides: HashMap<String, String>,
     pub variables: HashMap<String, EvalResult>,
 }
 
@@ -147,6 +148,7 @@ impl Abacus {
                     None
                 }
             },
+            unit_display_overrides: HashMap::new(),
             variables: HashMap::new(),
         }
     }
@@ -182,6 +184,7 @@ impl Abacus {
                     None
                 }
             },
+            unit_display_overrides: HashMap::new(),
             variables: HashMap::new(),
         }
     }
@@ -228,6 +231,7 @@ impl Abacus {
                     None
                 }
             },
+            unit_display_overrides: HashMap::new(),
             variables: Self::standard_variables(),
         }
     }
@@ -703,6 +707,73 @@ impl Abacus {
         self.variables = Self::standard_variables();
     }
 
+    /// Returns the standard common speed unit display overrides ("mi/h" -> "mph", "km/h" -> "kmph").
+    #[must_use]
+    pub fn standard_unit_display_overrides() -> HashMap<String, String> {
+        crate::units::speed_overrides::standard_speed_overrides()
+    }
+
+    /// Adds a display override for a unit string (e.g. `"mi/h"` -> `"mph"`, `"km/h"` -> `"kmph"`).
+    #[must_use]
+    pub fn with_unit_display_override(
+        mut self,
+        pattern: impl Into<String>,
+        replacement: impl Into<String>,
+    ) -> Self {
+        self.set_unit_display_override(pattern, replacement);
+        self
+    }
+
+    /// Sets a display override for a unit string in-place.
+    pub fn set_unit_display_override(
+        &mut self,
+        pattern: impl Into<String>,
+        replacement: impl Into<String>,
+    ) {
+        self.unit_display_overrides
+            .insert(pattern.into(), replacement.into());
+    }
+
+    /// Builder method to configure multiple unit display overrides.
+    #[must_use]
+    pub fn with_unit_display_overrides(mut self, overrides: HashMap<String, String>) -> Self {
+        self.set_unit_display_overrides(overrides);
+        self
+    }
+
+    /// Sets multiple unit display overrides in-place.
+    pub fn set_unit_display_overrides(&mut self, overrides: HashMap<String, String>) {
+        self.unit_display_overrides.extend(overrides);
+    }
+
+    /// Enables common speed overrides (`"mi/h"` -> `"mph"`, `"km/h"` -> `"kmph"`).
+    #[must_use]
+    pub fn with_common_speed_overrides(mut self) -> Self {
+        self.enable_common_speed_overrides();
+        self
+    }
+
+    /// Enables common speed overrides (`"mi/h"` -> `"mph"`, `"km/h"` -> `"kmph"`) in-place.
+    pub fn enable_common_speed_overrides(&mut self) {
+        self.set_unit_display_overrides(Self::standard_unit_display_overrides());
+    }
+
+    /// Removes a unit display override.
+    pub fn remove_unit_display_override(&mut self, pattern: &str) -> Option<String> {
+        self.unit_display_overrides.remove(pattern)
+    }
+
+    /// Clears all unit display overrides.
+    pub fn clear_unit_display_overrides(&mut self) {
+        self.unit_display_overrides.clear();
+    }
+
+    /// Checks if a display override is configured for a pattern.
+    #[must_use]
+    pub fn has_unit_display_override(&self, pattern: &str) -> bool {
+        self.unit_display_overrides.contains_key(pattern)
+    }
+
     /// Evaluate an expression or variable assignment (`name = expr`).
     /// If the expression is an assignment, updates or creates the variable on `self` and returns its evaluated value.
     /// Otherwise, evaluates the expression normally.
@@ -793,6 +864,10 @@ impl Abacus {
             res = res.round_to_sig_figs(sig);
         }
 
+        if !self.unit_display_overrides.is_empty() {
+            res = res.with_display_override(&self.unit_display_overrides);
+        }
+
         Ok(res)
     }
 
@@ -803,6 +878,9 @@ impl Abacus {
         let mut res = res.clone();
         if let Some(style) = self.default_interval_style {
             res = res.with_interval_style(style);
+        }
+        if !self.unit_display_overrides.is_empty() {
+            res = res.with_display_override(&self.unit_display_overrides);
         }
         match self.notation {
             Notation::Scientific => res.to_display_scientific(),

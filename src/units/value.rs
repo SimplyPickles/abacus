@@ -188,6 +188,33 @@ impl Value {
         let unit_str = self.unit.display.render();
         format_with_unit(&formatted_amt, &unit_str)
     }
+
+    /// Returns a copy of this `Value` with its rendered unit replaced if it matches
+    /// any entry in `overrides` (e.g. `"mi/h"` -> `"mph"`, `"km/h"` -> `"kmph"`).
+    #[must_use]
+    pub fn with_display_override(
+        &self,
+        overrides: &std::collections::HashMap<String, String>,
+    ) -> Self {
+        if overrides.is_empty() {
+            return self.clone();
+        }
+        let current_unit_str = self.unit.display.render();
+        let normalized = current_unit_str.replace(' ', "");
+        if let Some(replacement) = overrides
+            .get(&current_unit_str)
+            .or_else(|| overrides.get(&normalized))
+        {
+            let mut new_unit = (*self.unit).clone();
+            new_unit.display = crate::units::unit::UnitExpr::single(replacement);
+            Self {
+                canonical: self.canonical,
+                unit: std::sync::Arc::new(new_unit),
+            }
+        } else {
+            self.clone()
+        }
+    }
 }
 
 /// Returns true if `sym` should be rendered as a prefix before the number (e.g. `$`, `€`, `£`, `¥`).

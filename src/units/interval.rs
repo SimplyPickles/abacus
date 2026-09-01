@@ -317,6 +317,19 @@ impl Interval {
             }
         }
     }
+
+    /// Returns a new `Interval` with display overrides applied to both endpoints.
+    #[must_use]
+    pub fn with_display_override(
+        &self,
+        overrides: &std::collections::HashMap<String, String>,
+    ) -> Self {
+        Self {
+            lo: self.lo.with_display_override(overrides),
+            hi: self.hi.with_display_override(overrides),
+            style: self.style,
+        }
+    }
 }
 
 impl std::fmt::Display for Interval {

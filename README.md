@@ -149,6 +149,11 @@ calc_vars.set_variable("radius", calc_vars.eval("5 m").unwrap());
 println!("{}", calc_vars.eval("pi * radius^2").unwrap()); // 78.53981633974483 m^2
 calc_vars.eval_mut("height = 10 m").unwrap();
 println!("{}", calc_vars.eval("radius * height").unwrap()); // 50 m^2
+
+// 16. Unit Display Overrides (e.g. "mi/h" -> "mph", "km/h" -> "kmph")
+let calc_speed = Abacus::standard().with_common_speed_overrides();
+println!("{}", calc_speed.eval("60 miles per hour").unwrap()); // 60 mph
+println!("{}", calc_speed.eval("100 km / 1 h").unwrap()); // 100 kmph
 ```
 
 ---
@@ -217,6 +222,26 @@ Evaluate standard mathematical constants and manage programmatic variables:
 | `calc.set_variable("r", 5 m)` | —                       | Programmatic variable definition        |
 | `calc.eval("pi * r^2")`       | `78.53981633974483 m^2` | Variable evaluation with physical units |
 | `calc.eval_mut("w = 10 m")`   | `10 m`                  | Inline assignment syntax                |
+
+### Unit Display Overrides
+
+Abacus provides a display alias system so composite units and rates render using colloquial abbreviations (e.g. `"mi/h"` as `"mph"`, `"km/h"` as `"kmph"`):
+
+```rust
+let calc = Abacus::standard()
+    .with_unit_display_override("mi/h", "mph")
+    .with_unit_display_override("km/h", "kmph");
+// Or enable standard speed overrides with a single method:
+let calc = Abacus::standard().with_common_speed_overrides();
+```
+
+| Expression | Standard Display | With Overrides | Description |
+| :--- | :--- | :--- | :--- |
+| `60 miles per hour` | `60 mi/h` | `60 mph` | Idiomatic US/UK speed notation |
+| `100 km / 1 h` | `100 km/h` | `100 kmph` | Metric road speed abbreviation |
+| `60 miles per hour in km/h` | `96.56 km/h` | `96.56 kmph` | Speed conversion with target override |
+| `[50 mi/h, 70 mi/h]` | `[50 mi/h, 70 mi/h]` | `[50 mph, 70 mph]` | Interval endpoints formatting |
+| `a thousand dollars per day` | `1000 $/d` | `1000 $/day` | Custom rate override (`"$/d"` $\to$ `"$/day"`) |
 
 ### Interval Arithmetic
 

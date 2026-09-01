@@ -10,6 +10,7 @@ use crate::{
             computing_niche_units::register_computing_niche_units,
             derived_units::register_derived_units, humorous_units::register_humorous_units,
             imperial_units::register_imperial_units, nautical_units::register_nautical_units,
+            speed_units::register_speed_units,
             storage_units::register_storage_units, temporal_units::register_temporal_units,
             trade_historical_units::register_trade_historical_units,
             typography_units::register_typography_units,
@@ -132,6 +133,7 @@ pub fn register_metric_units() -> HashMap<String, Arc<Unit>> {
     register_storage_units(&mut map);
     register_imperial_units(&mut map);
     register_derived_units(&mut map);
+    register_speed_units(&mut map);
     register_volume_and_area_units(&mut map);
     register_angle_units(&mut map);
     register_astronomical_units(&mut map);
