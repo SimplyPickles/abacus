@@ -110,6 +110,11 @@ fn highlight_syntax(line: &str) -> String {
                     }
                 }
             }
+        } else if matches!(ch, '$' | '€' | '£' | '¥' | '₹' | '₩' | '₺' | '₪' | '฿') {
+            chars.next();
+            result.push_str("\x1b[38;2;189;147;249m"); // Soft Purple Currency
+            result.push(ch);
+            result.push_str("\x1b[0m");
         } else if "+-*/^!()[]{},".contains(ch) {
             chars.next();
             result.push_str("\x1b[38;2;139;233;253m"); // Lime Green Operator

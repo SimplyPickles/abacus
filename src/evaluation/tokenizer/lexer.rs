@@ -418,6 +418,18 @@ pub fn tokenize_string_full<'a>(
             continue;
         }
 
+        // Currency symbols (e.g. $, €, £, ¥)
+        if crate::evaluation::tokenizer::implicit::is_currency_symbol(c) {
+            chars.next();
+            let sym = &input_text[i..i + c.len_utf8()];
+            if unit_registry.contains(sym) {
+                tokens.push(Token::Unit(sym));
+                continue;
+            } else {
+                return Err(AbacusError::UnknownUnit(sym.to_string()));
+            }
+        }
+
         // Identifiers (units, conversion operators, named unary ops like sqrt)
         if c.is_alphabetic() || c == '_' || c == '°' || c == 'Å' || c == 'Ω' || c == '%' {
             let start = i;
@@ -491,6 +503,12 @@ pub fn tokenize_string_full<'a>(
                 tokens.push(Token::UnaryOp(op.alias));
             } else if is_standard_constant(sym) || variables.is_some_and(|v| v.contains_key(sym)) {
                 tokens.push(Token::Ident(sym));
+            } else if sym == "a"
+                || sym.eq_ignore_ascii_case("an")
+                || (sym == "A"
+                    && !matches!(tokens.last(), Some(Token::Float(_) | Token::Val(_))))
+            {
+                tokens.push(Token::Float(1.0));
             } else if unit_registry.contains(sym) {
                 tokens.push(Token::Unit(sym));
             } else {

@@ -65,7 +65,8 @@ pub(crate) fn parse_number_token<'a>(
             || unit_c == '°'
             || unit_c == 'Å'
             || unit_c == 'Ω'
-            || unit_c == '%')
+            || unit_c == '%'
+            || crate::evaluation::tokenizer::implicit::is_currency_symbol(unit_c))
     {
         let mut unit_end = unit_start;
         let mut unit_chars = chars.clone();
@@ -76,6 +77,7 @@ pub(crate) fn parse_number_token<'a>(
                 || sym_c == 'Å'
                 || sym_c == 'Ω'
                 || sym_c == '%'
+                || crate::evaluation::tokenizer::implicit::is_currency_symbol(sym_c)
             {
                 unit_end = idx + sym_c.len_utf8();
                 unit_chars.next();

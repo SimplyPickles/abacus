@@ -37,7 +37,7 @@ impl UnitRegistry {
         #[cfg(feature = "units")]
         let units = register_metric_units();
         #[cfg(not(feature = "units"))]
-        let units = HashMap::new();
+        let units: HashMap<String, Arc<Unit>> = HashMap::new();
 
         let priority_derived_units = PRIORITY_DERIVED_SYMBOLS
             .iter()
@@ -155,6 +155,32 @@ impl UnitRegistry {
             }
         }
         self.units.insert(key, unit);
+    }
+
+    #[cfg(feature = "currencies")]
+    pub fn update_currency_rates(&mut self, rates: &HashMap<String, f64>) {
+        crate::registry::units::currency_units::update_currency_rates_in_map(&mut self.units, rates);
+        self.cache.write().unwrap_or_else(|e| e.into_inner()).clear();
+    }
+
+    #[cfg(feature = "currencies")]
+    pub fn set_currency_rate(&mut self, code: &str, rate_per_usd: f64) {
+        let mut map = HashMap::new();
+        map.insert(code.to_string(), rate_per_usd);
+        self.update_currency_rates(&map);
+    }
+
+    #[cfg(feature = "currencies")]
+    pub fn set_currencies_enabled(&mut self, enabled: bool) {
+        if !enabled {
+            self.units
+                .retain(|_, u| u.dimensions != crate::units::dimensions::Dimensions::CURRENCY);
+            self.priority_derived_units
+                .retain(|(dims, _)| *dims != crate::units::dimensions::Dimensions::CURRENCY);
+        } else {
+            crate::registry::units::currency_units::register_currency_units(&mut self.units);
+        }
+        self.cache.write().unwrap_or_else(|e| e.into_inner()).clear();
     }
 }
 

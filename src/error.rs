@@ -19,6 +19,8 @@ pub enum AbacusError {
     IncompatibleWithConversion(String),
     RecursionLimitExceeded,
     UndefinedVariable(String),
+    EvaluationError(String),
+    CurrencyRateError(String),
 }
 
 // Display implementation for `AbacusError`
@@ -51,6 +53,12 @@ impl fmt::Display for AbacusError {
             }
             Self::UndefinedVariable(var) => {
                 write!(f, "undefined variable: {var}")
+            }
+            Self::EvaluationError(msg) => {
+                write!(f, "{msg}")
+            }
+            Self::CurrencyRateError(msg) => {
+                write!(f, "currency rate error: {msg}")
             }
         }
     }

@@ -2,6 +2,8 @@ pub mod angle_units;
 pub mod astronomical_units;
 pub mod cgs_physics_units;
 pub mod computing_niche_units;
+#[cfg(feature = "currencies")]
+pub mod currency_units;
 pub mod derived_units;
 pub mod humorous_units;
 pub mod imperial_units;

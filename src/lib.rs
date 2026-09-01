@@ -69,6 +69,9 @@ pub struct Abacus {
     pub max_recursion_depth: usize,
     pub implicit_multiplication: bool,
     pub number_scales: bool,
+    pub currencies: bool,
+    pub live_rates: bool,
+    pub currency_cache_path: Option<std::path::PathBuf>,
     pub variables: HashMap<String, EvalResult>,
 }
 
@@ -132,6 +135,18 @@ impl Abacus {
             max_recursion_depth: 64,
             implicit_multiplication: true,
             number_scales: cfg!(feature = "number-scales"),
+            currencies: cfg!(feature = "currencies"),
+            live_rates: false,
+            currency_cache_path: {
+                #[cfg(feature = "currencies")]
+                {
+                    Some(crate::registry::units::currency_units::default_currency_cache_path())
+                }
+                #[cfg(not(feature = "currencies"))]
+                {
+                    None
+                }
+            },
             variables: HashMap::new(),
         }
     }
@@ -155,6 +170,18 @@ impl Abacus {
             max_recursion_depth: 64,
             implicit_multiplication: true,
             number_scales: cfg!(feature = "number-scales"),
+            currencies: cfg!(feature = "currencies"),
+            live_rates: false,
+            currency_cache_path: {
+                #[cfg(feature = "currencies")]
+                {
+                    Some(crate::registry::units::currency_units::default_currency_cache_path())
+                }
+                #[cfg(not(feature = "currencies"))]
+                {
+                    None
+                }
+            },
             variables: HashMap::new(),
         }
     }
@@ -189,6 +216,18 @@ impl Abacus {
             max_recursion_depth: 64,
             implicit_multiplication: true,
             number_scales: cfg!(feature = "number-scales"),
+            currencies: cfg!(feature = "currencies"),
+            live_rates: false,
+            currency_cache_path: {
+                #[cfg(feature = "currencies")]
+                {
+                    Some(crate::registry::units::currency_units::default_currency_cache_path())
+                }
+                #[cfg(not(feature = "currencies"))]
+                {
+                    None
+                }
+            },
             variables: Self::standard_variables(),
         }
     }
@@ -447,6 +486,156 @@ impl Abacus {
         self.number_scales = enabled;
     }
 
+    /// Builder method to enable or disable currency support.
+    #[must_use]
+    pub fn with_currencies(mut self, enabled: bool) -> Self {
+        self.set_currencies(enabled);
+        self
+    }
+
+    /// In-place setter to enable or disable currency support.
+    pub fn set_currencies(&mut self, enabled: bool) {
+        self.currencies = enabled;
+        #[cfg(feature = "currencies")]
+        {
+            self.units.set_currencies_enabled(enabled);
+        }
+    }
+
+    /// Configures a custom file path for caching exchange rates.
+    pub fn set_currency_cache(&mut self, path: impl Into<std::path::PathBuf>) {
+        self.currency_cache_path = Some(path.into());
+    }
+
+    /// Builder method to configure a custom file path for caching exchange rates.
+    #[must_use]
+    pub fn with_currency_cache(mut self, path: impl Into<std::path::PathBuf>) -> Self {
+        self.set_currency_cache(path);
+        self
+    }
+
+    /// Enables or disables live exchange rates fetched from Frankfurter API (https://api.frankfurter.dev/v1/latest?base=USD).
+    #[must_use]
+    pub fn with_live_rates(mut self, enabled: bool) -> Self {
+        self.set_live_rates(enabled);
+        self
+    }
+
+    /// Sets whether live exchange rates should be fetched.
+    pub fn set_live_rates(&mut self, enabled: bool) {
+        self.live_rates = enabled;
+        if enabled {
+            let _ = self.update_daily_rates();
+        }
+    }
+
+    /// Updates currency rates according to daily cache policy:
+    /// Loads from disk if cache is fresh (< 24 hours); otherwise fetches live rates and updates cache.
+    pub fn update_daily_rates(&mut self) -> Result<(), AbacusError> {
+        #[cfg(feature = "currencies")]
+        {
+            let cache_path = self.currency_cache_path.clone().unwrap_or_else(
+                crate::registry::units::currency_units::default_currency_cache_path,
+            );
+            let rates =
+                crate::registry::units::currency_units::get_or_update_daily_rates(&cache_path)?;
+            self.units.update_currency_rates(&rates);
+            Ok(())
+        }
+        #[cfg(not(feature = "currencies"))]
+        {
+            Err(AbacusError::EvaluationError(
+                "currencies feature is not enabled".to_string(),
+            ))
+        }
+    }
+
+    /// Fetches live exchange rates from https://api.frankfurter.dev/v1/latest?base=USD,
+    /// saves them to the configured cache file, and updates the unit registry.
+    pub fn fetch_live_rates(&mut self) -> Result<(), AbacusError> {
+        #[cfg(feature = "currencies")]
+        {
+            let cache_path = self.currency_cache_path.clone().unwrap_or_else(
+                crate::registry::units::currency_units::default_currency_cache_path,
+            );
+            let rates =
+                crate::registry::units::currency_units::fetch_and_cache_rates(&cache_path)?;
+            self.units.update_currency_rates(&rates);
+            Ok(())
+        }
+        #[cfg(not(feature = "currencies"))]
+        {
+            Err(AbacusError::EvaluationError(
+                "currencies feature is not enabled".to_string(),
+            ))
+        }
+    }
+
+    /// Updates currency exchange rates from a JSON string (Frankfurter response format)
+    /// and saves the response into the cache file if configured.
+    pub fn update_rates_from_json(&mut self, _json_str: &str) -> Result<(), AbacusError> {
+        #[cfg(feature = "currencies")]
+        {
+            let rates = crate::registry::units::currency_units::parse_frankfurter_json(_json_str)?;
+            self.units.update_currency_rates(&rates);
+            if let Some(ref path) = self.currency_cache_path {
+                let _ = crate::registry::units::currency_units::save_rates_to_cache(_json_str, path);
+            }
+            Ok(())
+        }
+        #[cfg(not(feature = "currencies"))]
+        {
+            Err(AbacusError::EvaluationError(
+                "currencies feature is not enabled".to_string(),
+            ))
+        }
+    }
+
+    /// Sets an exchange rate manually for a specific currency code (e.g. "EUR", 0.86281).
+    pub fn set_currency_rate(&mut self, _code: &str, _rate_per_usd: f64) {
+        #[cfg(feature = "currencies")]
+        {
+            self.units.set_currency_rate(_code, _rate_per_usd);
+        }
+    }
+
+    /// Builder method to set an exchange rate for a currency code.
+    #[must_use]
+    pub fn with_currency_rate(mut self, code: &str, rate_per_usd: f64) -> Self {
+        self.set_currency_rate(code, rate_per_usd);
+        self
+    }
+}
+
+/// Checks whether the specified exchange rates cache file is fresh (modified < 24 hours ago).
+#[must_use]
+pub fn is_currency_cache_fresh(cache_path: &std::path::Path) -> bool {
+    #[cfg(feature = "currencies")]
+    {
+        crate::registry::units::currency_units::is_cache_fresh(cache_path)
+    }
+    #[cfg(not(feature = "currencies"))]
+    {
+        let _ = cache_path;
+        false
+    }
+}
+
+/// Returns the default file path where exchange rates are cached.
+#[must_use]
+pub fn default_currency_cache_path() -> std::path::PathBuf {
+    #[cfg(feature = "currencies")]
+    {
+        crate::registry::units::currency_units::default_currency_cache_path()
+    }
+    #[cfg(not(feature = "currencies"))]
+    {
+        std::env::temp_dir().join("abacus_currency_rates.json")
+    }
+}
+
+impl Abacus {
+
     // Tokenize an expression into a vector of `Token`s
     pub fn tokenize<'a>(&self, expr: &'a str) -> Result<Vec<Token<'a>>, AbacusError> {
         crate::evaluation::tokenizer::tokenize_string_full(
@@ -548,6 +737,8 @@ impl Abacus {
             max_recursion_depth: self.max_recursion_depth,
             implicit_multiplication: self.implicit_multiplication,
             number_scales: self.number_scales,
+            currencies: self.currencies,
+            live_rates: self.live_rates,
         };
         let mut res = crate::evaluation::parser::evaluate_with_variables(
             &self.tokens,
@@ -569,6 +760,25 @@ impl Abacus {
 
         if let Some(dec) = self.decimal_places {
             res = res.round_to_decimals(dec);
+        } else if self.significant_figures.is_none() && !self.follow_significant_figures {
+            match &res {
+                EvalResult::Scalar(v)
+                    if v.unit.dimensions == crate::units::dimensions::Dimensions::CURRENCY =>
+                {
+                    let unit_str = v.unit.display.render();
+                    let dec = crate::units::value::currency_decimal_places(&unit_str);
+                    res = res.round_to_decimals(dec);
+                }
+                EvalResult::Interval(inv)
+                    if inv.lo.unit.dimensions
+                        == crate::units::dimensions::Dimensions::CURRENCY =>
+                {
+                    let unit_str = inv.lo.unit.display.render();
+                    let dec = crate::units::value::currency_decimal_places(&unit_str);
+                    res = res.round_to_decimals(dec);
+                }
+                _ => {}
+            }
         }
 
         let effective_sig_figs = self.significant_figures.or_else(|| {

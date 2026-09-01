@@ -22,6 +22,8 @@ use crate::{
     },
 };
 
+#[cfg(feature = "currencies")]
+use crate::registry::units::currency_units::register_currency_units;
 #[cfg(feature = "number-scales")]
 use crate::registry::units::number_scale_units::register_number_scale_units;
 
@@ -141,6 +143,8 @@ pub fn register_metric_units() -> HashMap<String, Arc<Unit>> {
     register_humorous_units(&mut map);
     #[cfg(feature = "number-scales")]
     register_number_scale_units(&mut map);
+    #[cfg(feature = "currencies")]
+    register_currency_units(&mut map);
 
     for base in BASE_METRIC_UNITS {
         let base_unit = Arc::new(Unit {

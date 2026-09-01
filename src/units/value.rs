@@ -149,11 +149,7 @@ impl Value {
     pub fn to_display_with_sig_figs(&self, sig_figs: usize) -> String {
         let formatted_amt = format_f64_sig_figs(self.amount(), sig_figs);
         let unit_str = self.unit.display.render();
-        if unit_str.is_empty() {
-            formatted_amt
-        } else {
-            format!("{formatted_amt} {unit_str}")
-        }
+        format_with_unit(&formatted_amt, &unit_str)
     }
 
     /// Returns a new `Value` with the displayed quantity rounded to `decimals` decimal places.
@@ -174,40 +170,55 @@ impl Value {
     pub fn to_display_with_decimals(&self, decimals: usize) -> String {
         let formatted_amt = format!("{:.precision$}", self.amount(), precision = decimals);
         let unit_str = self.unit.display.render();
-        if unit_str.is_empty() {
-            formatted_amt
-        } else {
-            format!("{formatted_amt} {unit_str}")
-        }
+        format_with_unit(&formatted_amt, &unit_str)
     }
 
     /// Renders this `Value` in scientific notation.
     #[must_use]
     pub fn to_display_scientific(&self) -> String {
-        let amt = self.amount();
-        let formatted_amt = if !amt.is_finite() || amt == 0.0 {
-            amt.to_string()
-        } else {
-            format!("{amt:e}")
-        };
+        let formatted_amt = format!("{:e}", self.amount());
         let unit_str = self.unit.display.render();
-        if unit_str.is_empty() {
-            formatted_amt
-        } else {
-            format!("{formatted_amt} {unit_str}")
-        }
+        format_with_unit(&formatted_amt, &unit_str)
     }
 
-    /// Renders this `Value` in engineering notation.
+    /// Renders this `Value` in engineering notation (powers of 10 that are multiples of 3).
     #[must_use]
     pub fn to_display_engineering(&self) -> String {
         let formatted_amt = format_engineering(self.amount());
         let unit_str = self.unit.display.render();
-        if unit_str.is_empty() {
-            formatted_amt
+        format_with_unit(&formatted_amt, &unit_str)
+    }
+}
+
+/// Returns true if `sym` should be rendered as a prefix before the number (e.g. `$`, `€`, `£`, `¥`).
+#[must_use]
+pub fn is_prefix_symbol(sym: &str) -> bool {
+    matches!(sym, "$" | "€" | "£" | "¥" | "₹" | "₩" | "₺" | "₪" | "฿" | "R$")
+}
+
+/// Returns the standard number of decimal places for a currency (0 for JPY, KRW, etc., 2 for USD, EUR, GBP, etc.).
+#[must_use]
+pub fn currency_decimal_places(unit_str: &str) -> usize {
+    match unit_str {
+        "JPY" | "jpy" | "yen" | "¥" | "KRW" | "krw" | "won" | "₩" | "HUF" | "huf" | "IDR"
+        | "idr" | "rupiah" | "ISK" | "isk" => 0,
+        _ => 2,
+    }
+}
+
+/// Helper to format a value with its unit.
+#[must_use]
+pub fn format_with_unit(amount: &str, unit: &str) -> String {
+    if unit.is_empty() {
+        amount.to_string()
+    } else if is_prefix_symbol(unit) {
+        if let Some(stripped) = amount.strip_prefix('-') {
+            format!("-{unit}{stripped}")
         } else {
-            format!("{formatted_amt} {unit_str}")
+            format!("{unit}{amount}")
         }
+    } else {
+        format!("{amount} {unit}")
     }
 }
 
@@ -330,11 +341,8 @@ impl fmt::Display for Value {
         };
 
         let unit_str = self.unit.display.render();
-        if unit_str.is_empty() {
-            write!(f, "{display_value}")
-        } else {
-            write!(f, "{display_value} {unit_str}")
-        }
+        let val_str = display_value.to_string();
+        write!(f, "{}", format_with_unit(&val_str, &unit_str))
     }
 }
 
