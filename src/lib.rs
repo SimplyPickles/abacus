@@ -7,6 +7,7 @@ pub mod error;
 pub mod registry;
 pub mod units;
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 pub use error::AbacusError;
@@ -47,8 +48,8 @@ pub enum Notation {
 }
 
 use crate::evaluation::{
-    parser::parse::{EvalConfig, evaluate_with_config},
-    tokenizer::tokenize::{min_significant_figures_in_expr, tokenize_string_with_options},
+    parser::parse::EvalConfig,
+    tokenizer::tokenize::min_significant_figures_in_expr,
 };
 
 pub struct Abacus {
@@ -67,9 +68,49 @@ pub struct Abacus {
     pub weekend: WeekendDays,
     pub max_recursion_depth: usize,
     pub implicit_multiplication: bool,
+    pub variables: HashMap<String, EvalResult>,
 }
 
 impl Abacus {
+    /// Returns the standard mathematical constants (`pi`, `PI`, `e`, `E`, `tau`, `TAU`, `phi`, `PHI`).
+    #[must_use]
+    pub fn standard_variables() -> HashMap<String, EvalResult> {
+        let mut vars = HashMap::new();
+        vars.insert(
+            "pi".to_string(),
+            EvalResult::Scalar(Value::dimensionless(std::f64::consts::PI)),
+        );
+        vars.insert(
+            "PI".to_string(),
+            EvalResult::Scalar(Value::dimensionless(std::f64::consts::PI)),
+        );
+        vars.insert(
+            "e".to_string(),
+            EvalResult::Scalar(Value::dimensionless(std::f64::consts::E)),
+        );
+        vars.insert(
+            "E".to_string(),
+            EvalResult::Scalar(Value::dimensionless(std::f64::consts::E)),
+        );
+        vars.insert(
+            "tau".to_string(),
+            EvalResult::Scalar(Value::dimensionless(std::f64::consts::TAU)),
+        );
+        vars.insert(
+            "TAU".to_string(),
+            EvalResult::Scalar(Value::dimensionless(std::f64::consts::TAU)),
+        );
+        vars.insert(
+            "phi".to_string(),
+            EvalResult::Scalar(Value::dimensionless((1.0 + 5.0_f64.sqrt()) / 2.0)),
+        );
+        vars.insert(
+            "PHI".to_string(),
+            EvalResult::Scalar(Value::dimensionless((1.0 + 5.0_f64.sqrt()) / 2.0)),
+        );
+        vars
+    }
+
     // Initialize a new `Abacus` instance with default units and tokens
     #[must_use]
     pub fn new() -> Self {
@@ -89,6 +130,7 @@ impl Abacus {
             weekend: WeekendDays::default(),
             max_recursion_depth: 64,
             implicit_multiplication: true,
+            variables: HashMap::new(),
         }
     }
 
@@ -110,10 +152,11 @@ impl Abacus {
             weekend: WeekendDays::default(),
             max_recursion_depth: 64,
             implicit_multiplication: true,
+            variables: HashMap::new(),
         }
     }
 
-    /// Initialize an `Abacus` instance populated with standard physical units and operator registries.
+    /// Initialize an `Abacus` instance populated with standard physical units, operator registries, and mathematical constants (`pi`, `e`, `tau`, `phi`).
     ///
     /// # Examples
     ///
@@ -142,6 +185,7 @@ impl Abacus {
             weekend: WeekendDays::default(),
             max_recursion_depth: 64,
             implicit_multiplication: true,
+            variables: Self::standard_variables(),
         }
     }
 
@@ -382,7 +426,88 @@ impl Abacus {
 
     // Tokenize an expression into a vector of `Token`s
     pub fn tokenize<'a>(&self, expr: &'a str) -> Result<Vec<Token<'a>>, AbacusError> {
-        tokenize_string_with_options(&self.tokens, &self.units, expr, self.implicit_multiplication)
+        crate::evaluation::tokenizer::tokenize_string_full(
+            &self.tokens,
+            &self.units,
+            Some(&self.variables),
+            expr,
+            self.implicit_multiplication,
+        )
+    }
+
+    /// Define a variable on this `Abacus` instance (builder pattern).
+    #[must_use]
+    pub fn with_variable(mut self, name: impl Into<String>, value: impl Into<EvalResult>) -> Self {
+        self.variables.insert(name.into(), value.into());
+        self
+    }
+
+    /// Define a variable in-place on this `Abacus` instance.
+    pub fn set_variable(
+        &mut self,
+        name: impl Into<String>,
+        value: impl Into<EvalResult>,
+    ) -> &mut Self {
+        self.variables.insert(name.into(), value.into());
+        self
+    }
+
+    /// Define a variable by evaluating an expression string on this `Abacus` instance.
+    pub fn set_variable_expr(
+        &mut self,
+        name: impl Into<String>,
+        expr: &str,
+    ) -> Result<EvalResult, AbacusError> {
+        let val = self.eval(expr)?;
+        self.variables.insert(name.into(), val.clone());
+        Ok(val)
+    }
+
+    /// Retrieve a reference to a defined variable.
+    #[must_use]
+    pub fn get_variable(&self, name: &str) -> Option<&EvalResult> {
+        self.variables.get(name)
+    }
+
+    /// Check if a variable is defined.
+    #[must_use]
+    pub fn has_variable(&self, name: &str) -> bool {
+        self.variables.contains_key(name)
+    }
+
+    /// Remove a defined variable.
+    pub fn remove_variable(&mut self, name: &str) -> Option<EvalResult> {
+        self.variables.remove(name)
+    }
+
+    /// Clear all defined variables.
+    pub fn clear_variables(&mut self) {
+        self.variables.clear();
+    }
+
+    /// Reset variables back to standard mathematical constants (`pi`, `e`, `tau`, `phi`).
+    pub fn reset_standard_variables(&mut self) {
+        self.variables = Self::standard_variables();
+    }
+
+    /// Evaluate an expression or variable assignment (`name = expr`).
+    /// If the expression is an assignment, updates or creates the variable on `self` and returns its evaluated value.
+    /// Otherwise, evaluates the expression normally.
+    pub fn eval_mut(&mut self, expr: &str) -> Result<EvalResult, AbacusError> {
+        let trimmed = expr.trim();
+        // Check for simple assignment: <ident> = <rhs>
+        if let Some((ident, rhs)) = trimmed.split_once('=') {
+            let ident = ident.trim();
+            let is_ident = !ident.is_empty()
+                && (ident.starts_with(|c: char| c.is_alphabetic() || c == '_'))
+                && ident.chars().all(|c| c.is_alphanumeric() || c == '_');
+            if is_ident && !rhs.starts_with('=') {
+                let res = self.eval(rhs)?;
+                self.variables.insert(ident.to_string(), res.clone());
+                return Ok(res);
+            }
+        }
+        self.eval(expr)
     }
 
     // Evaluate expressions, returning the result as an `EvalResult`
@@ -399,9 +524,10 @@ impl Abacus {
             max_recursion_depth: self.max_recursion_depth,
             implicit_multiplication: self.implicit_multiplication,
         };
-        let mut res = evaluate_with_config(
+        let mut res = crate::evaluation::parser::evaluate_with_variables(
             &self.tokens,
             &self.units,
+            Some(&self.variables),
             expr,
             config,
         )?;

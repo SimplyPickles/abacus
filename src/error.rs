@@ -18,6 +18,7 @@ pub enum AbacusError {
     IncompatibleOperatorType(String),
     IncompatibleWithConversion(String),
     RecursionLimitExceeded,
+    UndefinedVariable(String),
 }
 
 // Display implementation for `AbacusError`
@@ -47,6 +48,9 @@ impl fmt::Display for AbacusError {
             }
             Self::RecursionLimitExceeded => {
                 write!(f, "maximum recursion depth exceeded")
+            }
+            Self::UndefinedVariable(var) => {
+                write!(f, "undefined variable: {var}")
             }
         }
     }

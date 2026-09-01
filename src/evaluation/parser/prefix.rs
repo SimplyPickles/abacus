@@ -10,6 +10,18 @@ impl<'a> Parser<'a> {
         match self.next_token() {
             Some(Token::Val(val)) => Ok(EvalResult::Scalar(val.clone())),
 
+            Some(Token::Ident(name)) => {
+                if let Some(vars) = self.variables
+                    && let Some(val) = vars.get(*name)
+                {
+                    Ok(val.clone())
+                } else if let Some(val) = Self::get_standard_constant(name) {
+                    Ok(val)
+                } else {
+                    Err(AbacusError::UndefinedVariable(name.to_string()))
+                }
+            }
+
             Some(Token::Date(d)) => {
                 let mut d = d.clone();
                 if d.timezone.is_none() {

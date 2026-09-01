@@ -16,6 +16,7 @@ pub struct Parser<'a> {
     pub(crate) function_arg_depth: usize,
     pub(crate) recursion_depth: usize,
     pub(crate) now: Option<crate::Date>,
+    pub(crate) variables: Option<&'a std::collections::HashMap<String, EvalResult>>,
     pub config: EvalConfig,
 }
 
@@ -36,6 +37,17 @@ impl<'a> Parser<'a> {
         unit_registry: &'a UnitRegistry,
         config: EvalConfig,
     ) -> Self {
+        Self::new_with_variables(tokens, token_registry, unit_registry, None, config)
+    }
+
+    #[must_use]
+    pub fn new_with_variables(
+        tokens: &'a [Token<'a>],
+        token_registry: &'a TokenRegistry,
+        unit_registry: &'a UnitRegistry,
+        variables: Option<&'a std::collections::HashMap<String, EvalResult>>,
+        config: EvalConfig,
+    ) -> Self {
         Self {
             tokens,
             pos: 0,
@@ -45,7 +57,21 @@ impl<'a> Parser<'a> {
             function_arg_depth: 0,
             recursion_depth: 0,
             now: None,
+            variables,
             config,
+        }
+    }
+
+    /// Retrieve value for standard mathematical constants.
+    pub(crate) fn get_standard_constant(name: &str) -> Option<EvalResult> {
+        match name {
+            "pi" | "PI" => Some(EvalResult::Scalar(Value::dimensionless(std::f64::consts::PI))),
+            "e" | "E" => Some(EvalResult::Scalar(Value::dimensionless(std::f64::consts::E))),
+            "tau" | "TAU" => Some(EvalResult::Scalar(Value::dimensionless(std::f64::consts::TAU))),
+            "phi" | "PHI" => Some(EvalResult::Scalar(Value::dimensionless(
+                (1.0 + 5.0_f64.sqrt()) / 2.0,
+            ))),
+            _ => None,
         }
     }
 

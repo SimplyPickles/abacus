@@ -280,3 +280,46 @@ impl std::fmt::Display for EvalResult {
         write!(f, "{}", self.to_display())
     }
 }
+
+impl From<Value> for EvalResult {
+    fn from(v: Value) -> Self {
+        EvalResult::Scalar(v)
+    }
+}
+
+impl From<Interval> for EvalResult {
+    fn from(i: Interval) -> Self {
+        EvalResult::Interval(i)
+    }
+}
+
+impl From<Date> for EvalResult {
+    fn from(d: Date) -> Self {
+        EvalResult::Date(d)
+    }
+}
+
+impl From<Hash> for EvalResult {
+    fn from(h: Hash) -> Self {
+        EvalResult::Hash(h)
+    }
+}
+
+impl From<f64> for EvalResult {
+    fn from(n: f64) -> Self {
+        EvalResult::Scalar(Value::dimensionless(n))
+    }
+}
+
+impl From<i32> for EvalResult {
+    fn from(n: i32) -> Self {
+        EvalResult::Scalar(Value::dimensionless(n as f64))
+    }
+}
+
+impl From<i64> for EvalResult {
+    fn from(n: i64) -> Self {
+        EvalResult::Scalar(Value::dimensionless(n as f64))
+    }
+}
+

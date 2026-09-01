@@ -35,13 +35,14 @@ pub(crate) fn resolve_tokens<'a>(
         return resolved;
     }
 
-    // 2. Insert implicit multiplication `BinaryOp("*")` between adjacent terms (e.g. `5(2+3)`, `2 sqrt(9)`)
+    // 2. Insert implicit multiplication `BinaryOp("*")` between adjacent terms (e.g. `5(2+3)`, `2 sqrt(9)`, `2 pi`, `2x`)
     let is_left = |tok: &Token<'a>| {
         matches!(
             tok,
             Token::Val(_)
                 | Token::Float(_)
                 | Token::Unit(_)
+                | Token::Ident(_)
                 | Token::CloseParen
                 | Token::CloseBracket
         )
@@ -51,6 +52,7 @@ pub(crate) fn resolve_tokens<'a>(
         Token::Val(_)
         | Token::Float(_)
         | Token::Unit(_)
+        | Token::Ident(_)
         | Token::OpenParen
         | Token::OpenBracket
         | Token::Function(_) => true,

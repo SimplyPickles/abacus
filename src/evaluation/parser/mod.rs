@@ -44,13 +44,26 @@ pub fn evaluate_with_config(
     input: &str,
     config: EvalConfig,
 ) -> Result<EvalResult, AbacusError> {
-    let tokens = crate::evaluation::tokenizer::tokenize::tokenize_string_with_options(
+    evaluate_with_variables(token_registry, unit_registry, None, input, config)
+}
+
+/// Tokenize and parse an expression string with variable definitions and full evaluation configuration.
+pub fn evaluate_with_variables(
+    token_registry: &TokenRegistry,
+    unit_registry: &UnitRegistry,
+    variables: Option<&std::collections::HashMap<String, EvalResult>>,
+    input: &str,
+    config: EvalConfig,
+) -> Result<EvalResult, AbacusError> {
+    let tokens = crate::evaluation::tokenizer::tokenize::tokenize_string_full(
         token_registry,
         unit_registry,
+        variables,
         input,
         config.implicit_multiplication,
     )?;
-    let mut parser = Parser::new_with_config(&tokens, token_registry, unit_registry, config);
+    let mut parser =
+        Parser::new_with_variables(&tokens, token_registry, unit_registry, variables, config);
     let result = parser.parse()?;
     if parser.has_explicit_conversion || !parser.config.auto_derived {
         let mut result = result;

@@ -43,19 +43,42 @@ fn match_rel_time_op(remaining: &str) -> Option<(&'static str, usize)> {
     None
 }
 
+/// Returns true if `sym` is a standard mathematical constant name.
+#[inline]
+pub(crate) fn is_standard_constant(sym: &str) -> bool {
+    matches!(sym, "pi" | "PI" | "e" | "E" | "tau" | "TAU" | "phi" | "PHI")
+}
+
 /// Tokenize an expression string using default settings (implicit multiplication enabled).
 pub fn tokenize_string<'a>(
     token_registry: &TokenRegistry,
     unit_registry: &UnitRegistry,
     input_text: &'a str,
 ) -> Result<Vec<Token<'a>>, AbacusError> {
-    tokenize_string_with_options(token_registry, unit_registry, input_text, true)
+    tokenize_string_full(token_registry, unit_registry, None, input_text, true)
 }
 
 /// Tokenize an expression string with configurable options.
 pub fn tokenize_string_with_options<'a>(
     token_registry: &TokenRegistry,
     unit_registry: &UnitRegistry,
+    input_text: &'a str,
+    implicit_multiplication: bool,
+) -> Result<Vec<Token<'a>>, AbacusError> {
+    tokenize_string_full(
+        token_registry,
+        unit_registry,
+        None,
+        input_text,
+        implicit_multiplication,
+    )
+}
+
+/// Tokenize an expression string with variable definitions and configurable options.
+pub fn tokenize_string_full<'a>(
+    token_registry: &TokenRegistry,
+    unit_registry: &UnitRegistry,
+    variables: Option<&std::collections::HashMap<String, crate::units::eval_result::EvalResult>>,
     input_text: &'a str,
     implicit_multiplication: bool,
 ) -> Result<Vec<Token<'a>>, AbacusError> {
@@ -400,6 +423,13 @@ pub fn tokenize_string_with_options<'a>(
                     end = idx + sym_c.len_utf8();
                     chars.next();
                 } else if sym_c == '^' {
+                    let base_sym = &input_text[start..end];
+                    if is_standard_constant(base_sym)
+                        || variables.is_some_and(|v| v.contains_key(base_sym))
+                        || !unit_registry.contains(base_sym)
+                    {
+                        break;
+                    }
                     end = idx + sym_c.len_utf8();
                     chars.next();
                     if let Some(&(sign_idx, sign_c)) = chars.peek()
@@ -449,6 +479,8 @@ pub fn tokenize_string_with_options<'a>(
                 }
             } else if let Some(op) = token_registry.unary_operators.get(sym) {
                 tokens.push(Token::UnaryOp(op.alias));
+            } else if is_standard_constant(sym) || variables.is_some_and(|v| v.contains_key(sym)) {
+                tokens.push(Token::Ident(sym));
             } else if unit_registry.contains(sym) {
                 tokens.push(Token::Unit(sym));
             } else {

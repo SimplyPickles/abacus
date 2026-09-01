@@ -14,6 +14,7 @@ pub enum Token<'a> {
     // Values
     Float(f64),    // parsed number
     Unit(&'a str), // "kg", "m", "ft" borrowed directly from input text
+    Ident(&'a str), // variable or constant identifier, e.g. "x", "pi", "e"
 
     // Grouping & Delimiters
     OpenParen,
