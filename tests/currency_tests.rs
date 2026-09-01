@@ -294,3 +294,54 @@ fn test_per_division_operator() {
     let cap_per = eval("10 meters PER second").unwrap();
     assert_eq!(cap_per.to_display(), "10 m/s");
 }
+
+#[test]
+fn test_rate_accumulation_in_duration() {
+    // "5 usd per second in 20 days" -> $8,640,000
+    let total = eval("5 usd per second in 20 days").unwrap();
+    assert_eq!(total.to_display(), "$8640000");
+
+    // "5 usd a second in 20 days" -> $8,640,000
+    let total_a = eval("5 usd a second in 20 days").unwrap();
+    assert_eq!(total_a.to_display(), "$8640000");
+
+    // "$50 per hour in 40 hours" -> $2000
+    let wages = eval("$50 per hour in 40 hours").unwrap();
+    assert_eq!(wages.to_display(), "$2000");
+
+    // "60 miles per hour in 2 hours" -> 120 mi
+    let dist = eval("60 miles per hour in 2 hours").unwrap();
+    assert_eq!(dist.to_display(), "120 mi");
+
+    // "10 meters a second in 5 seconds" -> 50 m
+    let dist_m = eval("10 meters a second in 5 seconds").unwrap();
+    assert_eq!(dist_m.to_display(), "50 m");
+
+    // Interval rate accumulation: "[4 usd, 6 usd] per second in 10 seconds" -> [$40, $60]
+    let inv = eval("[4 usd, 6 usd] per second in 10 seconds").unwrap();
+    assert_eq!(inv.to_display(), "[$40, $60]");
+}
+
+#[test]
+fn test_a_and_an_as_rate_division() {
+    // "5 usd a second" represents 5 usd/s (not 5 usd*s)
+    let rate1 = eval("5 usd a second").unwrap();
+    assert_eq!(rate1.to_display(), "5 $/s");
+
+    // "$5 a second"
+    let rate2 = eval("$5 a second").unwrap();
+    assert_eq!(rate2.to_display(), "5 $/s");
+
+    // "60 miles an hour"
+    let speed = eval("60 miles an hour").unwrap();
+    assert_eq!(speed.to_display(), "60 mi/h");
+
+    // "$50 an hour"
+    let wage = eval("$50 an hour").unwrap();
+    assert_eq!(wage.to_display(), "50 $/h");
+
+    // "a thousand dollars a day"
+    let daily = eval("a thousand dollars a day").unwrap();
+    assert_eq!(daily.to_display(), "1000 $/d");
+}
+

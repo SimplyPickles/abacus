@@ -510,7 +510,27 @@ pub fn tokenize_string_full<'a>(
                 || (sym == "A"
                     && !matches!(tokens.last(), Some(Token::Float(_) | Token::Val(_))))
             {
-                tokens.push(Token::Float(1.0));
+                // Check if this "a" / "an" is used as "per" (e.g. "5 usd a second", "60 miles an hour", "$50 an hour")
+                // Preceded by a unit or value, and followed by a unit (that is not a number scale word or conversion keyword).
+                let rest = input_text[end..].trim_start();
+                let next_word_len = rest
+                    .find(|c: char| !c.is_alphanumeric() && c != '_')
+                    .unwrap_or(rest.len());
+                let next_word = &rest[..next_word_len];
+                let is_prev_unit_or_val = matches!(
+                    tokens.last(),
+                    Some(Token::Unit(_) | Token::Val(_) | Token::Float(_))
+                );
+                let is_next_unit = !next_word.is_empty()
+                    && unit_registry.contains(next_word)
+                    && crate::evaluation::tokenizer::implicit::number_scale_factor(next_word).is_none()
+                    && !CONVERSION_KEYWORDS.contains(&next_word);
+
+                if is_prev_unit_or_val && is_next_unit {
+                    tokens.push(Token::BinaryOp("/"));
+                } else {
+                    tokens.push(Token::Float(1.0));
+                }
             } else if unit_registry.contains(sym) {
                 tokens.push(Token::Unit(sym));
             } else {

@@ -89,7 +89,139 @@ impl<'a> Parser<'a> {
 
         // The RHS of a conversion must be a scalar unit expression
         let target_result = self.parse_expr(1)?;
+
+        // Check for rate accumulation over a time duration (e.g. "5 usd per second in 20 days" -> $8640000)
+        if target_result.unit().dimensions == crate::units::dimensions::Dimensions::TIME
+            && lhs.unit().dimensions.0[2] < 0
+        {
+            return self.accumulate_rate_over_time(&lhs, &target_result);
+        }
+
         let target_unit = target_result.unit().clone();
         lhs.convert_to(target_unit)
+    }
+
+    pub(crate) fn accumulate_rate_over_time(
+        &self,
+        lhs: &EvalResult,
+        target_result: &EvalResult,
+    ) -> Result<EvalResult, AbacusError> {
+        match (lhs, target_result) {
+            (EvalResult::Scalar(rate), EvalResult::Scalar(duration)) => {
+                let res = self.accumulate_rate_scalar(rate, duration)?;
+                Ok(EvalResult::Scalar(res))
+            }
+            (EvalResult::Interval(rate_inv), EvalResult::Scalar(duration)) => {
+                let lo = self.accumulate_rate_scalar(&rate_inv.lo, duration)?;
+                let hi = self.accumulate_rate_scalar(&rate_inv.hi, duration)?;
+                Ok(EvalResult::Interval(crate::units::interval::Interval {
+                    lo,
+                    hi,
+                    style: rate_inv.style,
+                }))
+            }
+            (EvalResult::Scalar(rate), EvalResult::Interval(dur_inv)) => {
+                let lo = self.accumulate_rate_scalar(rate, &dur_inv.lo)?;
+                let hi = self.accumulate_rate_scalar(rate, &dur_inv.hi)?;
+                Ok(EvalResult::Interval(crate::units::interval::Interval {
+                    lo,
+                    hi,
+                    style: dur_inv.style,
+                }))
+            }
+            (EvalResult::Interval(rate_inv), EvalResult::Interval(dur_inv)) => {
+                let lo = self.accumulate_rate_scalar(&rate_inv.lo, &dur_inv.lo)?;
+                let hi = self.accumulate_rate_scalar(&rate_inv.hi, &dur_inv.hi)?;
+                Ok(EvalResult::Interval(crate::units::interval::Interval {
+                    lo,
+                    hi,
+                    style: rate_inv.style,
+                }))
+            }
+            _ => Err(AbacusError::IncompatibleDimensions),
+        }
+    }
+
+    pub(crate) fn accumulate_rate_scalar(
+        &self,
+        rate: &Value,
+        duration: &Value,
+    ) -> Result<Value, AbacusError> {
+        if duration.unit.dimensions != crate::units::dimensions::Dimensions::TIME
+            || rate.unit.dimensions.0[2] >= 0
+        {
+            return Err(AbacusError::IncompatibleDimensions);
+        }
+
+        let total_canonical = rate.canonical * duration.canonical;
+        let new_dimensions = rate.unit.dimensions + duration.unit.dimensions;
+
+        let time_denom_idx = rate.unit.display.denominator.iter().position(|sym| {
+            self.unit_registry
+                .unit(sym)
+                .map(|u| u.dimensions == crate::units::dimensions::Dimensions::TIME)
+                .unwrap_or(false)
+        });
+
+        let mut new_denom = rate.unit.display.denominator.clone();
+        let time_scalar = if let Some(idx) = time_denom_idx {
+            let removed_sym = new_denom.remove(idx);
+            self.unit_registry
+                .unit(&removed_sym)
+                .map(|u| u.scalar)
+                .unwrap_or(1.0)
+        } else {
+            1.0
+        };
+
+        let remaining_scalar = rate.unit.scalar * time_scalar;
+
+        let unit = if new_denom.is_empty() && rate.unit.display.numerator.len() == 1 {
+            let sym = &rate.unit.display.numerator[0];
+            if let Ok(reg_unit) = self.unit_registry.unit(sym) {
+                if reg_unit.dimensions == new_dimensions
+                    && (reg_unit.scalar - remaining_scalar).abs() < 1e-9
+                {
+                    reg_unit
+                } else {
+                    Arc::new(Unit {
+                        scalar: remaining_scalar,
+                        offset: 0.0,
+                        dimensions: new_dimensions,
+                        display: UnitExpr {
+                            numerator: rate.unit.display.numerator.clone(),
+                            denominator: new_denom,
+                        },
+                    })
+                }
+            } else {
+                Arc::new(Unit {
+                    scalar: remaining_scalar,
+                    offset: 0.0,
+                    dimensions: new_dimensions,
+                    display: UnitExpr {
+                        numerator: rate.unit.display.numerator.clone(),
+                        denominator: new_denom,
+                    },
+                })
+            }
+        } else if new_denom.is_empty() && rate.unit.display.numerator.is_empty() {
+            Unit::dimensionless_arc()
+        } else {
+            Arc::new(Unit {
+                scalar: remaining_scalar,
+                offset: 0.0,
+                dimensions: new_dimensions,
+                display: UnitExpr {
+                    numerator: rate.unit.display.numerator.clone(),
+                    denominator: new_denom,
+                },
+            })
+        };
+
+        Ok(Value {
+            canonical: total_canonical,
+            unit,
+        })
     }
 }

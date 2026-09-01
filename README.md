@@ -203,8 +203,14 @@ Write math in natural conversational English with scale words, articles, and `pe
 | `a dollar`                              | `$1`         | Singular currency unit                  |
 | `an hour in minutes`                    | `60 min`     | Indefinite article `"an"` as `1`        |
 | `a thousand dollars per day`            | `1000 $/d`   | `"per"` as division operator `/`        |
+| `5 usd a second`                        | `5 $/s`      | `"a"` as rate division operator         |
+| `60 miles an hour`                      | `60 mi/h`    | `"an"` as rate division operator        |
+| `5 usd per second in 20 days`           | `$8640000`   | Rate accumulation over time duration    |
+| `5 usd a second in 20 days`             | `$8640000`   | Accumulation with `"a"` rate syntax     |
+| `$50 an hour in 40 hours`               | `$2000`      | Wage accumulation over work hours       |
 | `(a thousand dollars per day) * 3 days` | `$3000`      | Time cancellation with rate             |
 | `100 meters per second`                 | `100 m/s`    | Physical speed with `per`               |
+| `10 meters a second in 5 seconds`       | `50 m`       | Distance accumulation from speed        |
 | `60 miles per hour in km/h`             | `96.56 km/h` | Speed unit conversion with `per`        |
 | `$50 per hour * 8 hours`                | `$400`       | Wage calculation                        |
 | `100 per 4`                             | `25`         | Dimensionless ratio                     |
