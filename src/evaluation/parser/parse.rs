@@ -18,6 +18,25 @@ use crate::{
 ///   6 — Postfix (`!`)
 pub const MAX_RECURSION_DEPTH: usize = 64;
 
+#[derive(Debug, Clone, Copy)]
+pub struct EvalConfig {
+    pub auto_derived: bool,
+    pub angle_mode: crate::AngleMode,
+    pub strict_dimensions: bool,
+    pub default_interval_style: Option<IntervalStyle>,
+}
+
+impl Default for EvalConfig {
+    fn default() -> Self {
+        Self {
+            auto_derived: true,
+            angle_mode: crate::AngleMode::Radians,
+            strict_dimensions: false,
+            default_interval_style: None,
+        }
+    }
+}
+
 pub struct Parser<'a> {
     tokens: Vec<Option<Token<'a>>>,
     pos: usize,
@@ -27,6 +46,7 @@ pub struct Parser<'a> {
     function_arg_depth: usize,
     recursion_depth: usize,
     now: crate::Date,
+    pub config: EvalConfig,
 }
 
 impl<'a> Parser<'a> {
@@ -34,6 +54,15 @@ impl<'a> Parser<'a> {
         tokens: Vec<Token<'a>>,
         token_registry: &'a TokenRegistry,
         unit_registry: &'a UnitRegistry,
+    ) -> Self {
+        Self::new_with_config(tokens, token_registry, unit_registry, EvalConfig::default())
+    }
+
+    pub fn new_with_config(
+        tokens: Vec<Token<'a>>,
+        token_registry: &'a TokenRegistry,
+        unit_registry: &'a UnitRegistry,
+        config: EvalConfig,
     ) -> Self {
         Self {
             tokens: tokens.into_iter().map(Some).collect(),
@@ -44,6 +73,7 @@ impl<'a> Parser<'a> {
             function_arg_depth: 0,
             recursion_depth: 0,
             now: crate::Date::now(),
+            config,
         }
     }
 
@@ -147,6 +177,16 @@ impl<'a> Parser<'a> {
                 }
                 self.advance();
                 let rhs = self.parse_expr(r_bp)?;
+                if self.config.strict_dimensions
+                    && matches!(name, "+" | "-")
+                    && let (Ok(l_val), Ok(r_val)) = (lhs.as_scalar(), rhs.as_scalar())
+                {
+                    let l_dimless = l_val.unit.is_dimensionless();
+                    let r_dimless = r_val.unit.is_dimensionless();
+                    if l_dimless != r_dimless && !r_val.unit.is_percent() {
+                        return Err(AbacusError::IncompatibleDimensions);
+                    }
+                }
                 let op = self
                     .token_registry
                     .binary_operators
@@ -175,10 +215,18 @@ impl<'a> Parser<'a> {
                         "range endpoints must be scalar values".to_string(),
                     )
                 })?;
+                if self.config.strict_dimensions {
+                    let lo_dimless = lo.unit.is_dimensionless();
+                    let hi_dimless = hi.unit.is_dimensionless();
+                    if lo_dimless != hi_dimless {
+                        return Err(AbacusError::IncompatibleDimensions);
+                    }
+                }
+                let style = self.config.default_interval_style.unwrap_or(IntervalStyle::Range);
                 lhs = EvalResult::Interval(Interval::new_with_style(
                     lo,
                     hi,
-                    IntervalStyle::Range,
+                    style,
                 )?);
                 continue;
             }
@@ -458,7 +506,20 @@ impl<'a> Parser<'a> {
                     )
                 })?;
 
-                Ok(EvalResult::Interval(Interval::new(lo, hi)?))
+                if self.config.strict_dimensions {
+                    let lo_dimless = lo.unit.is_dimensionless();
+                    let hi_dimless = hi.unit.is_dimensionless();
+                    if lo_dimless != hi_dimless {
+                        return Err(AbacusError::IncompatibleDimensions);
+                    }
+                }
+
+                let style = self.config.default_interval_style.unwrap_or(IntervalStyle::Bracket);
+                Ok(EvalResult::Interval(Interval::new_with_style(
+                    lo,
+                    hi,
+                    style,
+                )?))
             }
 
             // Prefix unary operator: -expr, sqrt(expr)
@@ -553,7 +614,38 @@ impl<'a> Parser<'a> {
                     raw_args.push(arg_result);
                 }
 
-                func.apply(&raw_args)
+                if matches!(name, "sin" | "cos" | "tan") {
+                    for arg in &mut raw_args {
+                        if let EvalResult::Scalar(v) = arg
+                            && v.unit.is_dimensionless()
+                            && v.unit.display.is_empty()
+                        {
+                            let scale = match self.config.angle_mode {
+                                crate::AngleMode::Degrees => std::f64::consts::PI / 180.0,
+                                crate::AngleMode::Gradians => std::f64::consts::PI / 200.0,
+                                crate::AngleMode::Radians => 1.0,
+                            };
+                            v.canonical *= scale;
+                        }
+                    }
+                }
+
+                let mut res = func.apply(&raw_args)?;
+
+                if matches!(name, "asin" | "acos" | "atan" | "atan2")
+                    && let EvalResult::Scalar(ref v) = res
+                {
+                    let target_unit = match self.config.angle_mode {
+                        crate::AngleMode::Degrees => Some(self.unit_registry.unit("deg")?),
+                        crate::AngleMode::Gradians => Some(self.unit_registry.unit("grad")?),
+                        crate::AngleMode::Radians => None,
+                    };
+                    if let Some(target) = target_unit {
+                        res = EvalResult::Scalar(v.convert_to(target)?);
+                    }
+                }
+
+                Ok(res)
             }
 
             Some(tok) => Err(AbacusError::UnexpectedToken(format!("{tok:?}"))),
@@ -717,7 +809,7 @@ pub fn evaluate(
     unit_registry: &UnitRegistry,
     input: &str,
 ) -> Result<EvalResult, AbacusError> {
-    evaluate_with_options(token_registry, unit_registry, input, true)
+    evaluate_with_config(token_registry, unit_registry, input, EvalConfig::default())
 }
 
 /// Tokenize and parse an expression string with configurable automatic derived unit conversion.
@@ -727,14 +819,28 @@ pub fn evaluate_with_options(
     input: &str,
     auto_derived: bool,
 ) -> Result<EvalResult, AbacusError> {
+    let config = EvalConfig {
+        auto_derived,
+        ..Default::default()
+    };
+    evaluate_with_config(token_registry, unit_registry, input, config)
+}
+
+/// Tokenize and parse an expression string with full evaluation configuration.
+pub fn evaluate_with_config(
+    token_registry: &TokenRegistry,
+    unit_registry: &UnitRegistry,
+    input: &str,
+    config: EvalConfig,
+) -> Result<EvalResult, AbacusError> {
     let tokens = crate::evaluation::tokenizer::tokenize::tokenize_string(
         token_registry,
         unit_registry,
         input,
     )?;
-    let mut parser = Parser::new(tokens, token_registry, unit_registry);
+    let mut parser = Parser::new_with_config(tokens, token_registry, unit_registry, config);
     let result = parser.parse()?;
-    if parser.has_explicit_conversion || !auto_derived {
+    if parser.has_explicit_conversion || !config.auto_derived {
         let mut result = result;
         result.simplify_unit_display(unit_registry);
         Ok(result)

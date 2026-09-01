@@ -62,23 +62,44 @@ fn main() {
 
 ### Engine Configuration
 
-Configure significant figures and unit behaviors directly on the `Abacus` instance:
+Configure engine behavior, trigonometry modes, dimensional safety, and output formatting directly on the `Abacus` instance:
 
 ```rust
-use abacus::Abacus;
+use abacus::{Abacus, AngleMode, IntervalStyle, Notation};
 
 let mut calc = Abacus::standard();
 
-// 1. Configurable Significant Figures (rounding & formatting)
+// 1. Angle Mode (Degrees, Radians, Gradians)
+let calc_deg = Abacus::standard().with_angle_mode(AngleMode::Degrees);
+println!("{}", calc_deg.eval("sin(90)").unwrap());  // 1
+println!("{}", calc_deg.eval("asin(1)").unwrap()); // 90 deg
+
+// 2. Strict Dimensional Safety (disallow unitless promotion)
+let calc_strict = Abacus::standard().with_strict_dimensions(true);
+assert!(calc_strict.eval("5 m + 5").is_err()); // IncompatibleDimensions
+
+// 3. Fixed Decimal Places (currency, engineering tables)
+let calc_dec = Abacus::standard().with_decimal_places(2);
+println!("{}", calc_dec.eval("10 / 3").unwrap()); // 3.33
+println!("{}", calc_dec.format_result(&calc_dec.eval("5").unwrap())); // 5.00
+
+// 4. Interval Style Preference (Bracket [a, b] vs Range a..b)
+let calc_range = Abacus::standard().with_interval_style(IntervalStyle::Range);
+println!("{}", calc_range.eval("[1 m, 5 m] + 2 m").unwrap()); // 3 m..7 m
+
+// 5. Scientific & Engineering Notation (exponents multiple of 3 aligned with SI)
+let calc_eng = Abacus::standard().with_notation(Notation::Engineering);
+println!("{}", calc_eng.format_result(&calc_eng.eval("45000").unwrap())); // 45e3
+println!("{}", calc_eng.format_result(&calc_eng.eval("0.045").unwrap())); // 45e-3
+
+// 6. Configurable Significant Figures (fixed or input-following)
 let calc_sig = Abacus::standard().with_significant_figures(3);
 println!("{}", calc_sig.eval("12.3456 m").unwrap()); // 12.3 m
-println!("{}", calc_sig.eval("12345.6 m").unwrap()); // 12300 m
 
-// 2. Automatically follow input significant figures
 let calc_follow = Abacus::standard().with_follow_significant_figures(true);
 println!("{}", calc_follow.eval("12.3 * 4.567").unwrap()); // 56.2 (3 sig figs)
 
-// 3. Toggle Automatic Derived Unit Reduction
+// 7. Toggle Automatic Derived SI Unit Reduction
 let calc_raw = Abacus::standard().with_auto_derived_units(false);
 println!("{}", calc_raw.eval("10 N * 5 m").unwrap()); // 50 N*m (not reduced to J)
 ```

@@ -158,6 +158,55 @@ impl EvalResult {
         }
     }
 
+    /// Returns a new `EvalResult` with scalar, interval, and hash components rounded to `decimals` decimal places.
+    #[must_use]
+    pub fn round_to_decimals(self, decimals: usize) -> Self {
+        match self {
+            EvalResult::Scalar(v) => EvalResult::Scalar(v.round_to_decimals(decimals)),
+            EvalResult::Interval(i) => EvalResult::Interval(i.round_to_decimals(decimals)),
+            EvalResult::Hash(h) => EvalResult::Hash(h.round_to_decimals(decimals)),
+            EvalResult::Date(d) => EvalResult::Date(d),
+        }
+    }
+
+    /// Render to display string formatted to `decimals` decimal places.
+    #[must_use]
+    pub fn to_display_with_decimals(&self, decimals: usize) -> String {
+        match self {
+            EvalResult::Scalar(v) => v.to_display_with_decimals(decimals),
+            EvalResult::Interval(i) => i.to_display_with_decimals(decimals),
+            EvalResult::Hash(h) => h.to_display_with_decimals(decimals),
+            EvalResult::Date(d) => d.to_string(),
+        }
+    }
+
+    /// Render to display string in scientific notation.
+    #[must_use]
+    pub fn to_display_scientific(&self) -> String {
+        match self {
+            EvalResult::Scalar(v) => v.to_display_scientific(),
+            _ => self.to_display(),
+        }
+    }
+
+    /// Render to display string in engineering notation.
+    #[must_use]
+    pub fn to_display_engineering(&self) -> String {
+        match self {
+            EvalResult::Scalar(v) => v.to_display_engineering(),
+            _ => self.to_display(),
+        }
+    }
+
+    /// Overrides the interval display style (bracket vs range) if this result is an Interval.
+    #[must_use]
+    pub fn with_interval_style(mut self, style: crate::units::interval::IntervalStyle) -> Self {
+        if let EvalResult::Interval(ref mut i) = self {
+            i.style = style;
+        }
+        self
+    }
+
     /// Borrow the scalar Value, or error if this is not a scalar.
     pub fn as_scalar(&self) -> Result<&Value, AbacusError> {
         match self {

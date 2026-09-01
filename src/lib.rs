@@ -28,8 +28,26 @@ pub use evaluation::tokenizer::registry::{
 
 pub use evaluation::tokenizer::tokens::Token;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum AngleMode {
+    #[default]
+    Radians,
+    Degrees,
+    Gradians,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum Notation {
+    #[default]
+    Standard,
+    Scientific,
+    Engineering,
+}
+
 use crate::evaluation::{
-    parser::parse::evaluate_with_options,
+    parser::parse::{EvalConfig, evaluate_with_config},
     tokenizer::tokenize::{min_significant_figures_in_expr, tokenize_string},
 };
 
@@ -40,6 +58,11 @@ pub struct Abacus {
     pub significant_figures: Option<usize>,
     pub follow_significant_figures: bool,
     pub auto_derived_units: bool,
+    pub angle_mode: AngleMode,
+    pub strict_dimensions: bool,
+    pub decimal_places: Option<usize>,
+    pub default_interval_style: Option<IntervalStyle>,
+    pub notation: Notation,
 }
 
 impl Abacus {
@@ -53,6 +76,11 @@ impl Abacus {
             significant_figures: None,
             follow_significant_figures: false,
             auto_derived_units: true,
+            angle_mode: AngleMode::default(),
+            strict_dimensions: false,
+            decimal_places: None,
+            default_interval_style: None,
+            notation: Notation::default(),
         }
     }
 
@@ -65,6 +93,11 @@ impl Abacus {
             significant_figures: None,
             follow_significant_figures: false,
             auto_derived_units: true,
+            angle_mode: AngleMode::default(),
+            strict_dimensions: false,
+            decimal_places: None,
+            default_interval_style: None,
+            notation: Notation::default(),
         }
     }
 
@@ -88,6 +121,11 @@ impl Abacus {
             significant_figures: None,
             follow_significant_figures: false,
             auto_derived_units: true,
+            angle_mode: AngleMode::default(),
+            strict_dimensions: false,
+            decimal_places: None,
+            default_interval_style: None,
+            notation: Notation::default(),
         }
     }
 
@@ -155,6 +193,101 @@ impl Abacus {
         self.auto_derived_units = enabled;
     }
 
+    /// Sets the angle mode for trigonometric functions (Radians, Degrees, Gradians).
+    #[must_use]
+    pub fn set_angle_mode(mut self, mode: AngleMode) -> Self {
+        self.angle_mode = mode;
+        self
+    }
+
+    /// Builder method to configure the angle mode.
+    #[must_use]
+    pub fn with_angle_mode(mut self, mode: AngleMode) -> Self {
+        self.angle_mode = mode;
+        self
+    }
+
+    /// In-place setter for angle mode.
+    pub fn set_angle(&mut self, mode: AngleMode) {
+        self.angle_mode = mode;
+    }
+
+    /// Sets whether strict dimension checking is enabled (disallows dimensionless promotion).
+    #[must_use]
+    pub fn set_strict_dimensions(mut self, strict: bool) -> Self {
+        self.strict_dimensions = strict;
+        self
+    }
+
+    /// Builder method to toggle strict dimension checking.
+    #[must_use]
+    pub fn with_strict_dimensions(mut self, strict: bool) -> Self {
+        self.strict_dimensions = strict;
+        self
+    }
+
+    /// In-place setter for strict dimension checking.
+    pub fn set_strict_dims(&mut self, strict: bool) {
+        self.strict_dimensions = strict;
+    }
+
+    /// Sets the number of decimal places for rounding and formatting.
+    #[must_use]
+    pub fn set_decimal_places(mut self, places: Option<usize>) -> Self {
+        self.decimal_places = places;
+        self
+    }
+
+    /// Builder method to configure fixed decimal places.
+    #[must_use]
+    pub fn with_decimal_places(mut self, places: usize) -> Self {
+        self.decimal_places = Some(places);
+        self
+    }
+
+    /// In-place setter for decimal places.
+    pub fn set_dec_places(&mut self, places: Option<usize>) {
+        self.decimal_places = places;
+    }
+
+    /// Sets the default interval display style (Bracket [a, b] or Range a..b).
+    #[must_use]
+    pub fn set_interval_style(mut self, style: Option<IntervalStyle>) -> Self {
+        self.default_interval_style = style;
+        self
+    }
+
+    /// Builder method to configure interval display style.
+    #[must_use]
+    pub fn with_interval_style(mut self, style: IntervalStyle) -> Self {
+        self.default_interval_style = Some(style);
+        self
+    }
+
+    /// In-place setter for interval display style.
+    pub fn set_int_style(&mut self, style: Option<IntervalStyle>) {
+        self.default_interval_style = style;
+    }
+
+    /// Sets the numerical notation mode (Standard, Scientific, Engineering).
+    #[must_use]
+    pub fn set_notation(mut self, notation: Notation) -> Self {
+        self.notation = notation;
+        self
+    }
+
+    /// Builder method to configure notation mode.
+    #[must_use]
+    pub fn with_notation(mut self, notation: Notation) -> Self {
+        self.notation = notation;
+        self
+    }
+
+    /// In-place setter for notation mode.
+    pub fn set_note_mode(&mut self, notation: Notation) {
+        self.notation = notation;
+    }
+
     // Tokenize an expression into a vector of `Token`s
     pub fn tokenize<'a>(&self, expr: &'a str) -> Result<Vec<Token<'a>>, AbacusError> {
         tokenize_string(&self.tokens, &self.units, expr)
@@ -164,14 +297,28 @@ impl Abacus {
     // Evaluated dates are automatically formatted
     // Returns an error if the expression is invalid or cannot be evaluated.
     pub fn eval(&self, expr: &str) -> Result<EvalResult, AbacusError> {
-        let mut res = evaluate_with_options(
+        let config = EvalConfig {
+            auto_derived: self.auto_derived_units,
+            angle_mode: self.angle_mode,
+            strict_dimensions: self.strict_dimensions,
+            default_interval_style: self.default_interval_style,
+        };
+        let mut res = evaluate_with_config(
             &self.tokens,
             &self.units,
             expr,
-            self.auto_derived_units,
+            config,
         )?;
         if let EvalResult::Date(ref mut d) = res {
             d.format = self.date_format;
+        }
+
+        if let Some(style) = self.default_interval_style {
+            res = res.with_interval_style(style);
+        }
+
+        if let Some(dec) = self.decimal_places {
+            res = res.round_to_decimals(dec);
         }
 
         let effective_sig_figs = self.significant_figures.or_else(|| {
@@ -190,13 +337,25 @@ impl Abacus {
     }
 
     /// Formats an `EvalResult` according to this `Abacus` instance's configuration
-    /// (date format, significant figures, etc.).
+    /// (date format, significant figures, decimal places, notation, etc.).
     #[must_use]
     pub fn format_result(&self, res: &EvalResult) -> String {
-        if let Some(sig_figs) = self.significant_figures {
-            res.to_display_with_sig_figs(sig_figs)
-        } else {
-            res.to_display()
+        let mut res = res.clone();
+        if let Some(style) = self.default_interval_style {
+            res = res.with_interval_style(style);
+        }
+        match self.notation {
+            Notation::Scientific => res.to_display_scientific(),
+            Notation::Engineering => res.to_display_engineering(),
+            Notation::Standard => {
+                if let Some(decimals) = self.decimal_places {
+                    res.to_display_with_decimals(decimals)
+                } else if let Some(sig_figs) = self.significant_figures {
+                    res.to_display_with_sig_figs(sig_figs)
+                } else {
+                    res.to_display()
+                }
+            }
         }
     }
 

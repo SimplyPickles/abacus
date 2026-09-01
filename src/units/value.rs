@@ -149,6 +149,82 @@ impl Value {
             format!("{formatted_amt} {unit_str}")
         }
     }
+
+    /// Returns a new `Value` with the displayed quantity rounded to `decimals` decimal places.
+    #[must_use]
+    pub fn round_to_decimals(&self, decimals: usize) -> Self {
+        let amt = self.amount();
+        let scale = 10.0f64.powi(decimals as i32);
+        let rounded_amt = (amt * scale).round() / scale;
+        let new_canonical = rounded_amt * self.unit.scalar + self.unit.offset;
+        Self {
+            canonical: new_canonical,
+            unit: Arc::clone(&self.unit),
+        }
+    }
+
+    /// Renders this `Value` formatted to `decimals` decimal places.
+    #[must_use]
+    pub fn to_display_with_decimals(&self, decimals: usize) -> String {
+        let formatted_amt = format!("{:.precision$}", self.amount(), precision = decimals);
+        let unit_str = self.unit.display.render();
+        if unit_str.is_empty() {
+            formatted_amt
+        } else {
+            format!("{formatted_amt} {unit_str}")
+        }
+    }
+
+    /// Renders this `Value` in scientific notation.
+    #[must_use]
+    pub fn to_display_scientific(&self) -> String {
+        let amt = self.amount();
+        let formatted_amt = if !amt.is_finite() || amt == 0.0 {
+            amt.to_string()
+        } else {
+            format!("{amt:e}")
+        };
+        let unit_str = self.unit.display.render();
+        if unit_str.is_empty() {
+            formatted_amt
+        } else {
+            format!("{formatted_amt} {unit_str}")
+        }
+    }
+
+    /// Renders this `Value` in engineering notation.
+    #[must_use]
+    pub fn to_display_engineering(&self) -> String {
+        let formatted_amt = format_engineering(self.amount());
+        let unit_str = self.unit.display.render();
+        if unit_str.is_empty() {
+            formatted_amt
+        } else {
+            format!("{formatted_amt} {unit_str}")
+        }
+    }
+}
+
+/// Formats a number in engineering notation where exponents are multiples of 3.
+#[must_use]
+pub fn format_engineering(val: f64) -> String {
+    if !val.is_finite() || val == 0.0 {
+        return val.to_string();
+    }
+    let abs_val = val.abs();
+    let exp = abs_val.log10().floor() as i32;
+    let eng_exp = if exp >= 0 {
+        (exp / 3) * 3
+    } else {
+        ((exp - 2) / 3) * 3
+    };
+    let mantissa = val / 10.0f64.powi(eng_exp);
+    let mantissa_rounded = (mantissa * 1e12).round() / 1e12;
+    if eng_exp == 0 {
+        format!("{mantissa_rounded}")
+    } else {
+        format!("{mantissa_rounded}e{eng_exp}")
+    }
 }
 
 /// Rounds a floating-point number to a specified number of significant figures.

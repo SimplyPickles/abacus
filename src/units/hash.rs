@@ -67,6 +67,28 @@ impl Hash {
             .collect();
         format!("{{ {} }}", formatted.join(", "))
     }
+
+    /// Returns a new `Hash` with all numeric values rounded to `decimals` decimal places.
+    #[must_use]
+    pub fn round_to_decimals(&self, decimals: usize) -> Self {
+        let mut new_values = HashMap::new();
+        for (k, v) in &self.values {
+            new_values.insert(k.clone(), v.round_to_decimals(decimals));
+        }
+        Self { values: new_values }
+    }
+
+    /// Formats all entries in the hash formatted to `decimals` decimal places.
+    #[must_use]
+    pub fn to_display_with_decimals(&self, decimals: usize) -> String {
+        let mut entries: Vec<_> = self.values.iter().collect();
+        entries.sort_by_key(|&(k, _)| k);
+        let formatted: Vec<String> = entries
+            .into_iter()
+            .map(|(k, v)| format!("{}: {}", k, v.to_display_with_decimals(decimals)))
+            .collect();
+        format!("{{ {} }}", formatted.join(", "))
+    }
 }
 
 impl Default for Hash {

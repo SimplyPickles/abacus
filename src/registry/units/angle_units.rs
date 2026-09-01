@@ -41,6 +41,13 @@ const ANGLE_UNITS: &[UnitDefinition] = &[
         offset: 0.0,
         dimensions: Dimensions::DIMENSIONLESS,
     },
+    UnitDefinition {
+        keys: &["gradian", "gradians", "grad", "gon"],
+        display: "grad",
+        scalar: std::f64::consts::PI / 200.0,
+        offset: 0.0,
+        dimensions: Dimensions::DIMENSIONLESS,
+    },
 ];
 
 pub fn register_angle_units(map: &mut HashMap<String, Arc<Unit>>) {

@@ -279,6 +279,44 @@ impl Interval {
             }
         }
     }
+
+    /// Returns a new `Interval` with the specified display style.
+    #[must_use]
+    pub fn with_style(mut self, style: IntervalStyle) -> Self {
+        self.style = style;
+        self
+    }
+
+    /// Returns a new `Interval` with both endpoints rounded to `decimals` decimal places.
+    #[must_use]
+    pub fn round_to_decimals(&self, decimals: usize) -> Self {
+        Self {
+            lo: self.lo.round_to_decimals(decimals),
+            hi: self.hi.round_to_decimals(decimals),
+            style: self.style,
+        }
+    }
+
+    /// Formats the interval with both endpoints rounded to `decimals` decimal places.
+    #[must_use]
+    pub fn to_display_with_decimals(&self, decimals: usize) -> String {
+        match self.style {
+            IntervalStyle::Bracket => {
+                format!(
+                    "[{}, {}]",
+                    self.lo.to_display_with_decimals(decimals),
+                    self.hi.to_display_with_decimals(decimals)
+                )
+            }
+            IntervalStyle::Range => {
+                format!(
+                    "{}..{}",
+                    self.lo.to_display_with_decimals(decimals),
+                    self.hi.to_display_with_decimals(decimals)
+                )
+            }
+        }
+    }
 }
 
 impl std::fmt::Display for Interval {
