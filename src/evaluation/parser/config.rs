@@ -12,6 +12,8 @@ pub struct EvalConfig {
     pub max_recursion_depth: usize,
     pub implicit_multiplication: bool,
     pub number_scales: bool,
+    pub currencies: bool,
+    pub live_rates: bool,
 }
 
 impl Default for EvalConfig {
@@ -26,6 +28,8 @@ impl Default for EvalConfig {
             max_recursion_depth: 64,
             implicit_multiplication: true,
             number_scales: cfg!(feature = "number-scales"),
+            currencies: cfg!(feature = "currencies"),
+            live_rates: false,
         }
     }
 }

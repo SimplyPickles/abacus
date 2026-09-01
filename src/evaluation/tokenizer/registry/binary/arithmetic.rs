@@ -84,6 +84,12 @@ pub fn register_arithmetic() -> Vec<BinaryOp> {
             right_associative: false,
         },
         BinaryOp {
+            alias: "per",
+            func: div,
+            precedence: 1,
+            right_associative: false,
+        },
+        BinaryOp {
             alias: "%",
             func: rem,
             precedence: 1,

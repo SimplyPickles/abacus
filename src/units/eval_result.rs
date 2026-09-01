@@ -218,6 +218,20 @@ impl EvalResult {
         self
     }
 
+    /// Applies unit display overrides to this evaluation result.
+    #[must_use]
+    pub fn with_display_override(
+        self,
+        overrides: &std::collections::HashMap<String, String>,
+    ) -> Self {
+        match self {
+            EvalResult::Scalar(v) => EvalResult::Scalar(v.with_display_override(overrides)),
+            EvalResult::Interval(i) => EvalResult::Interval(i.with_display_override(overrides)),
+            EvalResult::Hash(h) => EvalResult::Hash(h.with_display_override(overrides)),
+            EvalResult::Date(d) => EvalResult::Date(d),
+        }
+    }
+
     /// Borrow the scalar Value, or error if this is not a scalar.
     pub fn as_scalar(&self) -> Result<&Value, AbacusError> {
         match self {

@@ -54,6 +54,16 @@ fn main() {
     let res = eval("07-08-2026 + 5 business days").unwrap();
     println!("{res}"); // 14-08-2026
 
+    // Currencies, natural numbers & division with 'per'
+    let res = eval("$50 + €20 in USD").unwrap();
+    println!("{res}"); // $73.18
+
+    let res = eval("a thousand dollars per day * 3 days").unwrap();
+    println!("{res}"); // $3000
+
+    let res = eval("$3 million in EUR").unwrap();
+    println!("{res}"); // 2588430 EUR
+
     // Dimension-aware linear regression
     let res = eval("linreg(1 s, 2 s, 3 s, 4 s, 10 m, 20 m, 30 m, 40 m).slope * 5 s").unwrap();
     println!("{res}"); // 50 m
@@ -117,6 +127,33 @@ println!("{}", calc_follow.eval("12.3 * 4.567").unwrap()); // 56.2 (3 sig figs)
 // 11. Toggle Automatic Derived SI Unit Reduction
 let calc_raw = Abacus::standard().with_auto_derived_units(false);
 println!("{}", calc_raw.eval("10 N * 5 m").unwrap()); // 50 N*m (not reduced to J)
+
+// 12. World Currencies & Live Exchange Rates
+let calc_curr = Abacus::standard()
+    .with_currencies(true)
+    .with_live_rates(true)
+    .with_currency_rate("EUR", 0.50); // optional custom rate override
+println!("{}", calc_curr.eval("$100 in EUR").unwrap()); // 50 EUR
+
+// 13. Currency Cache Configuration (daily disk caching for Frankfurter API rates)
+let calc_cache = Abacus::standard().with_currency_cache("/tmp/currency_rates.json");
+
+// 14. Number Scales & Multipliers
+let calc_scales = Abacus::standard().with_number_scales(true);
+println!("{}", calc_scales.eval("$3 million").unwrap()); // $3000000
+
+// 15. Variables & Mathematical Constants (pi, e, tau, phi)
+let mut calc_vars = Abacus::standard();
+println!("{}", calc_vars.eval("2 * pi * 5").unwrap()); // 31.41592653589793
+calc_vars.set_variable("radius", calc_vars.eval("5 m").unwrap());
+println!("{}", calc_vars.eval("pi * radius^2").unwrap()); // 78.53981633974483 m^2
+calc_vars.eval_mut("height = 10 m").unwrap();
+println!("{}", calc_vars.eval("radius * height").unwrap()); // 50 m^2
+
+// 16. Unit Display Overrides (e.g. "mi/h" -> "mph", "km/h" -> "kmph")
+let calc_speed = Abacus::standard().with_common_speed_overrides();
+println!("{}", calc_speed.eval("60 miles per hour").unwrap()); // 60 mph
+println!("{}", calc_speed.eval("100 km / 1 h").unwrap()); // 100 kmph
 ```
 
 ---
@@ -125,17 +162,86 @@ println!("{}", calc_raw.eval("10 N * 5 m").unwrap()); // 50 N*m (not reduced to 
 
 ### Physical Units & Conversions
 
-| Expression           | Result                 | Description                              |
-| :------------------- | :--------------------- | :--------------------------------------- |
-| `5 m + 3 m`          | `8 m`                  | Basic addition with identical units      |
-| `(5 m + 20 cm) as m` | `5.2 m`                | Mixed prefix conversion                  |
-| `10 N * 5 m`         | `50 J`                 | Automatic reduction to derived SI unit   |
-| `100 W * 5 s`        | `500 J`                | Power $\times$ time energy reduction     |
-| `12 V * 2 A`         | `24 W`                 | Voltage $\times$ current power reduction |
-| `5 km to m`          | `5000 m`               | Explicit unit conversion                 |
-| `1 m in inches`      | `39.37007874015748 in` | Metric to Imperial conversion            |
-| `5 km / m`           | `5000`                 | Dimensionless ratio cancellation         |
-| `100 °C to °F`       | `212 °F`               | Affine temperature scale conversion      |
+|      Expression      |         Result         | Description                              |
+| :------------------: | :--------------------: | :--------------------------------------- |
+|     `5 m + 3 m`      |         `8 m`          | Basic addition with identical units      |
+| `(5 m + 20 cm) as m` |        `5.2 m`         | Mixed prefix conversion                  |
+|     `10 N * 5 m`     |         `50 J`         | Automatic reduction to derived SI unit   |
+|    `100 W * 5 s`     |        `500 J`         | Power $\times$ time energy reduction     |
+|     `12 V * 2 A`     |         `24 W`         | Voltage $\times$ current power reduction |
+|     `5 km to m`      |        `5000 m`        | Explicit unit conversion                 |
+|   `1 m in inches`    | `39.37007874015748 in` | Metric to Imperial conversion            |
+|      `5 km / m`      |         `5000`         | Dimensionless ratio cancellation         |
+|    `100 °C to °F`    |        `212 °F`        | Affine temperature scale conversion      |
+
+### World Currencies & Conversions
+
+Abacus supports 30 world currencies with prefix symbol formatting (`$100`, `€50`), cross-currency conversions, financial decimal rounding, and live daily-cached exchange rates from the Frankfurter API:
+
+| Expression           | Result      | Description                                           |
+| :------------------- | :---------- | :---------------------------------------------------- |
+| `$100`               | `$100`      | Prefix currency symbol rendering                      |
+| `-$50.25`            | `-$50.25`   | Negative prefix currency                              |
+| `$50 + $25`          | `$75`       | Currency addition                                     |
+| `$100 / 3`           | `$33.33`    | Automatic 2-decimal rounding (cents)                  |
+| `100 USD in EUR`     | `86.28 EUR` | Live/fixed cross-currency conversion                  |
+| `$50 + €20 in USD`   | `$73.18`    | Mixed currency addition converted to USD              |
+| `50 EUR in JPY`      | `9281 JPY`  | Automatic 0-decimal rounding for zero-cent currencies |
+| `$100 / 2 hours`     | `50 $/h`    | Dimensional currency rate                             |
+| `(10 EUR / L) * 5 L` | `50 EUR`    | Volumetric price cancellation                         |
+
+### Number Scales, Natural Articles & Division ("per")
+
+Write math in natural conversational English with scale words, articles, and `per`:
+
+| Expression                              | Result       | Description                             |
+| :-------------------------------------- | :----------- | :-------------------------------------- |
+| `$3 million`                            | `$3000000`   | Number scale word folding               |
+| `5 billion USD / 2 million`             | `$2500`      | Large scale word arithmetic             |
+| `a million dollars`                     | `$1000000`   | Indefinite article `"a"` as numeral `1` |
+| `a dozen`                               | `12`         | Dozen multiplier                        |
+| `a dollar`                              | `$1`         | Singular currency unit                  |
+| `an hour in minutes`                    | `60 min`     | Indefinite article `"an"` as `1`        |
+| `a thousand dollars per day`            | `1000 $/d`   | `"per"` as division operator `/`        |
+| `(a thousand dollars per day) * 3 days` | `$3000`      | Time cancellation with rate             |
+| `100 meters per second`                 | `100 m/s`    | Physical speed with `per`               |
+| `60 miles per hour in km/h`             | `96.56 km/h` | Speed unit conversion with `per`        |
+| `$50 per hour * 8 hours`                | `$400`       | Wage calculation                        |
+| `100 per 4`                             | `25`         | Dimensionless ratio                     |
+
+### Variables & Mathematical Constants
+
+Evaluate standard mathematical constants and manage programmatic variables:
+
+| Expression / Code             | Result                  | Description                             |
+| :---------------------------- | :---------------------- | :-------------------------------------- |
+| `2 * pi * 5`                  | `31.41592653589793`     | Standard constant `pi` / `PI`           |
+| `e^2`                         | `7.38905609893065`      | Euler's number `e` / `E`                |
+| `tau`                         | `6.283185307179586`     | Circle constant $\tau = 2\pi$           |
+| `phi`                         | `1.618033988749895`     | Golden ratio $\phi = (1 + \sqrt{5})/2$  |
+| `calc.set_variable("r", 5 m)` | —                       | Programmatic variable definition        |
+| `calc.eval("pi * r^2")`       | `78.53981633974483 m^2` | Variable evaluation with physical units |
+| `calc.eval_mut("w = 10 m")`   | `10 m`                  | Inline assignment syntax                |
+
+### Unit Display Overrides
+
+Abacus provides a display alias system so composite units and rates render using colloquial abbreviations (e.g. `"mi/h"` as `"mph"`, `"km/h"` as `"kmph"`):
+
+```rust
+let calc = Abacus::standard()
+    .with_unit_display_override("mi/h", "mph")
+    .with_unit_display_override("km/h", "kmph");
+// Or enable standard speed overrides with a single method:
+let calc = Abacus::standard().with_common_speed_overrides();
+```
+
+| Expression | Standard Display | With Overrides | Description |
+| :--- | :--- | :--- | :--- |
+| `60 miles per hour` | `60 mi/h` | `60 mph` | Idiomatic US/UK speed notation |
+| `100 km / 1 h` | `100 km/h` | `100 kmph` | Metric road speed abbreviation |
+| `60 miles per hour in km/h` | `96.56 km/h` | `96.56 kmph` | Speed conversion with target override |
+| `[50 mi/h, 70 mi/h]` | `[50 mi/h, 70 mi/h]` | `[50 mph, 70 mph]` | Interval endpoints formatting |
+| `a thousand dollars per day` | `1000 $/d` | `1000 $/day` | Custom rate override (`"$/d"` $\to$ `"$/day"`) |
 
 ### Interval Arithmetic
 
@@ -247,15 +353,18 @@ Abacus is modular and allows disabling features you do not need:
 abacus = { version = "0.1", default-features = false, features = ["units"] }
 ```
 
-| Feature         | Description                                                                               | Default |
-| :-------------- | :---------------------------------------------------------------------------------------- | :------ |
-| `units`         | Full physical unit registry and conversions                                               | **Yes** |
-| `stats`         | Descriptive statistics, dispersion, and linear regression                                 | **Yes** |
+|     Feature     | Description                                                                               | Default |
+| :-------------: | :---------------------------------------------------------------------------------------- | :------ |
+|     `units`     | Full physical unit registry and conversions                                               | **Yes** |
+|  `currencies`   | 30 global currencies, prefix formatting, offline fallback rates, and conversions          | **Yes** |
+|  `live-rates`   | Live exchange rate sync from Frankfurter API with daily disk caching                      | **Yes** |
+| `number-scales` | Natural scale words (`million`, `billion`) and indefinite article evaluation              | **Yes** |
+|     `stats`     | Descriptive statistics, dispersion, and linear regression                                 | **Yes** |
 | `distributions` | Continuous & discrete probability distributions                                           | **Yes** |
-| `date`          | Date parsing, relative time, and business day arithmetic                                  | **Yes** |
-| `financial`     | Financial functions (`pmt`, `npv`, `irr`, `fv`, `pv`)                                     | **Yes** |
-| `repl`          | Interactive CLI REPL with command history and syntax highlighting                         | **Yes** |
-| `serde`         | Enables `Serialize` and `Deserialize` on core types (`Value`, `Interval`, `Date`, `Hash`) | No      |
+|     `date`      | Date parsing, relative time, and business day arithmetic                                  | **Yes** |
+|   `financial`   | Financial functions (`pmt`, `npv`, `irr`, `fv`, `pv`)                                     | **Yes** |
+|     `repl`      | Interactive CLI REPL with command history and syntax highlighting                         | **Yes** |
+|     `serde`     | Enables `Serialize` and `Deserialize` on core types (`Value`, `Interval`, `Date`, `Hash`) | No      |
 
 ---
 

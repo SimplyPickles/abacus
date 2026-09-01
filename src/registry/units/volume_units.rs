@@ -25,9 +25,9 @@ const VOLUME_AND_AREA_UNITS: &[UnitDefinition] = &[
         offset: 0.0,
         dimensions: Dimensions::AREA,
     },
-    // Are (1 a = 100 m^2)
+    // Are (1 are = 100 m^2)
     UnitDefinition {
-        keys: &["are", "a"],
+        keys: &["are", "ares"],
         display: "a",
         scalar: 100.0,
         offset: 0.0,

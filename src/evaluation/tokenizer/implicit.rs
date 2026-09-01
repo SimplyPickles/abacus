@@ -28,6 +28,13 @@ pub fn number_scale_factor(word: &str) -> Option<f64> {
     }
 }
 
+/// Returns true if `c` is a supported currency symbol.
+#[inline]
+#[must_use]
+pub fn is_currency_symbol(c: char) -> bool {
+    matches!(c, '$' | '€' | '£' | '¥' | '₹' | '₩' | '₺' | '₪' | '฿')
+}
+
 /// Combines adjacent `Float + Unit` tokens and inserts implicit `BinaryOp("*")` between adjacent terms.
 pub(crate) fn resolve_tokens<'a>(
     tokens: Vec<Token<'a>>,
@@ -37,10 +44,35 @@ pub(crate) fn resolve_tokens<'a>(
     number_scales: bool,
 ) -> Vec<Token<'a>> {
     // 1. Combine adjacent Float + Unit into Val if separated by space (e.g. `5.0` + `km`),
+    // fold prefix currency units (e.g. `$50`, `€ 100`, `$ 3 million`),
     // and scale numbers with scale words (e.g. `3 million`, `3 million km`) if enabled.
     let mut resolved: Vec<Token<'a>> = Vec::with_capacity(tokens.len());
     let mut iter = tokens.into_iter().peekable();
     while let Some(tok) = iter.next() {
+        // Prefix currency: e.g. `$ 50`, `€100`, `$ 3 million`
+        if let Token::Unit(unit_sym) = tok
+            && let Ok(unit) = unit_registry.unit(unit_sym)
+            && unit.dimensions == crate::units::dimensions::Dimensions::CURRENCY
+        {
+            if let Some(&Token::Float(mut num)) = iter.peek() {
+                iter.next();
+                if number_scales {
+                    while let Some(Token::Unit(scale_sym)) = iter.peek() {
+                        if let Some(scale) = number_scale_factor(scale_sym) {
+                            iter.next();
+                            num *= scale;
+                            continue;
+                        }
+                        break;
+                    }
+                }
+                resolved.push(Token::Val(Value::new(num, unit)));
+                continue;
+            }
+            resolved.push(Token::Unit(unit_sym));
+            continue;
+        }
+
         if let Token::Float(mut num) = tok {
             if number_scales {
                 // Fold chained number scale words: e.g. `3 million`, `100 thousand million`

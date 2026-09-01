@@ -78,6 +78,16 @@ impl Hash {
         Self { values: new_values }
     }
 
+    /// Returns a new `Hash` with display overrides applied to each contained `Value`.
+    #[must_use]
+    pub fn with_display_override(&self, overrides: &HashMap<String, String>) -> Self {
+        let mut new_values = HashMap::with_capacity(self.values.len());
+        for (k, v) in &self.values {
+            new_values.insert(k.clone(), v.with_display_override(overrides));
+        }
+        Self { values: new_values }
+    }
+
     /// Formats all entries in the hash formatted to `decimals` decimal places.
     #[must_use]
     pub fn to_display_with_decimals(&self, decimals: usize) -> String {
