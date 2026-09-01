@@ -12,7 +12,7 @@ use std::sync::Arc;
 pub use error::AbacusError;
 pub use registry::unit_registry::UnitRegistry;
 pub use units::{
-    date::{Date, DateFormat, DayOfWeek, Time, TimeZone},
+    date::{Date, DateFormat, DayOfWeek, Time, TimeZone, WeekendDays},
     dimensions::Dimensions,
     eval_result::EvalResult,
     hash::Hash,
@@ -48,7 +48,7 @@ pub enum Notation {
 
 use crate::evaluation::{
     parser::parse::{EvalConfig, evaluate_with_config},
-    tokenizer::tokenize::{min_significant_figures_in_expr, tokenize_string},
+    tokenizer::tokenize::{min_significant_figures_in_expr, tokenize_string_with_options},
 };
 
 pub struct Abacus {
@@ -63,6 +63,10 @@ pub struct Abacus {
     pub decimal_places: Option<usize>,
     pub default_interval_style: Option<IntervalStyle>,
     pub notation: Notation,
+    pub default_timezone: Option<TimeZone>,
+    pub weekend: WeekendDays,
+    pub max_recursion_depth: usize,
+    pub implicit_multiplication: bool,
 }
 
 impl Abacus {
@@ -81,6 +85,10 @@ impl Abacus {
             decimal_places: None,
             default_interval_style: None,
             notation: Notation::default(),
+            default_timezone: None,
+            weekend: WeekendDays::default(),
+            max_recursion_depth: 64,
+            implicit_multiplication: true,
         }
     }
 
@@ -98,6 +106,10 @@ impl Abacus {
             decimal_places: None,
             default_interval_style: None,
             notation: Notation::default(),
+            default_timezone: None,
+            weekend: WeekendDays::default(),
+            max_recursion_depth: 64,
+            implicit_multiplication: true,
         }
     }
 
@@ -126,6 +138,10 @@ impl Abacus {
             decimal_places: None,
             default_interval_style: None,
             notation: Notation::default(),
+            default_timezone: None,
+            weekend: WeekendDays::default(),
+            max_recursion_depth: 64,
+            implicit_multiplication: true,
         }
     }
 
@@ -288,9 +304,85 @@ impl Abacus {
         self.notation = notation;
     }
 
+    /// Sets the default timezone for unqualified date and time evaluations.
+    #[must_use]
+    pub fn set_default_timezone(mut self, tz: Option<TimeZone>) -> Self {
+        self.default_timezone = tz;
+        self
+    }
+
+    /// Builder method to configure default timezone.
+    #[must_use]
+    pub fn with_default_timezone(mut self, tz: TimeZone) -> Self {
+        self.default_timezone = Some(tz);
+        self
+    }
+
+    /// In-place setter for default timezone.
+    pub fn set_def_tz(&mut self, tz: Option<TimeZone>) {
+        self.default_timezone = tz;
+    }
+
+    /// Sets the weekend days definition for business day calculations.
+    #[must_use]
+    pub fn set_weekend(mut self, weekend: WeekendDays) -> Self {
+        self.weekend = weekend;
+        self
+    }
+
+    /// Builder method to configure weekend days.
+    #[must_use]
+    pub fn with_weekend(mut self, weekend: WeekendDays) -> Self {
+        self.weekend = weekend;
+        self
+    }
+
+    /// In-place setter for weekend days.
+    pub fn set_wknd(&mut self, weekend: WeekendDays) {
+        self.weekend = weekend;
+    }
+
+    /// Sets the maximum expression recursion depth limit.
+    #[must_use]
+    pub fn set_max_recursion_depth(mut self, depth: usize) -> Self {
+        self.max_recursion_depth = depth;
+        self
+    }
+
+    /// Builder method to configure maximum recursion depth.
+    #[must_use]
+    pub fn with_max_recursion_depth(mut self, depth: usize) -> Self {
+        self.max_recursion_depth = depth;
+        self
+    }
+
+    /// In-place setter for maximum recursion depth.
+    pub fn set_max_depth(&mut self, depth: usize) {
+        self.max_recursion_depth = depth;
+    }
+
+    /// Sets whether implicit multiplication (e.g. `2(3)`) is allowed.
+    #[must_use]
+    pub fn set_implicit_multiplication(mut self, enabled: bool) -> Self {
+        self.implicit_multiplication = enabled;
+        self
+    }
+
+    /// Builder method to toggle implicit multiplication.
+    #[must_use]
+    pub fn with_implicit_multiplication(mut self, enabled: bool) -> Self {
+        self.implicit_multiplication = enabled;
+        self
+    }
+
+    /// In-place setter for implicit multiplication.
+    pub fn set_implicit_mul(&mut self, enabled: bool) {
+        self.implicit_multiplication = enabled;
+    }
+
     // Tokenize an expression into a vector of `Token`s
     pub fn tokenize<'a>(&self, expr: &'a str) -> Result<Vec<Token<'a>>, AbacusError> {
-        tokenize_string(&self.tokens, &self.units, expr)
+        tokenize_string_with_options(&self.tokens, &self.units, expr, self.implicit_multiplication)
     }
 
     // Evaluate expressions, returning the result as an `EvalResult`
@@ -302,6 +394,10 @@ impl Abacus {
             angle_mode: self.angle_mode,
             strict_dimensions: self.strict_dimensions,
             default_interval_style: self.default_interval_style,
+            default_timezone: self.default_timezone.clone(),
+            weekend: self.weekend,
+            max_recursion_depth: self.max_recursion_depth,
+            implicit_multiplication: self.implicit_multiplication,
         };
         let mut res = evaluate_with_config(
             &self.tokens,
@@ -311,6 +407,9 @@ impl Abacus {
         )?;
         if let EvalResult::Date(ref mut d) = res {
             d.format = self.date_format;
+            if d.timezone.is_none() {
+                d.timezone = self.default_timezone.clone();
+            }
         }
 
         if let Some(style) = self.default_interval_style {

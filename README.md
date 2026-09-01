@@ -62,10 +62,10 @@ fn main() {
 
 ### Engine Configuration
 
-Configure engine behavior, trigonometry modes, dimensional safety, and output formatting directly on the `Abacus` instance:
+Configure engine behavior, trigonometry modes, dimensional safety, calendar/timezones, recursion limits, and output formatting directly on the `Abacus` instance:
 
 ```rust
-use abacus::{Abacus, AngleMode, IntervalStyle, Notation};
+use abacus::{Abacus, AngleMode, IntervalStyle, Notation, TimeZone, WeekendDays};
 
 let mut calc = Abacus::standard();
 
@@ -92,14 +92,29 @@ let calc_eng = Abacus::standard().with_notation(Notation::Engineering);
 println!("{}", calc_eng.format_result(&calc_eng.eval("45000").unwrap())); // 45e3
 println!("{}", calc_eng.format_result(&calc_eng.eval("0.045").unwrap())); // 45e-3
 
-// 6. Configurable Significant Figures (fixed or input-following)
+// 6. Default Timezone Anchor (anchors bare dates/times to EST, PST, etc.)
+let calc_tz = Abacus::standard().with_default_timezone(TimeZone::parse("EST").unwrap());
+println!("{}", calc_tz.eval("07-08-2026").unwrap()); // 07-08-2026 EST
+
+// 7. Custom Weekend / Workweek Definition (Middle East, Sunday-only, etc.)
+let calc_gulf = Abacus::standard().with_weekend(WeekendDays::FridaySaturday);
+println!("{}", calc_gulf.eval("06-08-2026 + 1 business day").unwrap()); // 09-08-2026 (skips Fri/Sat)
+
+// 8. Configurable Max Recursion Depth (stack protection)
+let calc_depth = Abacus::standard().with_max_recursion_depth(32);
+
+// 9. Toggle Implicit Multiplication (require explicit * operator)
+let calc_explicit = Abacus::standard().with_implicit_multiplication(false);
+assert!(calc_explicit.eval("2(3)").is_err()); // UnexpectedToken
+
+// 10. Configurable Significant Figures (fixed or input-following)
 let calc_sig = Abacus::standard().with_significant_figures(3);
 println!("{}", calc_sig.eval("12.3456 m").unwrap()); // 12.3 m
 
 let calc_follow = Abacus::standard().with_follow_significant_figures(true);
 println!("{}", calc_follow.eval("12.3 * 4.567").unwrap()); // 56.2 (3 sig figs)
 
-// 7. Toggle Automatic Derived SI Unit Reduction
+// 11. Toggle Automatic Derived SI Unit Reduction
 let calc_raw = Abacus::standard().with_auto_derived_units(false);
 println!("{}", calc_raw.eval("10 N * 5 m").unwrap()); // 50 N*m (not reduced to J)
 ```

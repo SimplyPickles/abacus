@@ -56,6 +56,42 @@ impl fmt::Display for DayOfWeek {
     }
 }
 
+/// Definition of weekend days for business day calculations.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum WeekendDays {
+    #[default]
+    SaturdaySunday,
+    FridaySaturday,
+    ThursdayFriday,
+    SundayOnly,
+}
+
+impl WeekendDays {
+    #[must_use]
+    pub fn is_weekend(&self, dow: DayOfWeek) -> bool {
+        match self {
+            Self::SaturdaySunday => matches!(dow, DayOfWeek::Saturday | DayOfWeek::Sunday),
+            Self::FridaySaturday => matches!(dow, DayOfWeek::Friday | DayOfWeek::Saturday),
+            Self::ThursdayFriday => matches!(dow, DayOfWeek::Thursday | DayOfWeek::Friday),
+            Self::SundayOnly => matches!(dow, DayOfWeek::Sunday),
+        }
+    }
+
+    #[must_use]
+    pub fn is_business_day(&self, dow: DayOfWeek) -> bool {
+        !self.is_weekend(dow)
+    }
+
+    #[must_use]
+    pub fn business_days_per_week(&self) -> i64 {
+        match self {
+            Self::SaturdaySunday | Self::FridaySaturday | Self::ThursdayFriday => 5,
+            Self::SundayOnly => 6,
+        }
+    }
+}
+
 /// Structure representing a `TimeZone` with offset in minutes relative to UTC.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -703,21 +739,30 @@ impl Date {
     }
 
     pub fn apply_time_value(&self, rhs: &Value, sign: i64) -> Result<Date, AbacusError> {
+        self.apply_time_value_with(rhs, sign, WeekendDays::SaturdaySunday)
+    }
+
+    pub fn apply_time_value_with(
+        &self,
+        rhs: &Value,
+        sign: i64,
+        weekend: WeekendDays,
+    ) -> Result<Date, AbacusError> {
         if rhs.unit.dimensions != Dimensions::TIME {
             return Err(AbacusError::IncompatibleDimensions);
         }
         if rhs.unit.is_business_day_unit() {
             let count = (rhs.canonical / 86400.0).round() as i64;
-            Ok(self.add_business_days(sign * count))
+            Ok(self.add_business_days_with(sign * count, weekend))
         } else {
             let ms = (rhs.canonical * 1000.0).round() as i64;
             Ok(self.add_milliseconds(sign * ms))
         }
     }
 
-    /// Retrieves a numerical property value from this Date by property name.
+    /// Retrieves a numerical property value from this Date by property name using custom weekend rules.
     #[must_use]
-    pub fn get_property(&self, prop: &str) -> Option<f64> {
+    pub fn get_property_with(&self, prop: &str, weekend: WeekendDays) -> Option<f64> {
         match prop {
             "year" => Some(f64::from(self.year)),
             "month" => Some(f64::from(self.month)),
@@ -728,15 +773,21 @@ impl Date {
             "millisecond" | "ms" => Some(f64::from(self.time.millisecond)),
             "day_of_week" | "weekday" => Some(f64::from(self.day_of_week() as u32)),
             "day_of_year" => Some(f64::from(self.day_of_year())),
-            "is_weekend" => Some(if self.is_weekend() { 1.0 } else { 0.0 }),
+            "is_weekend" => Some(if self.is_weekend_with(weekend) { 1.0 } else { 0.0 }),
             "is_workday" | "is_business_day" => {
-                Some(if self.is_business_day() { 1.0 } else { 0.0 })
+                Some(if self.is_business_day_with(weekend) { 1.0 } else { 0.0 })
             }
             "offset" | "offset_minutes" => {
                 Some(self.timezone.as_ref().map_or(0.0, |tz| f64::from(tz.offset_minutes)))
             }
             _ => None,
         }
+    }
+
+    /// Retrieves a numerical property value from this Date by property name.
+    #[must_use]
+    pub fn get_property(&self, prop: &str) -> Option<f64> {
+        self.get_property_with(prop, WeekendDays::SaturdaySunday)
     }
 
     #[must_use]
@@ -982,17 +1033,27 @@ impl Date {
         self.format_with_style(DateFormat::YYYYMMDD)
     }
     #[must_use]
+    pub fn is_weekend_with(&self, weekend: WeekendDays) -> bool {
+        weekend.is_weekend(self.day_of_week())
+    }
+
+    #[must_use]
     pub fn is_weekend(&self) -> bool {
-        matches!(self.day_of_week(), DayOfWeek::Saturday | DayOfWeek::Sunday)
+        self.is_weekend_with(WeekendDays::SaturdaySunday)
+    }
+
+    #[must_use]
+    pub fn is_business_day_with(&self, weekend: WeekendDays) -> bool {
+        weekend.is_business_day(self.day_of_week())
     }
 
     #[must_use]
     pub fn is_business_day(&self) -> bool {
-        !self.is_weekend()
+        self.is_business_day_with(WeekendDays::SaturdaySunday)
     }
 
     #[must_use]
-    pub fn add_business_days(&self, n: i64) -> Self {
+    pub fn add_business_days_with(&self, n: i64, weekend: WeekendDays) -> Self {
         if n == 0 {
             return self.clone();
         }
@@ -1001,24 +1062,27 @@ impl Date {
         let mut remaining = n.abs();
 
         // If starting on weekend, advance to the first business day
-        while !cur.is_business_day() {
+        while !cur.is_business_day_with(weekend) {
             cur = cur.add_days(step);
-            if cur.is_business_day() {
+            if cur.is_business_day_with(weekend) {
                 remaining -= 1;
                 break;
             }
         }
 
-        let weeks = remaining / 5;
-        remaining %= 5;
+        let bdays_per_week = weekend.business_days_per_week();
+        if bdays_per_week > 0 {
+            let weeks = remaining / bdays_per_week;
+            remaining %= bdays_per_week;
 
-        if weeks > 0 {
-            cur = cur.add_days(weeks * 7 * step);
+            if weeks > 0 {
+                cur = cur.add_days(weeks * 7 * step);
+            }
         }
 
         for _ in 0..remaining {
             cur = cur.add_days(step);
-            while !cur.is_business_day() {
+            while !cur.is_business_day_with(weekend) {
                 cur = cur.add_days(step);
             }
         }
@@ -1026,7 +1090,12 @@ impl Date {
     }
 
     #[must_use]
-    pub fn business_days_between(&self, other: &Self) -> i64 {
+    pub fn add_business_days(&self, n: i64) -> Self {
+        self.add_business_days_with(n, WeekendDays::SaturdaySunday)
+    }
+
+    #[must_use]
+    pub fn business_days_between_with(&self, other: &Self, weekend: WeekendDays) -> i64 {
         let self_days = self.to_epoch_days();
         let other_days = other.to_epoch_days();
 
@@ -1044,16 +1113,24 @@ impl Date {
         let weeks = diff / 7;
         let rem = diff % 7;
 
-        let mut count = weeks * 5;
+        let bdays_per_week = weekend.business_days_per_week();
+        let mut count = weeks * bdays_per_week;
         for i in 1..=rem {
             let day = start + weeks * 7 + i;
-            let dow = (day + 3).rem_euclid(7) + 1;
-            if dow <= 5 {
+            let dow_num = (day + 3).rem_euclid(7) + 1;
+            if let Some(dow) = DayOfWeek::from_iso_number(dow_num as u32)
+                && weekend.is_business_day(dow)
+            {
                 count += 1;
             }
         }
 
         count * sign
+    }
+
+    #[must_use]
+    pub fn business_days_between(&self, other: &Self) -> i64 {
+        self.business_days_between_with(other, WeekendDays::SaturdaySunday)
     }
 }
 

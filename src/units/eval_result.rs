@@ -17,8 +17,14 @@ pub enum EvalResult {
 impl EvalResult {
     /// Apply a binary operator across two `EvalResult`s, promoting scalars to
     /// degenerate intervals when mixing scalar and interval operands.
-    pub fn apply_binary(self, op: &BinaryOp, other: EvalResult) -> Result<EvalResult, AbacusError> {
-        match (self, other) {
+    /// Apply a binary operator to two `EvalResult`s using custom weekend definitions.
+    pub fn apply_binary_with_weekend(
+        self,
+        op: &BinaryOp,
+        rhs: EvalResult,
+        weekend: crate::units::date::WeekendDays,
+    ) -> Result<EvalResult, AbacusError> {
+        match (self, rhs) {
             (EvalResult::Scalar(l), EvalResult::Scalar(r)) => {
                 Ok(EvalResult::Scalar(op.apply(l, r)?))
             }
@@ -45,9 +51,9 @@ impl EvalResult {
             }
             (EvalResult::Date(l), EvalResult::Scalar(r)) => {
                 if op.alias == "+" {
-                    Ok(EvalResult::Date((&l + &r)?))
+                    Ok(EvalResult::Date(l.apply_time_value_with(&r, 1, weekend)?))
                 } else if op.alias == "-" {
-                    Ok(EvalResult::Date((&l - &r)?))
+                    Ok(EvalResult::Date(l.apply_time_value_with(&r, -1, weekend)?))
                 } else {
                     Err(AbacusError::IncompatibleOperatorType(format!(
                         "cannot perform operator '{}' on date and scalar",
@@ -57,7 +63,7 @@ impl EvalResult {
             }
             (EvalResult::Scalar(l), EvalResult::Date(r)) => {
                 if op.alias == "+" {
-                    Ok(EvalResult::Date((&r + &l)?))
+                    Ok(EvalResult::Date(r.apply_time_value_with(&l, 1, weekend)?))
                 } else {
                     Err(AbacusError::IncompatibleOperatorType(format!(
                         "cannot perform operator '{}' on scalar and date",
@@ -69,6 +75,11 @@ impl EvalResult {
                 "cannot perform arithmetic on hash or mismatched result types".to_string(),
             )),
         }
+    }
+
+    /// Apply a binary operator to two `EvalResult`s.
+    pub fn apply_binary(self, op: &BinaryOp, rhs: EvalResult) -> Result<EvalResult, AbacusError> {
+        self.apply_binary_with_weekend(op, rhs, crate::units::date::WeekendDays::SaturdaySunday)
     }
 
     /// Apply a unary operator to an `EvalResult`.

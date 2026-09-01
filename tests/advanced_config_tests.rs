@@ -1,4 +1,4 @@
-use abacus::{Abacus, AbacusError, AngleMode, IntervalStyle, Notation};
+use abacus::{Abacus, AbacusError, AngleMode, IntervalStyle, Notation, TimeZone, WeekendDays};
 
 #[test]
 fn test_angle_mode_degrees() {
@@ -145,6 +145,76 @@ fn test_notation_modes() {
 }
 
 #[test]
+fn test_default_timezone_configuration() {
+    let est = TimeZone::parse("EST").unwrap();
+    let calc = Abacus::standard().with_default_timezone(est);
+    assert_eq!(calc.default_timezone.as_ref().unwrap().name, "EST");
+
+    // Bare date evaluates and displays with default timezone
+    let res = calc.eval("07-08-2026").unwrap();
+    assert_eq!(res.to_display(), "07-08-2026 EST");
+
+    // Timezone conversion from default timezone to UTC:
+    // EST is UTC-5, so 00:00:00 EST becomes 05:00:00 UTC
+    let res_utc = calc.eval("07-08-2026 to UTC").unwrap();
+    assert_eq!(res_utc.to_display(), "07-08-2026 05:00:00 UTC");
+}
+
+#[test]
+fn test_custom_weekend_workweek_configuration() {
+    let calc = Abacus::standard().with_weekend(WeekendDays::FridaySaturday);
+    assert_eq!(calc.weekend, WeekendDays::FridaySaturday);
+
+    // 07-08-2026 is a Friday.
+    // In FridaySaturday, Friday is weekend and NOT a workday.
+    let res_fri = calc.eval("07-08-2026.is_weekend").unwrap();
+    assert_eq!(res_fri.to_display(), "1");
+    let res_work = calc.eval("07-08-2026.is_workday").unwrap();
+    assert_eq!(res_work.to_display(), "0");
+
+    // 09-08-2026 is Sunday. In FridaySaturday, Sunday IS a workday!
+    let res_sun = calc.eval("09-08-2026.is_workday").unwrap();
+    assert_eq!(res_sun.to_display(), "1");
+
+    // Adding 1 business day from Thursday (06-08-2026) skips Friday & Saturday, landing on Sunday (09-08-2026)
+    let res_add = calc.eval("06-08-2026 + 1 business day").unwrap();
+    assert_eq!(res_add.to_display(), "09-08-2026");
+
+    // Standard Western (Saturday-Sunday) lands on Friday (07-08-2026)
+    let standard_calc = Abacus::standard();
+    let std_add = standard_calc.eval("06-08-2026 + 1 business day").unwrap();
+    assert_eq!(std_add.to_display(), "07-08-2026");
+}
+
+#[test]
+fn test_max_recursion_depth_configuration() {
+    let shallow_calc = Abacus::standard().with_max_recursion_depth(3);
+    assert_eq!(shallow_calc.max_recursion_depth, 3);
+    assert!(matches!(
+        shallow_calc.eval("1 + (2 + (3 + (4 + 5)))"),
+        Err(AbacusError::RecursionLimitExceeded)
+    ));
+
+    let deep_calc = Abacus::standard().with_max_recursion_depth(64);
+    assert!(deep_calc.eval("1 + (2 + (3 + (4 + 5)))").is_ok());
+}
+
+#[test]
+fn test_implicit_multiplication_configuration() {
+    let calc_no_implicit = Abacus::standard().with_implicit_multiplication(false);
+    assert!(!calc_no_implicit.implicit_multiplication);
+    assert!(matches!(
+        calc_no_implicit.eval("2(3)"),
+        Err(AbacusError::UnexpectedToken(_))
+    ));
+    assert_eq!(calc_no_implicit.eval("2 * (3)").unwrap().to_display(), "6");
+
+    let calc_with_implicit = Abacus::standard();
+    assert!(calc_with_implicit.implicit_multiplication);
+    assert_eq!(calc_with_implicit.eval("2(3)").unwrap().to_display(), "6");
+}
+
+#[test]
 fn test_in_place_mutator_methods() {
     let mut calc = Abacus::standard();
 
@@ -162,4 +232,16 @@ fn test_in_place_mutator_methods() {
 
     calc.set_note_mode(Notation::Engineering);
     assert_eq!(calc.notation, Notation::Engineering);
+
+    calc.set_def_tz(Some(TimeZone::parse("EST").unwrap()));
+    assert_eq!(calc.default_timezone.as_ref().unwrap().name, "EST");
+
+    calc.set_wknd(WeekendDays::FridaySaturday);
+    assert_eq!(calc.weekend, WeekendDays::FridaySaturday);
+
+    calc.set_max_depth(10);
+    assert_eq!(calc.max_recursion_depth, 10);
+
+    calc.set_implicit_mul(false);
+    assert!(!calc.implicit_multiplication);
 }

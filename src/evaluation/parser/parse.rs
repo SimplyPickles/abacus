@@ -18,12 +18,16 @@ use crate::{
 ///   6 — Postfix (`!`)
 pub const MAX_RECURSION_DEPTH: usize = 64;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct EvalConfig {
     pub auto_derived: bool,
     pub angle_mode: crate::AngleMode,
     pub strict_dimensions: bool,
     pub default_interval_style: Option<IntervalStyle>,
+    pub default_timezone: Option<crate::units::date::TimeZone>,
+    pub weekend: crate::units::date::WeekendDays,
+    pub max_recursion_depth: usize,
+    pub implicit_multiplication: bool,
 }
 
 impl Default for EvalConfig {
@@ -33,6 +37,10 @@ impl Default for EvalConfig {
             angle_mode: crate::AngleMode::Radians,
             strict_dimensions: false,
             default_interval_style: None,
+            default_timezone: None,
+            weekend: crate::units::date::WeekendDays::SaturdaySunday,
+            max_recursion_depth: 64,
+            implicit_multiplication: true,
         }
     }
 }
@@ -64,6 +72,10 @@ impl<'a> Parser<'a> {
         unit_registry: &'a UnitRegistry,
         config: EvalConfig,
     ) -> Self {
+        let mut now = crate::Date::now();
+        if now.timezone.is_none() {
+            now.timezone = config.default_timezone.clone();
+        }
         Self {
             tokens: tokens.into_iter().map(Some).collect(),
             pos: 0,
@@ -72,7 +84,7 @@ impl<'a> Parser<'a> {
             has_explicit_conversion: false,
             function_arg_depth: 0,
             recursion_depth: 0,
-            now: crate::Date::now(),
+            now,
             config,
         }
     }
@@ -137,7 +149,7 @@ impl<'a> Parser<'a> {
     /// `min_bp` is the minimum binding power — the parser will keep consuming
     /// infix operators whose left binding power is ≥ `min_bp`.
     fn parse_expr(&mut self, min_bp: u8) -> Result<EvalResult, AbacusError> {
-        if self.recursion_depth >= MAX_RECURSION_DEPTH {
+        if self.recursion_depth >= self.config.max_recursion_depth {
             return Err(AbacusError::RecursionLimitExceeded);
         }
         self.recursion_depth += 1;
@@ -192,7 +204,7 @@ impl<'a> Parser<'a> {
                     .binary_operators
                     .get(name)
                     .ok_or_else(|| AbacusError::UnexpectedToken(name.to_string()))?;
-                lhs = lhs.apply_binary(op, rhs)?;
+                lhs = lhs.apply_binary_with_weekend(op, rhs, self.config.weekend)?;
                 continue;
             }
 
@@ -401,7 +413,7 @@ impl<'a> Parser<'a> {
                         EvalResult::Scalar(val.clone())
                     }
                     EvalResult::Date(d) => {
-                        let num = d.get_property(&prop).ok_or_else(|| {
+                        let num = d.get_property_with(&prop, self.config.weekend).ok_or_else(|| {
                             AbacusError::UnexpectedToken(format!(
                                 "unknown property '.{prop}' on Date"
                             ))
@@ -428,7 +440,12 @@ impl<'a> Parser<'a> {
     fn parse_prefix(&mut self) -> Result<EvalResult, AbacusError> {
         match self.next_token() {
             Some(Token::Val(val)) => Ok(EvalResult::Scalar(val)),
-            Some(Token::Date(d)) => Ok(EvalResult::Date(d)),
+            Some(Token::Date(mut d)) => {
+                if d.timezone.is_none() {
+                    d.timezone = self.config.default_timezone.clone();
+                }
+                Ok(EvalResult::Date(d))
+            }
 
             // Relative time / conversion in prefix position (e.g. `in 3 hours`, `before 07-08-2026`)
             Some(Token::ConversionOp) => {
@@ -614,6 +631,34 @@ impl<'a> Parser<'a> {
                     raw_args.push(arg_result);
                 }
 
+                if matches!(name, "is_workday" | "is_business_day") {
+                    if let Some(EvalResult::Date(d)) = raw_args.first() {
+                        let is_bday = d.is_business_day_with(self.config.weekend);
+                        return Ok(EvalResult::Scalar(Value::dimensionless(if is_bday { 1.0 } else { 0.0 })));
+                    }
+                } else if name == "is_weekend" {
+                    if let Some(EvalResult::Date(d)) = raw_args.first() {
+                        let is_wknd = d.is_weekend_with(self.config.weekend);
+                        return Ok(EvalResult::Scalar(Value::dimensionless(if is_wknd { 1.0 } else { 0.0 })));
+                    }
+                } else if matches!(name, "business_days" | "workdays")
+                    && raw_args.len() == 2
+                    && let (EvalResult::Date(d1), EvalResult::Date(d2)) = (&raw_args[0], &raw_args[1])
+                {
+                    use crate::units::{
+                        dimensions::Dimensions,
+                        unit::{Unit, UnitExpr},
+                    };
+                    let bdays = d1.business_days_between_with(d2, self.config.weekend) as f64;
+                    let unit = std::sync::Arc::new(Unit {
+                        scalar: 86400.0,
+                        offset: 0.0,
+                        dimensions: Dimensions::TIME,
+                        display: UnitExpr::single("workdays"),
+                    });
+                    return Ok(EvalResult::Scalar(Value::new(bdays, unit)));
+                }
+
                 if matches!(name, "sin" | "cos" | "tan") {
                     for arg in &mut raw_args {
                         if let EvalResult::Scalar(v) = arg
@@ -631,6 +676,12 @@ impl<'a> Parser<'a> {
                 }
 
                 let mut res = func.apply(&raw_args)?;
+
+                if let EvalResult::Date(ref mut d) = res
+                    && d.timezone.is_none()
+                {
+                    d.timezone = self.config.default_timezone.clone();
+                }
 
                 if matches!(name, "asin" | "acos" | "atan" | "atan2")
                     && let EvalResult::Scalar(ref v) = res
@@ -833,14 +884,15 @@ pub fn evaluate_with_config(
     input: &str,
     config: EvalConfig,
 ) -> Result<EvalResult, AbacusError> {
-    let tokens = crate::evaluation::tokenizer::tokenize::tokenize_string(
+    let tokens = crate::evaluation::tokenizer::tokenize::tokenize_string_with_options(
         token_registry,
         unit_registry,
         input,
+        config.implicit_multiplication,
     )?;
     let mut parser = Parser::new_with_config(tokens, token_registry, unit_registry, config);
     let result = parser.parse()?;
-    if parser.has_explicit_conversion || !config.auto_derived {
+    if parser.has_explicit_conversion || !parser.config.auto_derived {
         let mut result = result;
         result.simplify_unit_display(unit_registry);
         Ok(result)

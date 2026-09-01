@@ -272,6 +272,15 @@ pub fn tokenize_string<'a>(
     unit_registry: &UnitRegistry,
     input_text: &'a str,
 ) -> Result<Vec<Token<'a>>, AbacusError> {
+    tokenize_string_with_options(token_registry, unit_registry, input_text, true)
+}
+
+pub fn tokenize_string_with_options<'a>(
+    token_registry: &TokenRegistry,
+    unit_registry: &UnitRegistry,
+    input_text: &'a str,
+    implicit_multiplication: bool,
+) -> Result<Vec<Token<'a>>, AbacusError> {
     let mut tokens = Vec::new();
     let mut chars = input_text.char_indices().peekable();
     let ops_by_first_char = token_registry.operators_by_first_char();
@@ -852,6 +861,10 @@ pub fn tokenize_string<'a>(
         }
         _ => false,
     };
+
+    if !implicit_multiplication {
+        return Ok(resolved);
+    }
 
     let mut final_tokens: Vec<Token> = Vec::with_capacity(resolved.len() * 2);
     let mut iter = resolved.into_iter().peekable();
