@@ -9,13 +9,13 @@ fn test_section7_business_days_expanded() {
         calc.eval("07-08-2026 + 5 business days")
             .unwrap()
             .to_display(),
-        "14-08-2026"
+        "August 14, 2026"
     );
 
     // 07-08-2026 + 3 work days = 12-08-2026
     assert_eq!(
         calc.eval("07-08-2026 + 3 work days").unwrap().to_display(),
-        "12-08-2026"
+        "August 12, 2026"
     );
 
     // workdays(07-08-2026, 14-08-2026) = 5 workdays

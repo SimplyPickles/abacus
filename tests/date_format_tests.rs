@@ -1,12 +1,15 @@
 use abacus::{Abacus, DateFormat};
 
 #[test]
-fn test_default_date_format_is_dd_mm_yyyy() {
+fn test_default_date_format_is_month_day_year() {
     let abacus = Abacus::standard();
-    assert_eq!(abacus.date_format, DateFormat::DDMMYYYY);
+    assert_eq!(abacus.date_format, DateFormat::MonthDayYear);
 
     let d_res = abacus.eval("07-08-2026").unwrap();
-    assert_eq!(d_res.to_display(), "07-08-2026");
+    assert_eq!(d_res.to_display(), "August 7, 2026");
+
+    let may_res = abacus.eval("05-16-2010").unwrap();
+    assert_eq!(may_res.to_display(), "May 16, 2010");
 }
 
 #[test]
@@ -18,6 +21,10 @@ fn test_configurable_date_format() {
     let abacus_us = Abacus::standard().set_date_format(DateFormat::MMDDYYYY);
     let d2 = abacus_us.eval_date("07-08-2026").unwrap();
     assert_eq!(d2.format_with_style(abacus_us.date_format), "08-07-2026");
+
+    let abacus_eu = Abacus::standard().set_date_format(DateFormat::DDMMYYYY);
+    let d3 = abacus_eu.eval_date("07-08-2026").unwrap();
+    assert_eq!(d3.format_with_style(abacus_eu.date_format), "07-08-2026");
 }
 
 #[test]

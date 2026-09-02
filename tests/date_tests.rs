@@ -168,7 +168,7 @@ fn test_date_and_value_arithmetic() {
 fn test_date_parsing_iso() {
     let d1 = Date::from_str("2026-08-07").unwrap();
     assert_eq!(d1, Date::new(2026, 8, 7));
-    assert_eq!(d1.to_string(), "07-08-2026");
+    assert_eq!(d1.to_string(), "August 7, 2026");
     assert_eq!(
         d1.format_with_style(abacus::DateFormat::YYYYMMDD),
         "2026-08-07"
@@ -176,7 +176,7 @@ fn test_date_parsing_iso() {
 
     let d2 = Date::from_str("2026-08-07 10:54:49").unwrap();
     assert_eq!(d2, Date::new_with_hms(2026, 8, 7, 10, 54, 49));
-    assert_eq!(d2.to_string(), "07-08-2026 10:54:49");
+    assert_eq!(d2.to_string(), "August 7, 2026 10:54:49");
 
     let d3 = Date::from_str("2026-08-07T10:54:49.123").unwrap();
     assert_eq!(d3, Date::new_full(2026, 8, 7, 10, 54, 49, 123));
@@ -184,4 +184,25 @@ fn test_date_parsing_iso() {
     // Invalid dates return error
     assert!(Date::from_str("invalid-date").is_err());
     assert!(Date::from_str("2025-02-29").is_err());
+}
+
+#[test]
+fn test_mm_dd_yyyy_and_slash_date_parsing() {
+    let d1 = Date::from_str("05-16-2010").unwrap();
+    assert_eq!(d1, Date::new(2010, 5, 16));
+
+    let d2 = Date::from_str("05/16/2010").unwrap();
+    assert_eq!(d2, Date::new(2010, 5, 16));
+
+    let d3 = Date::from_str("16-05-2010").unwrap();
+    assert_eq!(d3, Date::new(2010, 5, 16));
+
+    let d4 = Date::from_str("16/05/2010").unwrap();
+    assert_eq!(d4, Date::new(2010, 5, 16));
+
+    let d5 = Date::from_str("5-16-2010").unwrap();
+    assert_eq!(d5, Date::new(2010, 5, 16));
+
+    let d6 = Date::from_str("5/16/2010").unwrap();
+    assert_eq!(d6, Date::new(2010, 5, 16));
 }

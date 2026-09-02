@@ -122,7 +122,7 @@ fn test_variables_with_dates() {
     calc.set_variable_expr("start_date", "2026-08-01").unwrap();
 
     let end_date = calc.eval("start_date + 10 days").unwrap();
-    assert_eq!(end_date.to_display(), "11-08-2026");
+    assert_eq!(end_date.to_display(), "August 11, 2026");
 }
 
 #[test]

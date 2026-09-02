@@ -518,6 +518,26 @@ pub fn is_valid_date(year: i32, month: u32, day: u32) -> bool {
     day <= days_in_month(year, month)
 }
 
+/// Helper function to return the English full name of a month.
+#[must_use]
+pub fn month_name(month: u32) -> &'static str {
+    match month {
+        1 => "January",
+        2 => "February",
+        3 => "March",
+        4 => "April",
+        5 => "May",
+        6 => "June",
+        7 => "July",
+        8 => "August",
+        9 => "September",
+        10 => "October",
+        11 => "November",
+        12 => "December",
+        _ => "",
+    }
+}
+
 /// Convert (year, month, day) to days since Unix epoch 1970-01-01 (Proleptic Gregorian algorithm).
 #[must_use]
 pub fn date_to_epoch_days(year: i32, month: u32, day: u32) -> i64 {
@@ -722,18 +742,33 @@ impl Date {
         let p3_str = std::str::from_utf8(p3).ok()?;
 
         let (year, month, day) = if p1.len() == 4 {
-            (
-                p1_str.parse::<i32>().ok()?,
-                p2_str.parse::<u32>().ok()?,
-                p3_str.parse::<u32>().ok()?,
-            )
+            let yr = p1_str.parse::<i32>().ok()?;
+            let n2 = p2_str.parse::<u32>().ok()?;
+            let n3 = p3_str.parse::<u32>().ok()?;
+            if n2 > 12 && n3 <= 12 {
+                (yr, n3, n2)
+            } else {
+                (yr, n2, n3)
+            }
         } else {
-            (
-                p3_str.parse::<i32>().ok()?,
-                p2_str.parse::<u32>().ok()?,
-                p1_str.parse::<u32>().ok()?,
-            )
+            let n1 = p1_str.parse::<u32>().ok()?;
+            let n2 = p2_str.parse::<u32>().ok()?;
+            let yr = p3_str.parse::<i32>().ok()?;
+            if n1 <= 12 && n2 > 12 {
+                // e.g. 05-16-2010 or 05/16/2010 -> month = 5, day = 16
+                (yr, n1, n2)
+            } else if n1 > 12 && n2 <= 12 {
+                // e.g. 16-05-2010 or 16/05/2010 -> month = 5, day = 16
+                (yr, n2, n1)
+            } else {
+                // Ambiguous e.g. 07-08-2026 -> default DD-MM-YYYY
+                (yr, n2, n1)
+            }
         };
+
+        if !is_valid_date(year, month, day) {
+            return None;
+        }
 
         Some((year, month, day, end))
     }
@@ -1007,6 +1042,9 @@ impl Date {
             String::new()
         };
         let date_part = match style {
+            DateFormat::MonthDayYear => {
+                format!("{} {}, {:04}", month_name(self.month), self.day, self.year)
+            }
             DateFormat::DDMMYYYY => format!("{:02}-{:02}-{:04}", self.day, self.month, self.year),
             DateFormat::YYYYMMDD => format!("{:04}-{:02}-{:02}", self.year, self.month, self.day),
             DateFormat::MMDDYYYY => format!("{:02}-{:02}-{:04}", self.month, self.day, self.year),
@@ -1138,8 +1176,10 @@ impl Date {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum DateFormat {
-    /// DD-MM-YYYY format (e.g. 07-08-2026) - Default!
+    /// Month Day, Year format (e.g. "May 16, 2010" / "August 7, 2026") - Default!
     #[default]
+    MonthDayYear,
+    /// DD-MM-YYYY format (e.g. 07-08-2026)
     DDMMYYYY,
     /// YYYY-MM-DD format (e.g. 2026-08-07)
     YYYYMMDD,
@@ -1176,8 +1216,18 @@ impl FromStr for Date {
             s.to_string()
         };
 
-        let (year, month, day, consumed) = Date::parse_ymd_components(&normalized)
-            .ok_or_else(|| AbacusError::InvalidDate(format!("invalid date format: '{s}'")))?;
+        let (year, month, day, consumed) = if let Some(res) = Date::parse_ymd_components(&normalized) {
+            res
+        } else if let Some((date, consumed)) =
+            crate::evaluation::tokenizer::date_literal::try_parse_textual_date(
+                &normalized,
+                &Date::today(),
+            )
+        {
+            (date.year, date.month, date.day, consumed)
+        } else {
+            return Err(AbacusError::InvalidDate(format!("invalid date format: '{s}'")));
+        };
 
         let mut time = Time::new(0, 0, 0, 0);
         let mut timezone = None;

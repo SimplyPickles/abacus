@@ -411,10 +411,121 @@ pub(crate) fn try_parse_named_holiday(
     None
 }
 
+pub(crate) fn try_parse_textual_date(
+    s: &str,
+    ref_date: &crate::Date,
+) -> Option<(crate::Date, usize)> {
+    // 1. Month first: e.g. "May 16, 2010", "May 16th, 2010", "May 16 2010", "May 16"
+    if let Some((month, m_len)) = parse_month(s) {
+        let rest1 = s[m_len..].trim_start();
+        let ws1 = s[m_len..].len() - rest1.len();
+        if ws1 > 0 {
+            let (day, d_len) = if let Some((ord, ord_len)) = parse_ordinal(rest1) {
+                (ord as u32, ord_len)
+            } else {
+                let mut d_end = 0;
+                for c in rest1.chars() {
+                    if c.is_ascii_digit() {
+                        d_end += 1;
+                    } else {
+                        break;
+                    }
+                }
+                if (1..=2).contains(&d_end) {
+                    let d = rest1[..d_end].parse::<u32>().ok()?;
+                    (d, d_end)
+                } else {
+                    return None;
+                }
+            };
+
+            if (1..=31).contains(&day) {
+                let rest2 = &rest1[d_len..];
+                let rest_after_comma = if let Some(stripped) = rest2.strip_prefix(',') {
+                    stripped
+                } else {
+                    rest2
+                };
+
+                let (year, yr_len) = if let Some((y, y_len)) = parse_optional_year(rest_after_comma)
+                {
+                    (y, (rest2.len() - rest_after_comma.len()) + y_len)
+                } else {
+                    (ref_date.year, 0)
+                };
+
+                if crate::units::date::is_valid_date(year, month, day) {
+                    let total_len = m_len + ws1 + d_len + yr_len;
+                    return Some((crate::Date::new(year, month, day), total_len));
+                }
+            }
+        }
+    }
+
+    // 2. Day first: e.g. "16 May 2010", "16th May 2010", "16th of May 2010"
+    let (day, d_len) = if let Some((ord, ord_len)) = parse_ordinal(s) {
+        (ord as u32, ord_len)
+    } else {
+        let mut d_end = 0;
+        for c in s.chars() {
+            if c.is_ascii_digit() {
+                d_end += 1;
+            } else {
+                break;
+            }
+        }
+        if (1..=2).contains(&d_end) {
+            let d = s[..d_end].parse::<u32>().ok()?;
+            (d, d_end)
+        } else {
+            return None;
+        }
+    };
+
+    if (1..=31).contains(&day) {
+        let rest1 = s[d_len..].trim_start();
+        let ws1 = s[d_len..].len() - rest1.len();
+        if ws1 > 0 {
+            let (conn_len, rest2) = if let Some(len) = strip_word_prefix(rest1, "of") {
+                let r = rest1[len..].trim_start();
+                (len + (rest1[len..].len() - r.len()), r)
+            } else {
+                (0, rest1)
+            };
+
+            if let Some((month, m_len)) = parse_month(rest2) {
+                let rest3 = &rest2[m_len..];
+                let rest_after_comma = if let Some(stripped) = rest3.strip_prefix(',') {
+                    stripped
+                } else {
+                    rest3
+                };
+
+                let (year, yr_len) = if let Some((y, y_len)) = parse_optional_year(rest_after_comma)
+                {
+                    (y, (rest3.len() - rest_after_comma.len()) + y_len)
+                } else {
+                    (ref_date.year, 0)
+                };
+
+                if crate::units::date::is_valid_date(year, month, day) {
+                    let total_len = d_len + ws1 + conn_len + m_len + yr_len;
+                    return Some((crate::Date::new(year, month, day), total_len));
+                }
+            }
+        }
+    }
+
+    None
+}
+
 pub(crate) fn try_parse_event_date(
     s: &str,
     ref_date: &crate::Date,
 ) -> Option<(crate::Date, usize)> {
+    if let Some(res) = try_parse_textual_date(s, ref_date) {
+        return Some(res);
+    }
     if let Some(res) = try_parse_nth_weekday_of_month(s, ref_date) {
         return Some(res);
     }

@@ -152,12 +152,12 @@ fn test_default_timezone_configuration() {
 
     // Bare date evaluates and displays with default timezone
     let res = calc.eval("07-08-2026").unwrap();
-    assert_eq!(res.to_display(), "07-08-2026 EST");
+    assert_eq!(res.to_display(), "August 7, 2026 EST");
 
     // Timezone conversion from default timezone to UTC:
     // EST is UTC-5, so 00:00:00 EST becomes 05:00:00 UTC
     let res_utc = calc.eval("07-08-2026 to UTC").unwrap();
-    assert_eq!(res_utc.to_display(), "07-08-2026 05:00:00 UTC");
+    assert_eq!(res_utc.to_display(), "August 7, 2026 05:00:00 UTC");
 }
 
 #[test]
@@ -178,12 +178,12 @@ fn test_custom_weekend_workweek_configuration() {
 
     // Adding 1 business day from Thursday (06-08-2026) skips Friday & Saturday, landing on Sunday (09-08-2026)
     let res_add = calc.eval("06-08-2026 + 1 business day").unwrap();
-    assert_eq!(res_add.to_display(), "09-08-2026");
+    assert_eq!(res_add.to_display(), "August 9, 2026");
 
     // Standard Western (Saturday-Sunday) lands on Friday (07-08-2026)
     let standard_calc = Abacus::standard();
     let std_add = standard_calc.eval("06-08-2026 + 1 business day").unwrap();
-    assert_eq!(std_add.to_display(), "07-08-2026");
+    assert_eq!(std_add.to_display(), "August 7, 2026");
 }
 
 #[test]
