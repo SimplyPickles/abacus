@@ -35,3 +35,22 @@ impl Default for EvalConfig {
         }
     }
 }
+
+impl From<&crate::Abacus> for EvalConfig {
+    fn from(abacus: &crate::Abacus) -> Self {
+        Self {
+            auto_derived: abacus.auto_derived_units,
+            angle_mode: abacus.angle_mode,
+            strict_dimensions: abacus.strict_dimensions,
+            default_interval_style: abacus.default_interval_style,
+            default_timezone: abacus.default_timezone.clone(),
+            weekend: abacus.weekend,
+            max_recursion_depth: abacus.max_recursion_depth,
+            implicit_multiplication: abacus.implicit_multiplication,
+            number_scales: abacus.number_scales,
+            currencies: abacus.currencies,
+            live_rates: abacus.live_rates,
+            anchor_date: abacus.anchor_date.clone(),
+        }
+    }
+}

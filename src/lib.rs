@@ -48,8 +48,8 @@ pub enum Notation {
 }
 
 use crate::evaluation::{
-    parser::parse::EvalConfig,
-    tokenizer::tokenize::min_significant_figures_in_expr,
+    parser::config::EvalConfig,
+    tokenizer::sig_figs::min_significant_figures_in_expr,
 };
 
 pub struct Abacus {
@@ -81,81 +81,16 @@ impl Abacus {
     /// Returns the standard mathematical constants (`pi`, `PI`, `e`, `E`, `tau`, `TAU`, `phi`, `PHI`).
     #[must_use]
     pub fn standard_variables() -> HashMap<String, EvalResult> {
-        let mut vars = HashMap::new();
-        vars.insert(
-            "pi".to_string(),
-            EvalResult::Scalar(Value::dimensionless(std::f64::consts::PI)),
-        );
-        vars.insert(
-            "PI".to_string(),
-            EvalResult::Scalar(Value::dimensionless(std::f64::consts::PI)),
-        );
-        vars.insert(
-            "e".to_string(),
-            EvalResult::Scalar(Value::dimensionless(std::f64::consts::E)),
-        );
-        vars.insert(
-            "E".to_string(),
-            EvalResult::Scalar(Value::dimensionless(std::f64::consts::E)),
-        );
-        vars.insert(
-            "tau".to_string(),
-            EvalResult::Scalar(Value::dimensionless(std::f64::consts::TAU)),
-        );
-        vars.insert(
-            "TAU".to_string(),
-            EvalResult::Scalar(Value::dimensionless(std::f64::consts::TAU)),
-        );
-        vars.insert(
-            "phi".to_string(),
-            EvalResult::Scalar(Value::dimensionless((1.0 + 5.0_f64.sqrt()) / 2.0)),
-        );
-        vars.insert(
-            "PHI".to_string(),
-            EvalResult::Scalar(Value::dimensionless((1.0 + 5.0_f64.sqrt()) / 2.0)),
-        );
-        vars
+        crate::evaluation::tokenizer::registry::constants::standard_variables_map()
     }
 
-    // Initialize a new `Abacus` instance with default units and tokens
+    /// Initialize a new `Abacus` instance with default empty unit and token registries.
     #[must_use]
     pub fn new() -> Self {
-        Self {
-            units: UnitRegistry::new(),
-            tokens: TokenRegistry::new(),
-            date_format: DateFormat::default(),
-            significant_figures: None,
-            follow_significant_figures: false,
-            auto_derived_units: true,
-            angle_mode: AngleMode::default(),
-            strict_dimensions: false,
-            decimal_places: None,
-            default_interval_style: None,
-            notation: Notation::default(),
-            default_timezone: None,
-            weekend: WeekendDays::default(),
-            max_recursion_depth: 64,
-            implicit_multiplication: true,
-            number_scales: cfg!(feature = "number-scales"),
-            currencies: cfg!(feature = "currencies"),
-            live_rates: false,
-            currency_cache_path: {
-                #[cfg(feature = "currencies")]
-                {
-                    Some(crate::registry::units::currency_units::default_currency_cache_path())
-                }
-                #[cfg(not(feature = "currencies"))]
-                {
-                    None
-                }
-            },
-            unit_display_overrides: HashMap::new(),
-            variables: HashMap::new(),
-            anchor_date: None,
-        }
+        Self::from_registry(UnitRegistry::new(), TokenRegistry::new())
     }
 
-    // Initialize a new `Abacus` instance with custom units and tokens
+    /// Initialize a new `Abacus` instance with custom units and tokens.
     pub fn from_registry(units: UnitRegistry, tokens: TokenRegistry) -> Self {
         Self {
             units,
@@ -205,39 +140,9 @@ impl Abacus {
     /// ```
     #[must_use]
     pub fn standard() -> Self {
-        Self {
-            units: UnitRegistry::standard(),
-            tokens: TokenRegistry::standard(),
-            date_format: DateFormat::default(),
-            significant_figures: None,
-            follow_significant_figures: false,
-            auto_derived_units: true,
-            angle_mode: AngleMode::default(),
-            strict_dimensions: false,
-            decimal_places: None,
-            default_interval_style: None,
-            notation: Notation::default(),
-            default_timezone: None,
-            weekend: WeekendDays::default(),
-            max_recursion_depth: 64,
-            implicit_multiplication: true,
-            number_scales: cfg!(feature = "number-scales"),
-            currencies: cfg!(feature = "currencies"),
-            live_rates: false,
-            currency_cache_path: {
-                #[cfg(feature = "currencies")]
-                {
-                    Some(crate::registry::units::currency_units::default_currency_cache_path())
-                }
-                #[cfg(not(feature = "currencies"))]
-                {
-                    None
-                }
-            },
-            unit_display_overrides: HashMap::new(),
-            variables: Self::standard_variables(),
-            anchor_date: None,
-        }
+        let mut abacus = Self::from_registry(UnitRegistry::standard(), TokenRegistry::standard());
+        abacus.variables = Self::standard_variables();
+        abacus
     }
 
     // Set the date format for this `Abacus` instance
@@ -809,20 +714,7 @@ impl Abacus {
     // Evaluated dates are automatically formatted
     // Returns an error if the expression is invalid or cannot be evaluated.
     pub fn eval(&self, expr: &str) -> Result<EvalResult, AbacusError> {
-        let config = EvalConfig {
-            auto_derived: self.auto_derived_units,
-            angle_mode: self.angle_mode,
-            strict_dimensions: self.strict_dimensions,
-            default_interval_style: self.default_interval_style,
-            default_timezone: self.default_timezone.clone(),
-            weekend: self.weekend,
-            max_recursion_depth: self.max_recursion_depth,
-            implicit_multiplication: self.implicit_multiplication,
-            number_scales: self.number_scales,
-            currencies: self.currencies,
-            live_rates: self.live_rates,
-            anchor_date: self.anchor_date.clone(),
-        };
+        let config = EvalConfig::from(self);
         let mut res = crate::evaluation::parser::evaluate_with_variables(
             &self.tokens,
             &self.units,

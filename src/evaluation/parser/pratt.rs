@@ -66,15 +66,7 @@ impl<'a> Parser<'a> {
 
     /// Retrieve value for standard mathematical constants.
     pub(crate) fn get_standard_constant(name: &str) -> Option<EvalResult> {
-        match name {
-            "pi" | "PI" => Some(EvalResult::Scalar(Value::dimensionless(std::f64::consts::PI))),
-            "e" | "E" => Some(EvalResult::Scalar(Value::dimensionless(std::f64::consts::E))),
-            "tau" | "TAU" => Some(EvalResult::Scalar(Value::dimensionless(std::f64::consts::TAU))),
-            "phi" | "PHI" => Some(EvalResult::Scalar(Value::dimensionless(
-                (1.0 + 5.0_f64.sqrt()) / 2.0,
-            ))),
-            _ => None,
-        }
+        crate::evaluation::tokenizer::registry::constants::get_standard_constant(name)
     }
 
     /// Lazy accessor for anchor date/time. Only evaluated if relative dates are used.

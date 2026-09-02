@@ -77,13 +77,3 @@ pub fn evaluate_with_variables(
         Ok(result)
     }
 }
-
-/// Backward compatibility module re-exporting parser definitions under `parser::parse::...`.
-pub mod parse {
-    pub use super::{
-        config::EvalConfig,
-        evaluate, evaluate_with_config, evaluate_with_options,
-        pratt::{MAX_RECURSION_DEPTH, Parser},
-        range::RangeSeq,
-    };
-}

@@ -110,7 +110,7 @@ fn match_percent_tag(remaining: &str) -> Option<(&'static str, usize)> {
 /// Returns true if `sym` is a standard mathematical constant name.
 #[inline]
 pub(crate) fn is_standard_constant(sym: &str) -> bool {
-    matches!(sym, "pi" | "PI" | "e" | "E" | "tau" | "TAU" | "phi" | "PHI")
+    crate::evaluation::tokenizer::registry::constants::is_standard_constant(sym)
 }
 
 /// Tokenize an expression string using default settings (implicit multiplication enabled).

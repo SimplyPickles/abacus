@@ -111,40 +111,29 @@ impl<'a> Parser<'a> {
         lhs: &EvalResult,
         target_result: &EvalResult,
     ) -> Result<EvalResult, AbacusError> {
-        match (lhs, target_result) {
-            (EvalResult::Scalar(rate), EvalResult::Scalar(duration)) => {
-                let res = self.accumulate_rate_scalar(rate, duration)?;
-                Ok(EvalResult::Scalar(res))
-            }
-            (EvalResult::Interval(rate_inv), EvalResult::Scalar(duration)) => {
-                let lo = self.accumulate_rate_scalar(&rate_inv.lo, duration)?;
-                let hi = self.accumulate_rate_scalar(&rate_inv.hi, duration)?;
-                Ok(EvalResult::Interval(crate::units::interval::Interval {
-                    lo,
-                    hi,
-                    style: rate_inv.style,
-                }))
-            }
-            (EvalResult::Scalar(rate), EvalResult::Interval(dur_inv)) => {
-                let lo = self.accumulate_rate_scalar(rate, &dur_inv.lo)?;
-                let hi = self.accumulate_rate_scalar(rate, &dur_inv.hi)?;
-                Ok(EvalResult::Interval(crate::units::interval::Interval {
-                    lo,
-                    hi,
-                    style: dur_inv.style,
-                }))
-            }
-            (EvalResult::Interval(rate_inv), EvalResult::Interval(dur_inv)) => {
-                let lo = self.accumulate_rate_scalar(&rate_inv.lo, &dur_inv.lo)?;
-                let hi = self.accumulate_rate_scalar(&rate_inv.hi, &dur_inv.hi)?;
-                Ok(EvalResult::Interval(crate::units::interval::Interval {
-                    lo,
-                    hi,
-                    style: rate_inv.style,
-                }))
-            }
-            _ => Err(AbacusError::IncompatibleDimensions),
+        if let (EvalResult::Scalar(rate), EvalResult::Scalar(duration)) = (lhs, target_result) {
+            let res = self.accumulate_rate_scalar(rate, duration)?;
+            return Ok(EvalResult::Scalar(res));
         }
+
+        let (rate_lo, rate_hi, rate_style) = match lhs {
+            EvalResult::Scalar(r) => (r, r, None),
+            EvalResult::Interval(inv) => (&inv.lo, &inv.hi, Some(inv.style)),
+            _ => return Err(AbacusError::IncompatibleDimensions),
+        };
+        let (dur_lo, dur_hi, dur_style) = match target_result {
+            EvalResult::Scalar(d) => (d, d, None),
+            EvalResult::Interval(inv) => (&inv.lo, &inv.hi, Some(inv.style)),
+            _ => return Err(AbacusError::IncompatibleDimensions),
+        };
+
+        let lo = self.accumulate_rate_scalar(rate_lo, dur_lo)?;
+        let hi = self.accumulate_rate_scalar(rate_hi, dur_hi)?;
+        Ok(EvalResult::Interval(crate::units::interval::Interval {
+            lo,
+            hi,
+            style: rate_style.or(dur_style).unwrap_or_default(),
+        }))
     }
 
     pub(crate) fn accumulate_rate_scalar(

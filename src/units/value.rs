@@ -388,6 +388,31 @@ impl fmt::Display for Value {
     }
 }
 
+impl Value {
+    /// Resolves canonical operand values and target unit for additive operations (+ and -),
+    /// handling dimensionless promotion and percentage unit normalization.
+    fn resolve_additive_operands(&self, rhs: &Value) -> Result<(f64, f64, Arc<Unit>), AbacusError> {
+        if !self.unit.is_compatible_with(&rhs.unit) {
+            if rhs.unit.is_dimensionless() && !self.unit.is_dimensionless() {
+                let rhs_promoted = Value::new(rhs.amount(), Arc::clone(&self.unit));
+                return Ok((self.canonical, rhs_promoted.canonical, Arc::clone(&self.unit)));
+            } else if self.unit.is_dimensionless() && !rhs.unit.is_dimensionless() {
+                let self_promoted = Value::new(self.amount(), Arc::clone(&rhs.unit));
+                return Ok((self_promoted.canonical, rhs.canonical, Arc::clone(&rhs.unit)));
+            }
+            return Err(AbacusError::IncompatibleDimensions);
+        }
+
+        let unit = if self.unit.display.render() == "+%" && rhs.unit.display.render() == "%" {
+            Arc::clone(&rhs.unit)
+        } else {
+            Arc::clone(&self.unit)
+        };
+
+        Ok((self.canonical, rhs.canonical, unit))
+    }
+}
+
 // Add implementations
 impl Add<&Value> for &Value {
     type Output = Result<Value, AbacusError>;
@@ -410,33 +435,9 @@ impl Add<&Value> for &Value {
             });
         }
 
-        if !self.unit.is_compatible_with(&rhs.unit) {
-            if rhs.unit.is_dimensionless() && !self.unit.is_dimensionless() {
-                let rhs_amount = rhs.amount();
-                let rhs_promoted = Value::new(rhs_amount, Arc::clone(&self.unit));
-                return Ok(Value {
-                    canonical: self.canonical + rhs_promoted.canonical,
-                    unit: Arc::clone(&self.unit),
-                });
-            } else if self.unit.is_dimensionless() && !rhs.unit.is_dimensionless() {
-                let self_amount = self.amount();
-                let self_promoted = Value::new(self_amount, Arc::clone(&rhs.unit));
-                return Ok(Value {
-                    canonical: self_promoted.canonical + rhs.canonical,
-                    unit: Arc::clone(&rhs.unit),
-                });
-            }
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-
-        let unit = if self.unit.display.render() == "+%" && rhs.unit.display.render() == "%" {
-            Arc::clone(&rhs.unit)
-        } else {
-            Arc::clone(&self.unit)
-        };
-
+        let (lhs_can, rhs_can, unit) = self.resolve_additive_operands(rhs)?;
         Ok(Value {
-            canonical: self.canonical + rhs.canonical,
+            canonical: lhs_can + rhs_can,
             unit,
         })
     }
@@ -458,33 +459,9 @@ impl Sub<&Value> for &Value {
             });
         }
 
-        if !self.unit.is_compatible_with(&rhs.unit) {
-            if rhs.unit.is_dimensionless() && !self.unit.is_dimensionless() {
-                let rhs_amount = rhs.amount();
-                let rhs_promoted = Value::new(rhs_amount, Arc::clone(&self.unit));
-                return Ok(Value {
-                    canonical: self.canonical - rhs_promoted.canonical,
-                    unit: Arc::clone(&self.unit),
-                });
-            } else if self.unit.is_dimensionless() && !rhs.unit.is_dimensionless() {
-                let self_amount = self.amount();
-                let self_promoted = Value::new(self_amount, Arc::clone(&rhs.unit));
-                return Ok(Value {
-                    canonical: self_promoted.canonical - rhs.canonical,
-                    unit: Arc::clone(&rhs.unit),
-                });
-            }
-            return Err(AbacusError::IncompatibleDimensions);
-        }
-
-        let unit = if self.unit.display.render() == "+%" && rhs.unit.display.render() == "%" {
-            Arc::clone(&rhs.unit)
-        } else {
-            Arc::clone(&self.unit)
-        };
-
+        let (lhs_can, rhs_can, unit) = self.resolve_additive_operands(rhs)?;
         Ok(Value {
-            canonical: self.canonical - rhs.canonical,
+            canonical: lhs_can - rhs_can,
             unit,
         })
     }

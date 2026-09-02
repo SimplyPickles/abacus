@@ -9,11 +9,3 @@ pub mod tokens;
 pub use lexer::{tokenize_string, tokenize_string_full, tokenize_string_with_options};
 pub use sig_figs::{count_significant_figures, min_significant_figures_in_expr};
 pub use tokens::Token;
-
-/// Backward-compatibility module re-exporting tokenizer functions under `tokenizer::tokenize::...`.
-pub mod tokenize {
-    pub use super::{
-        count_significant_figures, min_significant_figures_in_expr,
-        tokenize_string, tokenize_string_full, tokenize_string_with_options,
-    };
-}
