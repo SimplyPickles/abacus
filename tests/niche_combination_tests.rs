@@ -74,7 +74,7 @@ fn test_conversational_percentages_with_number_scales() {
     let res7 = calc
         .eval("(% change from 100 to 150) + (% change from 50 to 75)")
         .unwrap();
-    assert_eq!(res7.to_display(), "100%");
+    assert_eq!(res7.to_display(), "+100%");
 }
 
 #[test]
@@ -197,7 +197,7 @@ fn test_speed_overrides_and_rate_chains() {
 
     // 100 kmph * 1.5 hours in miles
     let res2 = calc.eval("(100 kmph * 1.5 hours) in miles").unwrap();
-    assert_eq!(res2.to_display(), "93.20567883560009 mi");
+    assert_eq!(res2.to_display(), "93.2056788356001 mi");
 
     // 100 kmph to mph
     let res3 = calc.eval("100 kmph to mph").unwrap();

@@ -427,8 +427,17 @@ pub(crate) fn try_parse_event_date(
     None
 }
 
+#[allow(dead_code)]
 pub(crate) fn try_parse_relative_date_keyword(s: &str) -> Option<(crate::Date, usize)> {
-    let ref_date = crate::Date::today();
+    try_parse_relative_date_keyword_with_anchor(s, None)
+}
+
+pub(crate) fn try_parse_relative_date_keyword_with_anchor(
+    s: &str,
+    anchor: Option<&crate::Date>,
+) -> Option<(crate::Date, usize)> {
+    let today = crate::Date::today();
+    let ref_date = anchor.unwrap_or(&today);
     let today_dow = ref_date.day_of_week() as u32;
 
     // 1. Check modifier + space + subject
@@ -459,7 +468,7 @@ pub(crate) fn try_parse_relative_date_keyword(s: &str) -> Option<(crate::Date, u
                     (RelModifier::Next, RelUnit::Week) => ref_date.add_days(7),
                     (RelModifier::Next, RelUnit::Month) => ref_date.add_months(1),
                     (RelModifier::Next, RelUnit::Year) => ref_date.add_years(1),
-                    (RelModifier::This, _) => ref_date,
+                    (RelModifier::This, _) => ref_date.clone(),
                 };
                 return Some((date, mod_len + ws_len + sub_len));
             }
@@ -468,22 +477,22 @@ pub(crate) fn try_parse_relative_date_keyword(s: &str) -> Option<(crate::Date, u
 
     // 2. Standalone relative keywords
     if let Some(len) = strip_word_prefix(s, "today") {
-        return Some((crate::Date::today(), len));
+        return Some((ref_date.clone(), len));
     }
     if let Some(len) = strip_word_prefix(s, "tdy") {
-        return Some((crate::Date::today(), len));
+        return Some((ref_date.clone(), len));
     }
     if let Some(len) = strip_word_prefix(s, "tomorrow") {
-        return Some((crate::Date::tomorrow(), len));
+        return Some((ref_date.add_days(1), len));
     }
     if let Some(len) = strip_word_prefix(s, "tmr") {
-        return Some((crate::Date::tomorrow(), len));
+        return Some((ref_date.add_days(1), len));
     }
     if let Some(len) = strip_word_prefix(s, "yesterday") {
-        return Some((crate::Date::yesterday(), len));
+        return Some((ref_date.add_days(-1), len));
     }
     if let Some(len) = strip_word_prefix(s, "now") {
-        return Some((crate::Date::now(), len));
+        return Some((ref_date.clone(), len));
     }
 
     // 3. Bare weekday
@@ -502,7 +511,18 @@ pub(crate) fn try_parse_relative_date_keyword(s: &str) -> Option<(crate::Date, u
     None
 }
 
+#[allow(dead_code)]
 pub(crate) fn try_parse_date_literal(remaining: &str) -> Option<(crate::Date, usize)> {
+    try_parse_date_literal_with_anchor(remaining, None)
+}
+
+pub(crate) fn try_parse_date_literal_with_anchor(
+    remaining: &str,
+    anchor: Option<&crate::Date>,
+) -> Option<(crate::Date, usize)> {
+    let today = crate::Date::today();
+    let ref_date = anchor.unwrap_or(&today);
+
     if let Some(stripped) = remaining.strip_prefix('@') {
         if let Some(end_idx) = stripped.find('@') {
             let inner = &stripped[..end_idx];
@@ -514,7 +534,7 @@ pub(crate) fn try_parse_date_literal(remaining: &str) -> Option<(crate::Date, us
     }
 
     // Event dates (e.g. "third thursday of november 2026", "end of quarter", "christmas")
-    if let Some((mut date, event_len)) = try_parse_event_date(remaining, &crate::Date::today()) {
+    if let Some((mut date, event_len)) = try_parse_event_date(remaining, ref_date) {
         let mut end_idx = event_len;
         let rest = remaining[end_idx..].trim_start();
         let skipped_ws = remaining[end_idx..].len() - rest.len();
@@ -548,7 +568,9 @@ pub(crate) fn try_parse_date_literal(remaining: &str) -> Option<(crate::Date, us
         return Some((date, end_idx));
     }
 
-    if let Some((mut date, kw_len)) = try_parse_relative_date_keyword(remaining) {
+    if let Some((mut date, kw_len)) =
+        try_parse_relative_date_keyword_with_anchor(remaining, Some(ref_date))
+    {
         let mut end_idx = kw_len;
         let rest = remaining[end_idx..].trim_start();
         let skipped_ws = remaining[end_idx..].len() - rest.len();

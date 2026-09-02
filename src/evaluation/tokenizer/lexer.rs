@@ -1,6 +1,6 @@
 use crate::{
     evaluation::tokenizer::{
-        date_literal::try_parse_date_literal,
+        date_literal::try_parse_date_literal_with_anchor,
         implicit::resolve_tokens,
         number::parse_number_token,
         registry::token_registry::{MatchedOpKind, TokenRegistry},
@@ -155,6 +155,27 @@ pub fn tokenize_string_full<'a>(
     implicit_multiplication: bool,
     number_scales: bool,
 ) -> Result<Vec<Token<'a>>, AbacusError> {
+    tokenize_string_with_anchor(
+        token_registry,
+        unit_registry,
+        variables,
+        input_text,
+        implicit_multiplication,
+        number_scales,
+        None,
+    )
+}
+
+/// Tokenize an expression string with variable definitions, evaluation options, and an optional anchor date.
+pub fn tokenize_string_with_anchor<'a>(
+    token_registry: &TokenRegistry,
+    unit_registry: &UnitRegistry,
+    variables: Option<&std::collections::HashMap<String, crate::units::eval_result::EvalResult>>,
+    input_text: &'a str,
+    implicit_multiplication: bool,
+    number_scales: bool,
+    anchor_date: Option<&crate::Date>,
+) -> Result<Vec<Token<'a>>, AbacusError> {
     let mut tokens = Vec::new();
     let mut chars = input_text.char_indices().peekable();
     let ops_by_first_char = token_registry.operators_by_first_char();
@@ -194,7 +215,8 @@ pub fn tokenize_string_full<'a>(
             || c.is_ascii_alphabetic();
 
         if is_date_candidate
-            && let Some((date, consumed_bytes)) = try_parse_date_literal(&input_text[i..])
+            && let Some((date, consumed_bytes)) =
+                try_parse_date_literal_with_anchor(&input_text[i..], anchor_date)
         {
             tokens.push(Token::Date(date));
             let target_idx = i + consumed_bytes;

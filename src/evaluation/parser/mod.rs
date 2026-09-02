@@ -55,13 +55,14 @@ pub fn evaluate_with_variables(
     input: &str,
     config: EvalConfig,
 ) -> Result<EvalResult, AbacusError> {
-    let tokens = crate::evaluation::tokenizer::tokenize::tokenize_string_full(
+    let tokens = crate::evaluation::tokenizer::lexer::tokenize_string_with_anchor(
         token_registry,
         unit_registry,
         variables,
         input,
         config.implicit_multiplication,
         config.number_scales,
+        config.anchor_date.as_ref(),
     )?;
     let mut parser =
         Parser::new_with_variables(&tokens, token_registry, unit_registry, variables, config);
