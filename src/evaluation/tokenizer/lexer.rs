@@ -40,6 +40,12 @@ fn match_rel_time_op(remaining: &str) -> Option<(&'static str, usize)> {
     if len >= 5 && b[..5].eq_ignore_ascii_case(b"after") && (len == 5 || !b[5].is_ascii_alphanumeric()) {
         return Some(("after", 5));
     }
+    if len >= 5 && b[..5].eq_ignore_ascii_case(b"until") && (len == 5 || !b[5].is_ascii_alphanumeric()) {
+        return Some(("until", 5));
+    }
+    if len >= 4 && b[..4].eq_ignore_ascii_case(b"till") && (len == 4 || !b[4].is_ascii_alphanumeric()) {
+        return Some(("until", 4));
+    }
     None
 }
 
@@ -167,14 +173,7 @@ pub fn tokenize_string_full<'a>(
                 let mut idx = 0;
                 while idx < rem_bytes.len() && idx < 20 {
                     let b = rem_bytes[idx];
-                    if b == b'-'
-                        || b == b'/'
-                        || b == b':'
-                        || b == b'p'
-                        || b == b'P'
-                        || b == b'a'
-                        || b == b'A'
-                    {
+                    if b == b'-' || b == b'/' || b == b':' || b.is_ascii_alphabetic() {
                         has_sep = true;
                         break;
                     }
@@ -192,26 +191,7 @@ pub fn tokenize_string_full<'a>(
                 }
                 has_sep
             })
-            || matches!(
-                c,
-                't' | 'T'
-                    | 'y'
-                    | 'Y'
-                    | 'n'
-                    | 'N'
-                    | 'l'
-                    | 'L'
-                    | 'p'
-                    | 'P'
-                    | 'm'
-                    | 'M'
-                    | 'w'
-                    | 'W'
-                    | 'f'
-                    | 'F'
-                    | 's'
-                    | 'S'
-            );
+            || c.is_ascii_alphabetic();
 
         if is_date_candidate
             && let Some((date, consumed_bytes)) = try_parse_date_literal(&input_text[i..])

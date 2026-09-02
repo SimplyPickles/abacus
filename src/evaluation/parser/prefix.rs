@@ -47,6 +47,22 @@ impl<'a> Parser<'a> {
 
             Some(Token::RelTimeOp(name)) => {
                 let name = *name;
+                if name == "until" {
+                    let rhs = self.parse_expr(4)?;
+                    let target_date = match rhs {
+                        EvalResult::Date(d) => d,
+                        _ => {
+                            return Err(AbacusError::EvaluationError(
+                                "expected a date after 'until'".to_string(),
+                            ))
+                        }
+                    };
+                    let now = self.get_now().clone();
+                    let days_diff = target_date.to_epoch_days() - now.to_epoch_days();
+                    let day_unit = self.unit_registry.unit("d")?;
+                    return Ok(EvalResult::Scalar(Value::new(days_diff as f64, day_unit)));
+                }
+
                 let rhs = self.parse_expr(4)?;
                 match rhs {
                     EvalResult::Scalar(v)

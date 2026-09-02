@@ -14,6 +14,7 @@ pub struct EvalConfig {
     pub number_scales: bool,
     pub currencies: bool,
     pub live_rates: bool,
+    pub anchor_date: Option<crate::Date>,
 }
 
 impl Default for EvalConfig {
@@ -30,6 +31,7 @@ impl Default for EvalConfig {
             number_scales: cfg!(feature = "number-scales"),
             currencies: cfg!(feature = "currencies"),
             live_rates: false,
+            anchor_date: None,
         }
     }
 }

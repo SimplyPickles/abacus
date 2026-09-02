@@ -311,6 +311,34 @@ in 45 minutes
 3:30 PM + 45 minutes               -> 04:15:00 PM
 ```
 
+### Event Calculations & Conversational Dates
+
+Abacus natively resolves calendar events, recurring annual holidays, ordinal weekday occurrences, quarter boundaries, and countdown intervals:
+
+| Expression                                            | Example Result | Description                                               |
+| :---------------------------------------------------- | :------------- | :-------------------------------------------------------- |
+| `days until christmas`                                | `115 d`        | Calendar countdown to upcoming annual holiday             |
+| `business days until end of quarter`                  | `21 bdays`     | Business days remaining in the current quarter            |
+| `days until end of quarter`                           | `29 d`         | Total calendar days until current quarter closes          |
+| `third thursday of november 2026`                     | `19-11-2026`   | Nth occurrence of a weekday in a month                    |
+| `last friday of october 2026`                         | `30-10-2026`   | Last occurrence of a weekday in a month                   |
+| `first monday of january 2027`                        | `04-01-2027`   | 1st occurrence of a weekday in a month                    |
+| `days until third thursday of november 2026`          | `79 d`         | Calendar duration to specific ordinal event               |
+| `business days until third thursday of november 2026` | `57 bdays`     | Business days to specific ordinal event                   |
+| `end of quarter`                                      | `30-09-2026`   | Current quarter end date (Q1: Mar 31, Q2: Jun 30, etc.)   |
+| `start of quarter`                                    | `01-07-2026`   | Current quarter start date                                |
+| `end of next quarter`                                 | `31-12-2026`   | Next quarter closing date                                 |
+| `end of q1 2027`                                      | `31-03-2027`   | Specific quarter closing date                             |
+| `end of month`                                        | `30-09-2026`   | Last day of the current month                             |
+| `end of year`                                         | `31-12-2026`   | Last day of the current calendar year                     |
+| `thanksgiving 2026`                                   | `26-11-2026`   | 4th Thursday of November                                  |
+| `black friday 2026`                                   | `27-11-2026`   | Day following Thanksgiving                                |
+| `cyber monday 2026`                                   | `30-11-2026`   | Monday following Thanksgiving                             |
+| `easter 2026`                                         | `05-04-2026`   | Computus algorithm for Easter Sunday                      |
+| `until christmas`                                     | `115 d`        | Prefix `until` defaulting to calendar days                |
+| `(days until christmas) in weeks`                     | `16.43 weeks`  | Unit conversion of event countdown duration               |
+
+
 ### Statistics & Probability Distributions
 
 ```text

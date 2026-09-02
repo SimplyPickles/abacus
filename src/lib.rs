@@ -74,6 +74,7 @@ pub struct Abacus {
     pub currency_cache_path: Option<std::path::PathBuf>,
     pub unit_display_overrides: HashMap<String, String>,
     pub variables: HashMap<String, EvalResult>,
+    pub anchor_date: Option<Date>,
 }
 
 impl Abacus {
@@ -150,6 +151,7 @@ impl Abacus {
             },
             unit_display_overrides: HashMap::new(),
             variables: HashMap::new(),
+            anchor_date: None,
         }
     }
 
@@ -186,6 +188,7 @@ impl Abacus {
             },
             unit_display_overrides: HashMap::new(),
             variables: HashMap::new(),
+            anchor_date: None,
         }
     }
 
@@ -233,6 +236,7 @@ impl Abacus {
             },
             unit_display_overrides: HashMap::new(),
             variables: Self::standard_variables(),
+            anchor_date: None,
         }
     }
 
@@ -330,6 +334,13 @@ impl Abacus {
     #[must_use]
     pub fn with_strict_dimensions(mut self, strict: bool) -> Self {
         self.strict_dimensions = strict;
+        self
+    }
+
+    /// Builder method to set an anchor date for relative date and event evaluations.
+    #[must_use]
+    pub fn with_now(mut self, now: Date) -> Self {
+        self.anchor_date = Some(now);
         self
     }
 
@@ -810,6 +821,7 @@ impl Abacus {
             number_scales: self.number_scales,
             currencies: self.currencies,
             live_rates: self.live_rates,
+            anchor_date: self.anchor_date.clone(),
         };
         let mut res = crate::evaluation::parser::evaluate_with_variables(
             &self.tokens,

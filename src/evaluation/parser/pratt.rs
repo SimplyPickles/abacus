@@ -57,7 +57,7 @@ impl<'a> Parser<'a> {
             has_explicit_conversion: false,
             function_arg_depth: 0,
             recursion_depth: 0,
-            now: None,
+            now: config.anchor_date.clone(),
             variables,
             last_percent_tag: None,
             config,
@@ -306,6 +306,54 @@ impl<'a> Parser<'a> {
                         continue;
                     }
                     return Err(AbacusError::IncompatibleDimensions);
+                }
+
+                if op_name == "until" {
+                    self.advance();
+                    let rhs = self.parse_expr(l_bp)?;
+                    let target_date = match rhs {
+                        EvalResult::Date(d) => d,
+                        _ => {
+                            return Err(AbacusError::EvaluationError(
+                                "expected a date after 'until'".to_string(),
+                            ))
+                        }
+                    };
+                    let now = self.get_now().clone();
+
+                    if let EvalResult::Date(from_date) = lhs {
+                        let diff_days = target_date.to_epoch_days() - from_date.to_epoch_days();
+                        let day_unit = self.unit_registry.unit("d")?;
+                        lhs = EvalResult::Scalar(Value::new(diff_days as f64, day_unit));
+                        continue;
+                    }
+
+                    let val = lhs.clone().into_scalar()?;
+                    if val.unit.dimensions != crate::units::dimensions::Dimensions::TIME {
+                        return Err(AbacusError::IncompatibleDimensions);
+                    }
+
+                    if val.unit.is_business_day_unit() {
+                        let bdays =
+                            now.business_days_between_with(&target_date, self.config.weekend);
+                        lhs = EvalResult::Scalar(Value::new(bdays as f64, std::sync::Arc::clone(&val.unit)));
+                        continue;
+                    }
+
+                    let unit_str = val.unit.display.render();
+                    if unit_str == "d" || unit_str == "days" || unit_str == "day" {
+                        let days_diff = target_date.to_epoch_days() - now.to_epoch_days();
+                        lhs = EvalResult::Scalar(Value::new(days_diff as f64, std::sync::Arc::clone(&val.unit)));
+                        continue;
+                    }
+
+                    let diff_sec = (target_date.to_epoch_milliseconds()
+                        - now.to_epoch_milliseconds()) as f64
+                        / 1000.0;
+                    let sec_val = Value::new(diff_sec, self.unit_registry.unit("s")?);
+                    let converted = sec_val.convert_to(std::sync::Arc::clone(&val.unit))?;
+                    lhs = EvalResult::Scalar(converted);
+                    continue;
                 }
 
                 self.advance();
