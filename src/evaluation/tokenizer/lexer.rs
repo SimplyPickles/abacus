@@ -9,7 +9,7 @@ use crate::{
     AbacusError, UnitRegistry,
 };
 
-const CONVERSION_KEYWORDS: [&str; 3] = ["as", "to", "in"];
+const CONVERSION_KEYWORDS: [&str; 2] = ["as", "to"];
 
 /// Zero-allocation byte prefix matching for relative time keywords.
 #[inline]
@@ -621,6 +621,53 @@ pub fn tokenize_string_with_anchor<'a>(
 
             if CONVERSION_KEYWORDS.contains(&sym) {
                 tokens.push(Token::ConversionOp);
+            } else if sym == "in" {
+                let rest_trimmed = input_text[end..].trim_start();
+                let has_no_target = rest_trimmed.is_empty()
+                    || rest_trimmed.starts_with(|c: char| {
+                        matches!(
+                            c,
+                            ')' | ']'
+                                | ','
+                                | ';'
+                                | '+'
+                                | '-'
+                                | '*'
+                                | '/'
+                                | '^'
+                                | '='
+                                | '<'
+                                | '>'
+                                | '!'
+                        )
+                    });
+
+                let next_word_len = rest_trimmed
+                    .find(|c: char| !c.is_alphanumeric() && c != '_')
+                    .unwrap_or(rest_trimmed.len());
+                let next_word = &rest_trimmed[..next_word_len];
+                let is_followed_by_conversion_kw =
+                    next_word == "to" || next_word == "as" || next_word == "in";
+
+                let is_unit = match tokens.last() {
+                    Some(Token::ConversionOp) => true,
+                    Some(Token::Float(_)) => is_followed_by_conversion_kw || has_no_target,
+                    Some(
+                        Token::BinaryOp(_)
+                        | Token::UnaryOp(_)
+                        | Token::OpenParen
+                        | Token::OpenBracket
+                        | Token::Comma,
+                    )
+                    | None => is_followed_by_conversion_kw || has_no_target,
+                    _ => has_no_target,
+                };
+
+                if is_unit {
+                    tokens.push(Token::Unit(sym));
+                } else {
+                    tokens.push(Token::ConversionOp);
+                }
             } else if let Some(op) = token_registry.function_operators.get(sym) {
                 let rest = input_text[end..].trim_start();
                 if rest.starts_with('(') || !unit_registry.contains(sym) {

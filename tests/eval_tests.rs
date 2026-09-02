@@ -239,3 +239,41 @@ fn test_error_handling() {
         Err(AbacusError::UnknownUnit(_))
     ));
 }
+
+#[test]
+fn test_inches_and_conversion_keyword_disambiguation() {
+    let calc = Abacus::standard();
+
+    // "14m to in" -> 551.1811 in
+    let res1 = calc.eval("14m to in").unwrap();
+    assert_eq!(res1.as_scalar().unwrap().unit.display.render(), "in");
+    assert!((res1.as_scalar().unwrap().canonical - 14.0).abs() < 1e-6);
+
+    // "14m in in" -> converts 14m to inches
+    let res2 = calc.eval("14m in in").unwrap();
+    assert_eq!(res2.as_scalar().unwrap().unit.display.render(), "in");
+
+    // "14m as in" -> converts 14m to inches
+    let res3 = calc.eval("14m as in").unwrap();
+    assert_eq!(res3.as_scalar().unwrap().unit.display.render(), "in");
+
+    // "10 in" -> 10 inches
+    let res4 = calc.eval("10 in").unwrap();
+    assert_eq!(res4.to_display(), "10 in");
+
+    // "10 in to cm" -> 25.4 cm
+    let res5 = calc.eval("10 in to cm").unwrap();
+    assert_eq!(res5.to_display(), "25.4 cm");
+
+    // "10 in in cm" -> 25.4 cm
+    let res6 = calc.eval("10 in in cm").unwrap();
+    assert_eq!(res6.to_display(), "25.4 cm");
+
+    // "5 in + 2 in" -> 7 in
+    let res7 = calc.eval("5 in + 2 in").unwrap();
+    assert_eq!(res7.to_display(), "7 in");
+
+    // "10 in / 2 s" -> 5 in/s
+    let res8 = calc.eval("10 in / 2 s").unwrap();
+    assert_eq!(res8.to_display(), "5 in/s");
+}
