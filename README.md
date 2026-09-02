@@ -27,7 +27,7 @@ Add Abacus to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-abacus = "0.1"
+abacus = { git = "https://github.com/SimplyPickles/abacus", branch = "main" }
 ```
 
 ### Basic Usage
@@ -219,28 +219,28 @@ Write math in natural conversational English with scale words, articles, and `pe
 
 Write percentages naturally with everyday financial, discount, tax, tip, ratio, and scaling expressions:
 
-| Expression                          | Result     | Description                                           |
-| :---------------------------------- | :--------- | :---------------------------------------------------- |
-| `20% off $120`                      | `$96`      | Percentage discount operator (`off`)                  |
-| `15% off 200 EUR`                   | `170 EUR`  | Currency discount                                     |
-| `$100 - 20% off`                    | `$80`      | Trailing `"off"` modifier                             |
-| `$85 + 18% tip`                     | `$100.30`  | Restaurant tip modifier                               |
-| `$50 after 15% tax`                 | `$57.50`   | After-tax markup                                      |
-| `$50 after 15%`                     | `$57.50`   | General after-percentage markup                       |
-| `$100 after 20% discount`           | `$80`      | After-discount reduction                              |
-| `40 as a % of 200`                  | `20%`      | Proportional percentage with articles                 |
-| `40 out of 200 as %`                | `20%`      | Conversational ratio division with `%` target         |
-| `40 out of 200`                     | `0.2`      | `"out of"` natural division                           |
-| `3 out of 5 in %`                   | `60%`      | Natural proportion conversion                         |
-| `% change from 50 to 75`            | `+50%`     | Signed relative percentage change                     |
-| `% change from 100 to 80`           | `-20%`     | Negative percentage change                            |
-| `percent change from $80 to $100`   | `+25%`     | Percentage difference with units                      |
-| `30% more than 50 kg`               | `65 kg`    | Relative scaling ($X \times (1 + P)$)                 |
-| `5 kg more than 50 kg`              | `55 kg`    | Additive scaling ($X + Y$)                            |
-| `15% less than 2 hours in minutes`  | `102 min`  | Relative reduction with target unit conversion        |
-| `15% less than 2 hours`             | `1.7 h`    | Relative reduction                                    |
-| `50% + 50%`                         | `100%`     | Direct percentage addition (percentage points)        |
-| `(% change from 50 to 70) + 50%`    | `90%`      | Arithmetic combining % change and % points            |
+| Expression                         | Result    | Description                                    |
+| :--------------------------------- | :-------- | :--------------------------------------------- |
+| `20% off $120`                     | `$96`     | Percentage discount operator (`off`)           |
+| `15% off 200 EUR`                  | `170 EUR` | Currency discount                              |
+| `$100 - 20% off`                   | `$80`     | Trailing `"off"` modifier                      |
+| `$85 + 18% tip`                    | `$100.30` | Restaurant tip modifier                        |
+| `$50 after 15% tax`                | `$57.50`  | After-tax markup                               |
+| `$50 after 15%`                    | `$57.50`  | General after-percentage markup                |
+| `$100 after 20% discount`          | `$80`     | After-discount reduction                       |
+| `40 as a % of 200`                 | `20%`     | Proportional percentage with articles          |
+| `40 out of 200 as %`               | `20%`     | Conversational ratio division with `%` target  |
+| `40 out of 200`                    | `0.2`     | `"out of"` natural division                    |
+| `3 out of 5 in %`                  | `60%`     | Natural proportion conversion                  |
+| `% change from 50 to 75`           | `+50%`    | Signed relative percentage change              |
+| `% change from 100 to 80`          | `-20%`    | Negative percentage change                     |
+| `percent change from $80 to $100`  | `+25%`    | Percentage difference with units               |
+| `30% more than 50 kg`              | `65 kg`   | Relative scaling ($X \times (1 + P)$)          |
+| `5 kg more than 50 kg`             | `55 kg`   | Additive scaling ($X + Y$)                     |
+| `15% less than 2 hours in minutes` | `102 min` | Relative reduction with target unit conversion |
+| `15% less than 2 hours`            | `1.7 h`   | Relative reduction                             |
+| `50% + 50%`                        | `100%`    | Direct percentage addition (percentage points) |
+| `(% change from 50 to 70) + 50%`   | `90%`     | Arithmetic combining % change and % points     |
 
 ### Variables & Mathematical Constants
 
@@ -268,13 +268,13 @@ let calc = Abacus::standard()
 let calc = Abacus::standard().with_common_speed_overrides();
 ```
 
-| Expression | Standard Display | With Overrides | Description |
-| :--- | :--- | :--- | :--- |
-| `60 miles per hour` | `60 mi/h` | `60 mph` | Idiomatic US/UK speed notation |
-| `100 km / 1 h` | `100 km/h` | `100 kmph` | Metric road speed abbreviation |
-| `60 miles per hour in km/h` | `96.56 km/h` | `96.56 kmph` | Speed conversion with target override |
-| `[50 mi/h, 70 mi/h]` | `[50 mi/h, 70 mi/h]` | `[50 mph, 70 mph]` | Interval endpoints formatting |
-| `a thousand dollars per day` | `1000 $/d` | `1000 $/day` | Custom rate override (`"$/d"` $\to$ `"$/day"`) |
+| Expression                   | Standard Display     | With Overrides     | Description                                    |
+| :--------------------------- | :------------------- | :----------------- | :--------------------------------------------- |
+| `60 miles per hour`          | `60 mi/h`            | `60 mph`           | Idiomatic US/UK speed notation                 |
+| `100 km / 1 h`               | `100 km/h`           | `100 kmph`         | Metric road speed abbreviation                 |
+| `60 miles per hour in km/h`  | `96.56 km/h`         | `96.56 kmph`       | Speed conversion with target override          |
+| `[50 mi/h, 70 mi/h]`         | `[50 mi/h, 70 mi/h]` | `[50 mph, 70 mph]` | Interval endpoints formatting                  |
+| `a thousand dollars per day` | `1000 $/d`           | `1000 $/day`       | Custom rate override (`"$/d"` $\to$ `"$/day"`) |
 
 ### Interval Arithmetic
 
@@ -315,29 +315,28 @@ in 45 minutes
 
 Abacus natively resolves calendar events, recurring annual holidays, ordinal weekday occurrences, quarter boundaries, and countdown intervals:
 
-| Expression                                            | Example Result | Description                                               |
-| :---------------------------------------------------- | :------------- | :-------------------------------------------------------- |
-| `days until christmas`                                | `115 d`        | Calendar countdown to upcoming annual holiday             |
-| `business days until end of quarter`                  | `21 bdays`     | Business days remaining in the current quarter            |
-| `days until end of quarter`                           | `29 d`         | Total calendar days until current quarter closes          |
-| `third thursday of november 2026`                     | `19-11-2026`   | Nth occurrence of a weekday in a month                    |
-| `last friday of october 2026`                         | `30-10-2026`   | Last occurrence of a weekday in a month                   |
-| `first monday of january 2027`                        | `04-01-2027`   | 1st occurrence of a weekday in a month                    |
-| `days until third thursday of november 2026`          | `79 d`         | Calendar duration to specific ordinal event               |
-| `business days until third thursday of november 2026` | `57 bdays`     | Business days to specific ordinal event                   |
-| `end of quarter`                                      | `30-09-2026`   | Current quarter end date (Q1: Mar 31, Q2: Jun 30, etc.)   |
-| `start of quarter`                                    | `01-07-2026`   | Current quarter start date                                |
-| `end of next quarter`                                 | `31-12-2026`   | Next quarter closing date                                 |
-| `end of q1 2027`                                      | `31-03-2027`   | Specific quarter closing date                             |
-| `end of month`                                        | `30-09-2026`   | Last day of the current month                             |
-| `end of year`                                         | `31-12-2026`   | Last day of the current calendar year                     |
-| `thanksgiving 2026`                                   | `26-11-2026`   | 4th Thursday of November                                  |
-| `black friday 2026`                                   | `27-11-2026`   | Day following Thanksgiving                                |
-| `cyber monday 2026`                                   | `30-11-2026`   | Monday following Thanksgiving                             |
-| `easter 2026`                                         | `05-04-2026`   | Computus algorithm for Easter Sunday                      |
-| `until christmas`                                     | `115 d`        | Prefix `until` defaulting to calendar days                |
-| `(days until christmas) in weeks`                     | `16.43 weeks`  | Unit conversion of event countdown duration               |
-
+| Expression                                            | Example Result | Description                                             |
+| :---------------------------------------------------- | :------------- | :------------------------------------------------------ |
+| `days until christmas`                                | `115 d`        | Calendar countdown to upcoming annual holiday           |
+| `business days until end of quarter`                  | `21 bdays`     | Business days remaining in the current quarter          |
+| `days until end of quarter`                           | `29 d`         | Total calendar days until current quarter closes        |
+| `third thursday of november 2026`                     | `19-11-2026`   | Nth occurrence of a weekday in a month                  |
+| `last friday of october 2026`                         | `30-10-2026`   | Last occurrence of a weekday in a month                 |
+| `first monday of january 2027`                        | `04-01-2027`   | 1st occurrence of a weekday in a month                  |
+| `days until third thursday of november 2026`          | `79 d`         | Calendar duration to specific ordinal event             |
+| `business days until third thursday of november 2026` | `57 bdays`     | Business days to specific ordinal event                 |
+| `end of quarter`                                      | `30-09-2026`   | Current quarter end date (Q1: Mar 31, Q2: Jun 30, etc.) |
+| `start of quarter`                                    | `01-07-2026`   | Current quarter start date                              |
+| `end of next quarter`                                 | `31-12-2026`   | Next quarter closing date                               |
+| `end of q1 2027`                                      | `31-03-2027`   | Specific quarter closing date                           |
+| `end of month`                                        | `30-09-2026`   | Last day of the current month                           |
+| `end of year`                                         | `31-12-2026`   | Last day of the current calendar year                   |
+| `thanksgiving 2026`                                   | `26-11-2026`   | 4th Thursday of November                                |
+| `black friday 2026`                                   | `27-11-2026`   | Day following Thanksgiving                              |
+| `cyber monday 2026`                                   | `30-11-2026`   | Monday following Thanksgiving                           |
+| `easter 2026`                                         | `05-04-2026`   | Computus algorithm for Easter Sunday                    |
+| `until christmas`                                     | `115 d`        | Prefix `until` defaulting to calendar days              |
+| `(days until christmas) in weeks`                     | `16.43 weeks`  | Unit conversion of event countdown duration             |
 
 ### Statistics & Probability Distributions
 
