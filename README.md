@@ -1,18 +1,18 @@
 # Abacus
 
-Abacus is a blazing fast, zero-dependency (core), unit-aware mathematical evaluation engine written in Rust. It provides a Pratt parser supporting physical dimensions, implicit multiplication, unit conversions, intervals, date & relative time calculations, business day calendars, statistics, probability distributions, hypothesis testing, confidence intervals, financial mathematics, and dimension-aware linear regression.
+Abacus is a fast, unit-aware mathematical evaluation engine written in Rust. It provides a Pratt parser supporting physical dimensions, implicit multiplication, unit conversions, intervals, date & relative time calculations, business day calendars, statistics, probability distributions, hypothesis testing, confidence intervals, financial mathematics, and dimension-aware linear regression.
 
 ---
 
 ## Features
 
-- **Pratt Parser** — Operator precedence, grouping, unary/binary/postfix operators, implicit multiplication (`5(2 + 3)`, `2 sqrt(9 m^2)`), dot property access, and `as` / `in` / `to` conversions.
-- **Units & Dimensions** — SI base & derived, imperial, US customary, astronomical, nautical, CGS physics, storage, typography, and historical units. Dimensions use a compact 16-byte fixed-point representation (`[i16; 8]`) fitting in a single 128-bit SIMD register.
-- **Interval Arithmetic** — Both bracket (`[1, 10]`) and range (`1..10`) interval syntax with physical units, monotonic fast-paths for addition/subtraction, and singularity handling for division crossing zero.
-- **Dates & Natural Relative Time** — Parse and calculate with dates (`07-08-2026`, `2026-08-07`), times (`15:30:00`, `3:30 PM`), timezones (`UTC`, `EST`, `PST`, `+02:00`), and natural language expressions (`"last thursday at 3pm + 2 weeks"`, `"today at 12 to 1"`).
-- **Business Day Calendars** — $O(1)$ closed-form business day arithmetic (`07-08-2026 + 5 business days`, `10-08-2026 - 1 business day`), interval counting (`workdays(start, end)`), and workday/weekend predicates.
-- **Derived SI Reduction** — Automatic reduction to standard derived units (`10 N * 5 m -> 50 J`, `100 W * 5 s -> 500 J`, `12 V * 2 A -> 24 W`).
-- **Statistics & Distributions** — Descriptive statistics, dispersion, covariance, correlation, skewness, kurtosis, z-scores, quantiles, and probability distributions (Normal, Student's t, Binomial, Poisson with log-space overflow protection, Chi-Squared, F).
+- **Pratt Parser** - Operator precedence, grouping, unary/binary/postfix operators, implicit multiplication (`5(2 + 3)`, `2 sqrt(9 m^2)`), dot property access, and `as` / `in` / `to` conversions.
+- **Units & Dimensions** - SI base & derived, imperial, US customary, astronomical, nautical, CGS physics, storage, typography, and historical units. Dimensions use a compact 16-byte fixed-point representation (`[i16; 8]`) fitting in a single 128-bit SIMD register.
+- **Interval Arithmetic** - Both bracket (`[1, 10]`) and range (`1..10`) interval syntax with physical units, monotonic fast-paths for addition/subtraction, and singularity handling for division crossing zero.
+- **Dates & Natural Relative Time** - Parse and calculate with dates (`07-08-2026`, `2026-08-07`), times (`15:30:00`, `3:30 PM`), timezones (`UTC`, `EST`, `PST`, `+02:00`), and natural language expressions (`"last thursday at 3pm + 2 weeks"`, `"today at 12 to 1"`).
+- **Business Day Calendars** - $O(1)$ closed-form business day arithmetic (`07-08-2026 + 5 business days`, `10-08-2026 - 1 business day`), interval counting (`workdays(start, end)`), and workday/weekend predicates.
+- **Derived SI Reduction** - Automatic reduction to standard derived units (`10 N * 5 m -> 50 J`, `100 W * 5 s -> 500 J`, `12 V * 2 A -> 24 W`).
+- **Statistics & Distributions** - Descriptive statistics, dispersion, covariance, correlation, skewness, kurtosis, z-scores, quantiles, and probability distributions (Normal, Student's t, Binomial, Poisson with log-space overflow protection, Chi-Squared, F).
 - **Hypothesis Testing & Confidence Intervals** — TI-84-style tests (`ZTest`, `TTest`, `2-SampZTest`, `2-SampTTest`, `1-PropZTest`, `2-PropZTest`, `Chi2Test`) and intervals (`ZInterval`, `TInterval`, `1-PropZInt`, `2-SampTInt`, `2-SampZInt`, `2-PropZInt`).
 - **Linear Regression** — Dimension-aware `linreg` returning a structured hash containing `slope`, `intercept`, `r`, `r2`, `se`, means, and prediction calculations.
 - **Financial Functions** — `pmt`, `fv`, `pv`, `npv`, `irr`, and `compound`.
