@@ -10,6 +10,8 @@ pub enum Token<'a> {
 
     ConversionOp,
     RelTimeOp(&'static str), // "ago", "from_now", "before", "after"
+    PercentChangeFrom,       // "% change from", "percent change from"
+    PercentTag(&'static str), // "tip", "tax", "vat", "gst", "fee", "discount", "off", "markup"
 
     // Values
     Float(f64),    // parsed number

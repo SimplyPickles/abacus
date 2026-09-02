@@ -215,6 +215,33 @@ Write math in natural conversational English with scale words, articles, and `pe
 | `$50 per hour * 8 hours`                | `$400`       | Wage calculation                        |
 | `100 per 4`                             | `25`         | Dimensionless ratio                     |
 
+### Conversational Percentage Engine
+
+Write percentages naturally with everyday financial, discount, tax, tip, ratio, and scaling expressions:
+
+| Expression                          | Result     | Description                                           |
+| :---------------------------------- | :--------- | :---------------------------------------------------- |
+| `20% off $120`                      | `$96`      | Percentage discount operator (`off`)                  |
+| `15% off 200 EUR`                   | `170 EUR`  | Currency discount                                     |
+| `$100 - 20% off`                    | `$80`      | Trailing `"off"` modifier                             |
+| `$85 + 18% tip`                     | `$100.30`  | Restaurant tip modifier                               |
+| `$50 after 15% tax`                 | `$57.50`   | After-tax markup                                      |
+| `$50 after 15%`                     | `$57.50`   | General after-percentage markup                       |
+| `$100 after 20% discount`           | `$80`      | After-discount reduction                              |
+| `40 as a % of 200`                  | `20%`      | Proportional percentage with articles                 |
+| `40 out of 200 as %`                | `20%`      | Conversational ratio division with `%` target         |
+| `40 out of 200`                     | `0.2`      | `"out of"` natural division                           |
+| `3 out of 5 in %`                   | `60%`      | Natural proportion conversion                         |
+| `% change from 50 to 75`            | `+50%`     | Signed relative percentage change                     |
+| `% change from 100 to 80`           | `-20%`     | Negative percentage change                            |
+| `percent change from $80 to $100`   | `+25%`     | Percentage difference with units                      |
+| `30% more than 50 kg`               | `65 kg`    | Relative scaling ($X \times (1 + P)$)                 |
+| `5 kg more than 50 kg`              | `55 kg`    | Additive scaling ($X + Y$)                            |
+| `15% less than 2 hours in minutes`  | `102 min`  | Relative reduction with target unit conversion        |
+| `15% less than 2 hours`             | `1.7 h`    | Relative reduction                                    |
+| `50% + 50%`                         | `100%`     | Direct percentage addition (percentage points)        |
+| `(% change from 50 to 70) + 50%`    | `90%`      | Arithmetic combining % change and % points            |
+
 ### Variables & Mathematical Constants
 
 Evaluate standard mathematical constants and manage programmatic variables:

@@ -17,6 +17,7 @@ pub struct Parser<'a> {
     pub(crate) recursion_depth: usize,
     pub(crate) now: Option<crate::Date>,
     pub(crate) variables: Option<&'a std::collections::HashMap<String, EvalResult>>,
+    pub(crate) last_percent_tag: Option<&'static str>,
     pub config: EvalConfig,
 }
 
@@ -58,6 +59,7 @@ impl<'a> Parser<'a> {
             recursion_depth: 0,
             now: None,
             variables,
+            last_percent_tag: None,
             config,
         }
     }
@@ -174,6 +176,13 @@ impl<'a> Parser<'a> {
 
         // ── LED (infix / postfix) ──
         loop {
+            // Consume trailing percentage descriptor tags (e.g. "18% tip", "15% tax")
+            if let Some(Token::PercentTag(tag)) = self.peek() {
+                self.last_percent_tag = Some(*tag);
+                self.advance();
+                continue;
+            }
+
             // Check for postfix operators (e.g. `!`)
             if let Some(Token::UnaryOp(name)) = self.peek() {
                 let name = *name;
@@ -265,6 +274,40 @@ impl<'a> Parser<'a> {
                 if l_bp < min_bp {
                     break;
                 }
+
+                // If op_name is "after" and lhs is NOT a time duration, check for conversational percentage (e.g. "$50 after 15% tax")
+                if op_name == "after"
+                    && let Ok(val) = lhs.clone().into_scalar()
+                    && val.unit.dimensions != crate::units::dimensions::Dimensions::TIME
+                {
+                    self.advance();
+                    self.last_percent_tag = None;
+                    let rhs = self.parse_expr(l_bp)?;
+                    let rhs_val = rhs.into_scalar()?;
+                    if rhs_val.unit.is_percent() {
+                        let is_discount = self.last_percent_tag == Some("discount")
+                            || self.last_percent_tag == Some("off")
+                            || matches!(
+                                self.peek(),
+                                Some(Token::PercentTag("discount" | "off"))
+                            );
+                        if matches!(self.peek(), Some(Token::PercentTag(_))) {
+                            self.advance();
+                        }
+                        let factor = if is_discount {
+                            1.0 - rhs_val.canonical
+                        } else {
+                            1.0 + rhs_val.canonical
+                        };
+                        lhs = EvalResult::Scalar(Value {
+                            canonical: val.canonical * factor,
+                            unit: std::sync::Arc::clone(&val.unit),
+                        });
+                        continue;
+                    }
+                    return Err(AbacusError::IncompatibleDimensions);
+                }
+
                 self.advance();
 
                 let val = lhs.clone().into_scalar()?;

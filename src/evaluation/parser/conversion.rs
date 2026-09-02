@@ -24,23 +24,28 @@ impl<'a> Parser<'a> {
         self.advance();
         self.has_explicit_conversion = true;
 
-        if let Some(Token::Unit(u)) = self.peek() {
-            let sym = *u;
-            if (sym == "%" || sym == "percent" || sym == "pct")
-                && self.peek_next() == Some(&Token::BinaryOp("of"))
-            {
-                self.advance();
-                self.advance();
-                let base_result = self.parse_expr(1)?;
-                let base_val = base_result.into_scalar()?;
-                let lhs_val = lhs.into_scalar()?;
-                let pct_unit = self.unit_registry.unit("%")?;
-                let ratio = lhs_val.canonical / base_val.canonical;
-                return Ok(EvalResult::Scalar(Value {
-                    canonical: ratio,
-                    unit: pct_unit,
-                }));
+        // Check for "% of <base>" or "a % of <base>"
+        let is_pct_of = match (self.peek(), self.peek_next()) {
+            (Some(Token::Unit(u)), Some(&Token::BinaryOp("of"))) => {
+                let sym = *u;
+                sym == "%" || sym == "percent" || sym == "pct"
             }
+            (Some(Token::Val(v)), Some(&Token::BinaryOp("of"))) => v.unit.is_percent(),
+            _ => false,
+        };
+
+        if is_pct_of {
+            self.advance();
+            self.advance();
+            let base_result = self.parse_expr(1)?;
+            let base_val = base_result.into_scalar()?;
+            let lhs_val = lhs.into_scalar()?;
+            let pct_unit = self.unit_registry.unit("%")?;
+            let ratio = lhs_val.canonical / base_val.canonical;
+            return Ok(EvalResult::Scalar(Value {
+                canonical: ratio,
+                unit: pct_unit,
+            }));
         }
 
         if let EvalResult::Date(ref d1) = lhs {

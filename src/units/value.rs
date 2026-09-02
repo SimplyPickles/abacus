@@ -244,6 +244,14 @@ pub fn format_with_unit(amount: &str, unit: &str) -> String {
         } else {
             format!("{unit}{amount}")
         }
+    } else if unit == "%" {
+        format!("{amount}%")
+    } else if unit == "+%" {
+        if amount.starts_with('-') {
+            format!("{amount}%")
+        } else {
+            format!("+{amount}%")
+        }
     } else {
         format!("{amount} {unit}")
     }
@@ -359,16 +367,23 @@ impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let value = self.amount();
         let nearest_integer = value.round();
-        let display_value = if value.is_finite()
-            && (value - nearest_integer).abs() <= 1e-12 * value.abs().max(1.0)
-        {
+        let is_integer = value.is_finite()
+            && (value - nearest_integer).abs() <= 1e-12 * value.abs().max(1.0);
+        let display_value = if is_integer {
             nearest_integer
         } else {
             value
         };
 
         let unit_str = self.unit.display.render();
-        let val_str = display_value.to_string();
+        let val_str = if !is_integer
+            && self.unit.dimensions == crate::units::dimensions::Dimensions::CURRENCY
+        {
+            let dec = currency_decimal_places(&unit_str);
+            format!("{display_value:.dec$}")
+        } else {
+            display_value.to_string()
+        };
         write!(f, "{}", format_with_unit(&val_str, &unit_str))
     }
 }
@@ -414,9 +429,15 @@ impl Add<&Value> for &Value {
             return Err(AbacusError::IncompatibleDimensions);
         }
 
+        let unit = if self.unit.display.render() == "+%" && rhs.unit.display.render() == "%" {
+            Arc::clone(&rhs.unit)
+        } else {
+            Arc::clone(&self.unit)
+        };
+
         Ok(Value {
             canonical: self.canonical + rhs.canonical,
-            unit: Arc::clone(&self.unit),
+            unit,
         })
     }
 }
@@ -456,9 +477,15 @@ impl Sub<&Value> for &Value {
             return Err(AbacusError::IncompatibleDimensions);
         }
 
+        let unit = if self.unit.display.render() == "+%" && rhs.unit.display.render() == "%" {
+            Arc::clone(&rhs.unit)
+        } else {
+            Arc::clone(&self.unit)
+        };
+
         Ok(Value {
             canonical: self.canonical - rhs.canonical,
-            unit: Arc::clone(&self.unit),
+            unit,
         })
     }
 }

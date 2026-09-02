@@ -43,6 +43,64 @@ fn match_rel_time_op(remaining: &str) -> Option<(&'static str, usize)> {
     None
 }
 
+#[inline]
+fn match_percent_change_from(remaining: &str) -> Option<usize> {
+    let lower = remaining.to_ascii_lowercase();
+    const PREFIXES: &[&str] = &[
+        "% change from",
+        "% difference from",
+        "percent change from",
+        "percent difference from",
+        "percentage change from",
+        "percentage difference from",
+    ];
+    for &p in PREFIXES {
+        if let Some(rest) = lower.strip_prefix(p) {
+            let next_char = rest.chars().next();
+            if next_char.is_none_or(|nc| !nc.is_alphanumeric() && nc != '_') {
+                return Some(p.len());
+            }
+        }
+    }
+    None
+}
+
+#[inline]
+fn match_conversational_binary_op(remaining: &str) -> Option<(&'static str, usize)> {
+    let lower = remaining.to_ascii_lowercase();
+    const OPS: &[(&str, &str)] = &[
+        ("more than", "more than"),
+        ("less than", "less than"),
+        ("out of", "/"),
+    ];
+    for &(phrase, alias) in OPS {
+        if let Some(rest) = lower.strip_prefix(phrase) {
+            let next_char = rest.chars().next();
+            if next_char.is_none_or(|nc| !nc.is_alphanumeric() && nc != '_') {
+                return Some((alias, phrase.len()));
+            }
+        }
+    }
+    None
+}
+
+#[inline]
+fn match_percent_tag(remaining: &str) -> Option<(&'static str, usize)> {
+    let lower = remaining.to_ascii_lowercase();
+    const TAGS: &[&str] = &[
+        "tip", "tax", "vat", "gst", "fee", "discount", "markup",
+    ];
+    for &tag in TAGS {
+        if let Some(rest) = lower.strip_prefix(tag) {
+            let next_char = rest.chars().next();
+            if next_char.is_none_or(|nc| !nc.is_alphanumeric() && nc != '_') {
+                return Some((tag, tag.len()));
+            }
+        }
+    }
+    None
+}
+
 /// Returns true if `sym` is a standard mathematical constant name.
 #[inline]
 pub(crate) fn is_standard_constant(sym: &str) -> bool {
@@ -179,6 +237,91 @@ pub fn tokenize_string_full<'a>(
             {
                 tokens.push(Token::Unit(&input_text[i..i + word.len()]));
                 let target_idx = i + word.len();
+                while let Some(&(idx, _)) = chars.peek() {
+                    if idx < target_idx {
+                        chars.next();
+                    } else {
+                        break;
+                    }
+                }
+                continue;
+            }
+        }
+
+        // Percent change expressions (e.g. "% change from", "percent change from")
+        if c == '%' || c == 'p' || c == 'P' {
+            let remaining = &input_text[i..];
+            if let Some(len) = match_percent_change_from(remaining) {
+                tokens.push(Token::PercentChangeFrom);
+                let target_idx = i + len;
+                while let Some(&(idx, _)) = chars.peek() {
+                    if idx < target_idx {
+                        chars.next();
+                    } else {
+                        break;
+                    }
+                }
+                continue;
+            }
+        }
+
+        // Percentage descriptor tags (e.g. "18% tip", "15% tax", "20% discount", "10% fee")
+        if c.is_ascii_alphabetic() {
+            let is_prev_pct = match tokens.last() {
+                Some(Token::Unit(u)) => *u == "%" || *u == "percent" || *u == "pct",
+                Some(Token::Val(v)) => v.unit.is_percent(),
+                _ => false,
+            };
+            if is_prev_pct {
+                let remaining = &input_text[i..];
+                if let Some((tag, len)) = match_percent_tag(remaining) {
+                    tokens.push(Token::PercentTag(tag));
+                    let target_idx = i + len;
+                    while let Some(&(idx, _)) = chars.peek() {
+                        if idx < target_idx {
+                            chars.next();
+                        } else {
+                            break;
+                        }
+                    }
+                    continue;
+                }
+            }
+        }
+
+        // Conversational "off" (e.g. "20% off $120" or "$100 - 20% off")
+        if (c == 'o' || c == 'O') && input_text[i..].to_ascii_lowercase().starts_with("off") {
+            let remaining = &input_text[i..];
+            let next_char = remaining[3..].chars().next();
+            if next_char.is_none_or(|nc| !nc.is_alphanumeric() && nc != '_') {
+                let after_off = remaining[3..].trim_start();
+                let starts_expr = !after_off.is_empty()
+                    && !after_off.starts_with(')')
+                    && !after_off.starts_with(']')
+                    && !after_off.starts_with(',');
+                if starts_expr {
+                    tokens.push(Token::BinaryOp("off"));
+                } else {
+                    tokens.push(Token::PercentTag("off"));
+                }
+                let target_idx = i + 3;
+                while let Some(&(idx, _)) = chars.peek() {
+                    if idx < target_idx {
+                        chars.next();
+                    } else {
+                        break;
+                    }
+                }
+                continue;
+            }
+        }
+
+        // Conversational binary operators (e.g. "more than", "less than", "out of")
+        if c == 'm' || c == 'M' || c == 'l' || c == 'L' || c == 'o' || c == 'O' {
+            let remaining = &input_text[i..];
+            if let Some((op_name, len)) = match_conversational_binary_op(remaining) {
+                tokens.push(Token::BinaryOp(op_name));
+                let target_idx = i + len;
                 while let Some(&(idx, _)) = chars.peek() {
                     if idx < target_idx {
                         chars.next();

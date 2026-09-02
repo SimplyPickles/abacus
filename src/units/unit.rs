@@ -271,7 +271,10 @@ impl Unit {
         self.is_dimensionless()
             && self.display.denominator.is_empty()
             && self.display.numerator.len() == 1
-            && self.display.numerator[0] == "%"
+            && matches!(
+                self.display.numerator[0].as_str(),
+                "%" | "+%" | "percent" | "pct"
+            )
     }
 
     #[must_use]

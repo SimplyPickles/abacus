@@ -64,6 +64,44 @@ impl<'a> Parser<'a> {
                 }
             }
 
+            Some(Token::PercentChangeFrom) => {
+                let start_res = self.parse_expr(2)?;
+                if let Some(Token::ConversionOp) = self.peek() {
+                    self.advance();
+                } else {
+                    return Err(AbacusError::EvaluationError(
+                        "expected 'to' in percentage change expression".to_string(),
+                    ));
+                }
+                let end_res = self.parse_expr(2)?;
+
+                let start_val = start_res.into_scalar()?;
+                let end_val = end_res.into_scalar()?;
+
+                if !start_val.unit.is_compatible_with(&end_val.unit) {
+                    return Err(AbacusError::IncompatibleDimensions);
+                }
+
+                if start_val.canonical == 0.0 {
+                    return Err(AbacusError::EvaluationError(
+                        "division by zero in percentage change".to_string(),
+                    ));
+                }
+
+                let change = (end_val.canonical - start_val.canonical) / start_val.canonical;
+                let pct_unit = std::sync::Arc::new(crate::units::unit::Unit {
+                    scalar: 0.01,
+                    offset: 0.0,
+                    dimensions: crate::units::dimensions::Dimensions::DIMENSIONLESS,
+                    display: crate::units::unit::UnitExpr::single("+%"),
+                });
+
+                Ok(EvalResult::Scalar(Value {
+                    canonical: change,
+                    unit: pct_unit,
+                }))
+            }
+
             Some(Token::Unit(unit_sym)) => {
                 let unit = self.unit_registry.unit(unit_sym)?;
                 Ok(EvalResult::Scalar(Value::new(1.0, unit)))
