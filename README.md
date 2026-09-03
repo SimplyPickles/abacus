@@ -423,7 +423,7 @@ abacus = { version = "0.1", default-features = false, features = ["units"] }
 | `distributions` | Continuous & discrete probability distributions                                           | **Yes** |
 |     `date`      | Date parsing, relative time, and business day arithmetic                                  | **Yes** |
 |   `financial`   | Financial functions (`pmt`, `npv`, `irr`, `fv`, `pv`)                                     | **Yes** |
-|     `repl`      | Interactive CLI REPL with command history and syntax highlighting                         | **Yes** |
+|     `repl`      | Interactive CLI REPL with command history and syntax highlighting                         | No      |
 |     `serde`     | Enables `Serialize` and `Deserialize` on core types (`Value`, `Interval`, `Date`, `Hash`) | No      |
 
 ---
