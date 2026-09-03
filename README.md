@@ -449,7 +449,7 @@ cargo bench --bench eval_bench -- --test
 Launch the interactive REPL:
 
 ```sh
-cargo run --bin repl
+cargo run --bin repl --features=repl
 ```
 
 The REPL supports persistent cross-platform history, ANSI syntax formatting in TTY environments, and live expression inspection.
