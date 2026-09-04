@@ -28,6 +28,9 @@ pub use evaluation::tokenizer::registry::{
 };
 
 pub use evaluation::tokenizer::tokens::Token;
+pub use evaluation::tokenizer::sig_figs::{
+    count_significant_figures, min_significant_figures_in_expr,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -47,10 +50,7 @@ pub enum Notation {
     Engineering,
 }
 
-use crate::evaluation::{
-    parser::config::EvalConfig,
-    tokenizer::sig_figs::min_significant_figures_in_expr,
-};
+use crate::evaluation::parser::config::EvalConfig;
 
 pub struct Abacus {
     pub units: UnitRegistry,

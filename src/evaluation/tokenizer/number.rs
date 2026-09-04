@@ -26,7 +26,16 @@ pub(crate) fn parse_number_token<'a>(
                     has_dot = true;
                     chars.next();
                 }
-                _ => break, // stop number here
+                Some(&(_, '.')) => {
+                    break; // range operator `..`
+                }
+                Some(&(_, next_c)) if next_c.is_alphabetic() || next_c == '_' => {
+                    break; // stop number here for property access e.g. .year
+                }
+                _ => {
+                    has_dot = true;
+                    chars.next();
+                }
             }
         } else if (num_c == 'e' || num_c == 'E') && !has_exp {
             let mut exp_lookahead = chars.clone();

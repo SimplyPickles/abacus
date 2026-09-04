@@ -94,3 +94,61 @@ fn test_in_place_configuration_mutators() {
     let res = calc.eval("10 N * 5 m").unwrap();
     assert_eq!(res.to_display(), "50 N*m");
 }
+
+#[test]
+fn test_five_rules_of_significant_figures() {
+    use abacus::count_significant_figures;
+
+    // Rule 1: Non-zero digits are always significant (1..9).
+    // e.g. 45.2 has 3 sig figs
+    assert_eq!(count_significant_figures("45.2"), Some(3));
+    assert_eq!(count_significant_figures("123.45"), Some(5));
+    assert_eq!(count_significant_figures("7.89"), Some(3));
+
+    // Rule 2: Captive zeros between non-zero digits are significant.
+    // e.g. 5005 has 4 sig figs
+    assert_eq!(count_significant_figures("5005"), Some(4));
+    assert_eq!(count_significant_figures("50.05"), Some(4));
+    assert_eq!(count_significant_figures("1.002"), Some(4));
+    assert_eq!(count_significant_figures("104"), Some(3));
+
+    // Rule 3: Leading zeros are not significant (placeholders).
+    // e.g. 0.0045 has 2 sig figs
+    assert_eq!(count_significant_figures("0.0045"), Some(2));
+    assert_eq!(count_significant_figures("0.05"), Some(1));
+    assert_eq!(count_significant_figures("0045"), Some(2));
+    assert_eq!(count_significant_figures("0.000105"), Some(3));
+
+    // Rule 4: Trailing zeros are significant only if a decimal point is present.
+    // e.g. 150. has 3 sig figs, while 150 has only 2 sig figs.
+    assert_eq!(count_significant_figures("150."), Some(3));
+    assert_eq!(count_significant_figures("150"), Some(2));
+    assert_eq!(count_significant_figures("150.0"), Some(4));
+    assert_eq!(count_significant_figures("12.30"), Some(4));
+    assert_eq!(count_significant_figures("0.00450"), Some(3));
+    assert_eq!(count_significant_figures("100."), Some(3));
+    assert_eq!(count_significant_figures("100"), Some(1));
+    assert_eq!(count_significant_figures("1200"), Some(2));
+    assert_eq!(count_significant_figures("1200.00"), Some(6));
+
+    // Rule 5: Exact numbers have infinite significant figures.
+    let calc = Abacus::standard().with_follow_significant_figures(true);
+
+    // 150. (3 sig figs) * 2.50 (3 sig figs) -> 375
+    let res1 = calc.eval("150. * 2.50").unwrap();
+    assert_eq!(res1.to_display(), "375");
+
+    // Pure integers in pure integer expressions follow Rule 4:
+    // 150 (2 sig figs) * 25 (2 sig figs) = 3750 -> rounded to 2 sig figs -> 3800
+    let res2 = calc.eval("150 * 25").unwrap();
+    assert_eq!(res2.to_display(), "3800");
+
+    // Exact count multiplier with measurement:
+    // 3 * 4.52 g (3 sig figs) -> 13.6 g (3 sig figs, not limited by integer 3)
+    let res3 = calc.eval("3 * 4.52 g").unwrap();
+    assert_eq!(res3.to_display(), "13.6 g");
+
+    // Exact mathematical powers: (4.52 m) ^ 2 -> 20.4 (m)^2 (3 sig figs, not 1)
+    let res4 = calc.eval("(4.52 m) ^ 2").unwrap();
+    assert_eq!(res4.to_display(), "20.4 (m)^2");
+}
