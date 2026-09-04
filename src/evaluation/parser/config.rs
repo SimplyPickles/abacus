@@ -48,6 +48,7 @@ impl From<&crate::Abacus> for EvalConfig {
             default_timezone: abacus.default_timezone.clone(),
             weekend: abacus.weekend,
             max_recursion_depth: abacus.max_recursion_depth,
+            max_exponent: abacus.max_exponent,
             implicit_multiplication: abacus.implicit_multiplication,
             number_scales: abacus.number_scales,
             currencies: abacus.currencies,
