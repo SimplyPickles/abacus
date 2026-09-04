@@ -242,6 +242,46 @@ fn test_in_place_mutator_methods() {
     calc.set_max_depth(10);
     assert_eq!(calc.max_recursion_depth, 10);
 
+    calc.set_max_exp(50.0);
+    assert_eq!(calc.max_exponent, 50.0);
+
     calc.set_implicit_mul(false);
     assert!(!calc.implicit_multiplication);
+}
+
+#[test]
+fn test_max_exponent_configuration() {
+    // Default max exponent is 1000.0
+    let calc = Abacus::standard();
+    assert_eq!(calc.max_exponent, 1000.0);
+    assert_eq!(calc.eval("2 ^ 10").unwrap().to_display(), "1024");
+
+    // Configured low max exponent (e.g. 5)
+    let low_calc = Abacus::standard().with_max_exponent(5.0);
+    assert_eq!(low_calc.max_exponent, 5.0);
+    assert_eq!(low_calc.eval("2 ^ 5").unwrap().to_display(), "32");
+    assert!(matches!(
+        low_calc.eval("2 ^ 6"),
+        Err(AbacusError::ExponentLimitExceeded)
+    ));
+    assert!(matches!(
+        low_calc.eval("2 ^ -6"),
+        Err(AbacusError::ExponentLimitExceeded)
+    ));
+    assert!(matches!(
+        low_calc.eval("2 ^ 10000000000"),
+        Err(AbacusError::ExponentLimitExceeded)
+    ));
+
+    // Interval exponent limit
+    assert!(matches!(
+        low_calc.eval("[1, 2] ^ [6, 7]"),
+        Err(AbacusError::ExponentLimitExceeded)
+    ));
+
+    // Exponent unit limit
+    assert!(matches!(
+        low_calc.eval("10 m^100000"),
+        Err(AbacusError::ExponentLimitExceeded)
+    ));
 }

@@ -469,6 +469,21 @@ impl<'a> Parser<'a> {
             }
         }
 
+        if name == "^" {
+            match &rhs {
+                EvalResult::Scalar(r) if r.canonical.abs() > self.config.max_exponent => {
+                    return Err(AbacusError::ExponentLimitExceeded);
+                }
+                EvalResult::Interval(i)
+                    if i.lo.canonical.abs() > self.config.max_exponent
+                        || i.hi.canonical.abs() > self.config.max_exponent =>
+                {
+                    return Err(AbacusError::ExponentLimitExceeded);
+                }
+                _ => {}
+            }
+        }
+
         let op = self
             .token_registry
             .binary_operators

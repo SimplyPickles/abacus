@@ -725,6 +725,9 @@ pub fn tokenize_string_with_anchor<'a>(
                 }
             } else if unit_registry.contains(sym) {
                 tokens.push(Token::Unit(sym));
+            } else if sym.contains('^') {
+                unit_registry.unit(sym)?;
+                tokens.push(Token::Unit(sym));
             } else {
                 return Err(AbacusError::UnknownUnit(sym.to_string()));
             }

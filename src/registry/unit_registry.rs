@@ -93,11 +93,14 @@ impl UnitRegistry {
             && let Ok(exp) = exp_str.parse::<f64>()
             && let Some(base_unit) = self.units.get(base_sym)
         {
+            if exp.abs() > 1_000.0 {
+                return Err(AbacusError::ExponentLimitExceeded);
+            }
             let scalar = base_unit.scalar.powf(exp);
             let dimensions = base_unit.dimensions * exp;
 
             let is_integer = (exp - exp.round()).abs() < 1e-9;
-            let display = if is_integer {
+            let display = if is_integer && exp.abs() <= 8.0 {
                 let exp_int = exp.round() as i64;
                 if exp_int > 0 {
                     crate::units::unit::UnitExpr {

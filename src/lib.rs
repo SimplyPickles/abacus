@@ -67,6 +67,7 @@ pub struct Abacus {
     pub default_timezone: Option<TimeZone>,
     pub weekend: WeekendDays,
     pub max_recursion_depth: usize,
+    pub max_exponent: f64,
     pub implicit_multiplication: bool,
     pub number_scales: bool,
     pub currencies: bool,
@@ -87,7 +88,43 @@ impl Abacus {
     /// Initialize a new `Abacus` instance with default empty unit and token registries.
     #[must_use]
     pub fn new() -> Self {
+<<<<<<< Updated upstream
         Self::from_registry(UnitRegistry::new(), TokenRegistry::new())
+=======
+        Self {
+            units: UnitRegistry::new(),
+            tokens: TokenRegistry::new(),
+            date_format: DateFormat::default(),
+            significant_figures: None,
+            follow_significant_figures: false,
+            auto_derived_units: true,
+            angle_mode: AngleMode::default(),
+            strict_dimensions: false,
+            decimal_places: None,
+            default_interval_style: None,
+            notation: Notation::default(),
+            default_timezone: None,
+            weekend: WeekendDays::default(),
+            max_recursion_depth: 64,
+            max_exponent: 1_000.0,
+            implicit_multiplication: true,
+            number_scales: cfg!(feature = "number-scales"),
+            currencies: cfg!(feature = "currencies"),
+            live_rates: false,
+            currency_cache_path: {
+                #[cfg(feature = "currencies")]
+                {
+                    Some(crate::registry::units::currency_units::default_currency_cache_path())
+                }
+                #[cfg(not(feature = "currencies"))]
+                {
+                    None
+                }
+            },
+            unit_display_overrides: HashMap::new(),
+            variables: HashMap::new(),
+        }
+>>>>>>> Stashed changes
     }
 
     /// Initialize a new `Abacus` instance with custom units and tokens.
@@ -107,6 +144,7 @@ impl Abacus {
             default_timezone: None,
             weekend: WeekendDays::default(),
             max_recursion_depth: 64,
+            max_exponent: 1_000.0,
             implicit_multiplication: true,
             number_scales: cfg!(feature = "number-scales"),
             currencies: cfg!(feature = "currencies"),
@@ -140,9 +178,45 @@ impl Abacus {
     /// ```
     #[must_use]
     pub fn standard() -> Self {
+<<<<<<< Updated upstream
         let mut abacus = Self::from_registry(UnitRegistry::standard(), TokenRegistry::standard());
         abacus.variables = Self::standard_variables();
         abacus
+=======
+        Self {
+            units: UnitRegistry::standard(),
+            tokens: TokenRegistry::standard(),
+            date_format: DateFormat::default(),
+            significant_figures: None,
+            follow_significant_figures: false,
+            auto_derived_units: true,
+            angle_mode: AngleMode::default(),
+            strict_dimensions: false,
+            decimal_places: None,
+            default_interval_style: None,
+            notation: Notation::default(),
+            default_timezone: None,
+            weekend: WeekendDays::default(),
+            max_recursion_depth: 64,
+            max_exponent: 1_000.0,
+            implicit_multiplication: true,
+            number_scales: cfg!(feature = "number-scales"),
+            currencies: cfg!(feature = "currencies"),
+            live_rates: false,
+            currency_cache_path: {
+                #[cfg(feature = "currencies")]
+                {
+                    Some(crate::registry::units::currency_units::default_currency_cache_path())
+                }
+                #[cfg(not(feature = "currencies"))]
+                {
+                    None
+                }
+            },
+            unit_display_overrides: HashMap::new(),
+            variables: Self::standard_variables(),
+        }
+>>>>>>> Stashed changes
     }
 
     // Set the date format for this `Abacus` instance
@@ -366,6 +440,25 @@ impl Abacus {
     /// In-place setter for maximum recursion depth.
     pub fn set_max_depth(&mut self, depth: usize) {
         self.max_recursion_depth = depth;
+    }
+
+    /// Sets the maximum exponent limit to prevent freezes or resource exhaustion.
+    #[must_use]
+    pub fn set_max_exponent(mut self, max: f64) -> Self {
+        self.max_exponent = max;
+        self
+    }
+
+    /// Builder method to configure the maximum exponent limit.
+    #[must_use]
+    pub fn with_max_exponent(mut self, max: f64) -> Self {
+        self.max_exponent = max;
+        self
+    }
+
+    /// In-place setter for maximum exponent limit.
+    pub fn set_max_exp(&mut self, max: f64) {
+        self.max_exponent = max;
     }
 
     /// Sets whether implicit multiplication (e.g. `2(3)`) is allowed.
@@ -714,7 +807,24 @@ impl Abacus {
     // Evaluated dates are automatically formatted
     // Returns an error if the expression is invalid or cannot be evaluated.
     pub fn eval(&self, expr: &str) -> Result<EvalResult, AbacusError> {
+<<<<<<< Updated upstream
         let config = EvalConfig::from(self);
+=======
+        let config = EvalConfig {
+            auto_derived: self.auto_derived_units,
+            angle_mode: self.angle_mode,
+            strict_dimensions: self.strict_dimensions,
+            default_interval_style: self.default_interval_style,
+            default_timezone: self.default_timezone.clone(),
+            weekend: self.weekend,
+            max_recursion_depth: self.max_recursion_depth,
+            max_exponent: self.max_exponent,
+            implicit_multiplication: self.implicit_multiplication,
+            number_scales: self.number_scales,
+            currencies: self.currencies,
+            live_rates: self.live_rates,
+        };
+>>>>>>> Stashed changes
         let mut res = crate::evaluation::parser::evaluate_with_variables(
             &self.tokens,
             &self.units,
